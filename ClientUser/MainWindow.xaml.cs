@@ -15,38 +15,43 @@ namespace ClientUser
     public sealed partial class MainWindow : Window
     {
         private StorageFile? fileScreenshot = null; // Reso Nullable
-
-        // Definiamo un HttpClient riutilizzabile e l'URL base dell'API
         private HttpClient _apiClient;
 
-        // ⚠️⚠️⚠️ MODIFICA QUESTO URL ⚠️⚠️⚠️
-        // Metti l'URL base della tua API (senza /api/tickets)
-        private string _apiBaseUrl = "http://localhost:5210"; // Usa HTTP (non HTTPS) e la porta giusta!
+        // ⚠️ Ricorda di impostare l'URL corretto
+        private string _apiBaseUrl = "http://localhost:5210";
 
         public MainWindow()
         {
             this.InitializeComponent(); // Ora questo funzionerà
             this.Title = "Nuovo Ticket Assistenza";
 
-            // Inizializza il client HTTP
             var handler = new HttpClientHandler
             {
                 UseDefaultCredentials = true,
-                // Per test in locale, bypassa controllo certificato (se usi HTTPS)
                 ServerCertificateCustomValidationCallback =
                     (sender, cert, chain, sslPolicyErrors) => true
             };
             _apiClient = new HttpClient(handler);
         }
 
-        // Questo metodo ora corrisponde al nome nell'evento 'Loaded' del XAML
+        // --- SOLUZIONE (Aggiramento) ---
+        // Abbiamo sostituito 'RootPanel' con '(sender as FrameworkElement)'
         private async void RootPanel_Loaded(object sender, RoutedEventArgs e)
         {
-            // Disabilita l'intero form mentre carichiamo i dati
-           // RootPanel.IsEnabled = false; // Ora questo funzionerà
-            await PopolaComboBoxAsync();
-         //   RootPanel.IsEnabled = true; // E anche questo
+            // Disabilita solo il pulsante di invio durante il caricamento
+            btnInvia.IsEnabled = false;
+            
+            try
+            {
+                await PopolaComboBoxAsync();
+            }
+            finally
+            {
+                // Riabilita il pulsante al termine
+                btnInvia.IsEnabled = true;
+            }
         }
+        // --- FINE SOLUZIONE ---
 
         // Nuovo metodo ASYNC per popolare le ComboBox dall'API
         private async Task PopolaComboBoxAsync()
@@ -64,10 +69,8 @@ namespace ClientUser
             }
             catch (Exception ex)
             {
-                // Errore grave se non possiamo caricare i dati
                 await MostraDialogo("Errore di Caricamento",
                     $"Impossibile caricare i dati dall'API.\nVerifica che l'API sia in esecuzione e l'URL sia corretto.\n\nDettagli: {ex.Message}");
-                // Chiudiamo l'app se non può caricare i dati essenziali
                 this.Close();
             }
         }
@@ -76,11 +79,10 @@ namespace ClientUser
         private async Task PopolaSingolaComboBox(ComboBox comboBox, string url)
         {
             var response = await _apiClient.GetAsync(url);
-            response.EnsureSuccessStatusCode(); // Lancia un errore se l'API fallisce
+            response.EnsureSuccessStatusCode();
 
             string jsonResponse = await response.Content.ReadAsStringAsync();
 
-            // Opzioni per deserializzare non case-sensitive (più sicuro)
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
@@ -131,8 +133,7 @@ namespace ClientUser
 
             var content = new MultipartFormDataContent();
 
-            // --- CORREZIONE NULLABLE ---
-            // Usiamo '??' per fornire una stringa vuota se l'input è null
+            // Correzione Nullable
             content.Add(new StringContent(cmbTipologia.SelectedItem?.ToString() ?? ""), "ProblemType");
             content.Add(new StringContent(cmbUrgenza.SelectedItem?.ToString() ?? ""), "Urgency");
             content.Add(new StringContent(txtFunzione.Text ?? ""), "Funzione");
@@ -140,8 +141,6 @@ namespace ClientUser
             content.Add(new StringContent(System.Environment.MachineName ?? "Sconosciuto"), "Macchina");
             content.Add(new StringContent(txtOggetto.Text ?? ""), "Title");
             content.Add(new StringContent(txtTesto.Text ?? ""), "Message");
-            // --- FINE CORREZIONE ---
-
 
             if (fileScreenshot != null)
             {
@@ -154,9 +153,7 @@ namespace ClientUser
             try
             {
                 btnInvia.IsEnabled = false;
-
                 string apiUrl = $"{_apiBaseUrl}/api/tickets";
-
                 var response = await _apiClient.PostAsync(apiUrl, content);
 
                 if (response.IsSuccessStatusCode)
@@ -196,7 +193,9 @@ namespace ClientUser
                 Title = titolo,
                 Content = contenuto,
                 CloseButtonText = "OK",
-                XamlRoot = RootPanel.XamlRoot // Ora questo funzionerà
+                // 'RootPanel' qui funzionerà, perché questo metodo
+                // viene chiamato molto dopo il 'Loaded'.
+                XamlRoot = RootPanel.XamlRoot
             };
             await dialog.ShowAsync();
         }
