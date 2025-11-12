@@ -1,0 +1,96 @@
+﻿<Window
+    x:Class="ClientUser.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ClientUser"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop/>
+    </Window.SystemBackdrop>
+
+    <!-- Usa Window.Content per evitare l'errore "Content impostato più volte" -->
+    <Window.Content>
+        <!-- L'evento 'Loaded' ora chiama 'RootPanel_Loaded' (corrisponde al C#) -->
+        <StackPanel x:Name="RootPanel" Orientation="Vertical" Margin="24" Spacing="16"
+                    Loaded="RootPanel_Loaded">
+
+            <TextBlock Text="Crea un nuovo ticket di assistenza" Style="{StaticResource TitleTextBlockStyle}" />
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ComboBox x:Name="cmbTipologia" 
+                          Grid.Column="0"
+                          Header="Tipologia Problema"
+                          HorizontalAlignment="Stretch" 
+                          SelectionChanged="cmbTipologia_SelectedIndexChanged" />
+
+                <ComboBox x:Name="cmbUrgenza" 
+                          Grid.Column="1"
+                          Header="Livello Urgenza"
+                          HorizontalAlignment="Stretch" />
+            </Grid>
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="txtFunzione" 
+                         Grid.Column="0"
+                         Header="La tua Funzione / Reparto" 
+                         PlaceholderText="Es: Amministrazione, Vendite..."/>
+
+                <ComboBox x:Name="cmbSede"
+                          Grid.Column="1"
+                          Header="Sede"
+                          HorizontalAlignment="Stretch" />
+
+            </Grid>
+
+            <TextBox x:Name="txtOggetto" 
+                     Header="Oggetto" 
+                     PlaceholderText="Es: Impossibile accedere alla stampante"/>
+
+            <TextBox x:Name="txtTesto" 
+                     Header="Testo Messaggio"
+                     PlaceholderText="Descrivi il tuo problema in dettaglio..."
+                     Height="150" 
+                     AcceptsReturn="True" 
+                     TextWrapping="Wrap" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+
+                <Button x:Name="btnUpload" Click="btnUpload_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8E5;" />
+                        <TextBlock Text="Carica Screenshot" />
+                    </StackPanel>
+                </Button>
+
+                <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" />
+
+            </StackPanel>
+
+            <Button x:Name="btnInvia" 
+                    Click="btnInvia_Click" 
+                    HorizontalAlignment="Stretch" 
+                    Margin="0,20,0,0"
+                    Style="{StaticResource AccentButtonStyle}">
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE724;" />
+                    <TextBlock Text="Invia Ticket" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Window.Content>
+
+</Window>
