@@ -1,11 +1,13 @@
-﻿using Microsoft.UI.Xaml;
+﻿using ClientIT.Models;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
-using ClientIT.Models;
 
 namespace ClientIT
 {
@@ -15,6 +17,9 @@ namespace ClientIT
         
         // ⚠️⚠️⚠️ MODIFICA QUESTO URL ⚠️⚠️⚠️
         private string _apiBaseUrl = "http://localhost:5210"; // Esempio! Metti il tuo.
+
+        public ObservableCollection<Stato> AllStati { get; } = new();
+        public ObservableCollection<ItUtente> AllItUsers { get; } = new();
 
         public MainWindow()
         {
@@ -61,7 +66,7 @@ namespace ClientIT
             {
                 // Carica la lista utenti (a sinistra)
                 await LoadItUsersAsync();
-                
+                await LoadStatiAsync();
                 // Carica tutti i ticket (a destra) all'avvio
                 await LoadTicketsAsync(); // Carica senza filtro
             }
@@ -77,26 +82,57 @@ namespace ClientIT
                 RootGrid.IsHitTestVisible = true; // Riabilita l'intera griglia
             }
         }
+        private async Task LoadStatiAsync()
+        {
+            var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/tickets/stati");
+            response.EnsureSuccessStatusCode();
 
+            string jsonResponse = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var stati = JsonSerializer.Deserialize<List<Stato>>(jsonResponse, options);
+
+            AllStati.Clear();
+            if (stati != null)
+            {
+                foreach (var stato in stati)
+                {
+                    AllStati.Add(stato);
+                }
+            }
+        }
         /// <summary>
         /// Carica la lista di utenti IT nella colonna sinistra.
         /// </summary>
         private async Task LoadItUsersAsync()
         {
             var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/users");
-            response.EnsureSuccessStatusCode(); // Lancia un'eccezione se l'API fallisce
+            response.EnsureSuccessStatusCode();
 
             string jsonResponse = await response.Content.ReadAsStringAsync();
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var utenti = JsonSerializer.Deserialize<List<ItUtente>>(jsonResponse, options);
 
+            // Popola la lista a sinistra
             UserListView.ItemsSource = utenti;
+
+            // --- ECCO LA LOGICA MANCANTE ---
+            // Popola la lista per il ComboBox (aggiungendo "Non assegnato")
+            AllItUsers.Clear();
+            AllItUsers.Add(ItUtente.NonAssegnato); // Aggiunge l'opzione "Non assegnato" (ID 0)
+            if (utenti != null)
+            {
+                foreach (var utente in utenti)
+                {
+                    AllItUsers.Add(utente);
+                }
+            }
+            // --- FINE LOGICA MANCANTE ---
         }
 
         /// <summary>
         /// Carica la lista dei ticket (filtrata o completa) nella colonna destra.
         /// </summary>
-        private async Task LoadTicketsAsync(int? userId = null)
+        private async Task LoadTicketsAsync(int? assegnatoa_id = null)
         {
             LoadingProgressRing.IsActive = true;
             LoadingProgressRing.Visibility = Visibility.Visible;
@@ -106,10 +142,10 @@ namespace ClientIT
             {
                 string url = $"{_apiBaseUrl}/api/tickets/all";
 
-                // Se è stato fornito un userID, aggiungilo come filtro
-                if (userId.HasValue)
+                // Se è stato fornito un ID, aggiungilo come filtro
+                if (assegnatoa_id.HasValue)
                 {
-                    url += $"?assegnatoaId={userId.Value}";
+                    url += $"?assegnatoa_id={assegnatoa_id.Value}";
                 }
 
                 var response = await _apiClient.GetAsync(url);
@@ -139,6 +175,76 @@ namespace ClientIT
         {
             UserListView.SelectedItem = null; // Deseleziona la lista
             await LoadTicketsAsync(); // Carica tutti i ticket
+        }
+        /// <summary>
+        /// (NUOVO) Auto-Salvataggio quando si cambia lo STATO
+        /// </summary>
+        private async void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var comboBox = sender as ComboBox;
+            // Troviamo il Nticket (ID) del ticket che abbiamo salvato nel Tag
+            // e ci assicuriamo che l'evento non sia causato da un binding iniziale
+            if (comboBox?.Tag is int nticket &&
+                comboBox.SelectedValue is int statoId &&
+                e.AddedItems.Count > 0)
+            {
+                await UpdateTicketAsync(nticket, statoId, null);
+            }
+        }
+
+        /// <summary>
+        /// (NUOVO) Auto-Salvataggio quando si cambia l'ASSEGNATARIO
+        /// </summary>
+        private async void AssegnatoaComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var comboBox = sender as ComboBox;
+            if (comboBox?.Tag is int nticket &&
+                comboBox.SelectedValue is int assegnatoaId &&
+                e.AddedItems.Count > 0)
+            {
+                await UpdateTicketAsync(nticket, null, assegnatoaId);
+            }
+        }
+
+        /// <summary>
+        /// (NUOVO) Chiama l'endpoint PUT dell'API per l'auto-salvataggio.
+        /// </summary>
+        private async Task UpdateTicketAsync(int nticket, int? statoId, int? assegnatoaId)
+        {
+            LoadingProgressRing.IsActive = true;
+            LoadingProgressRing.Visibility = Visibility.Visible;
+            RootGrid.IsHitTestVisible = false; // Blocca l'interfaccia durante il salvataggio
+
+            try
+            {
+                // Costruisce l'URL (es. /api/tickets/123/update)
+                string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
+
+                // Crea l'oggetto da inviare (solo con i campi che vogliamo cambiare)
+                var request = new
+                {
+                    StatoId = statoId,
+                    AssegnatoaId = assegnatoaId
+                };
+
+                // Invia la richiesta PUT
+                var response = await _apiClient.PutAsJsonAsync(url, request);
+                response.EnsureSuccessStatusCode();
+
+                // Auto-salvataggio riuscito.
+            }
+            catch (Exception ex)
+            {
+                await ShowErrorDialog($"Errore during l'auto-salvataggio: {ex.Message}");
+                // Se il salvataggio fallisce, ricarichiamo la lista per annullare la modifica
+                await LoadTicketsAsync();
+            }
+            finally
+            {
+                LoadingProgressRing.IsActive = false;
+                LoadingProgressRing.Visibility = Visibility.Collapsed;
+                RootGrid.IsHitTestVisible = true; // Sblocca l'interfaccia
+            }
         }
 
         /// <summary>

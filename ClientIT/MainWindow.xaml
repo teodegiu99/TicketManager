@@ -6,8 +6,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:ClientIT.Models"
+    x:Name="ThisPage"
     mc:Ignorable="d">
-
+    
     <Window.SystemBackdrop>
         <MicaBackdrop/>
     </Window.SystemBackdrop>
@@ -149,6 +150,33 @@
                                                        Foreground="{ThemeResource TextFillColorPrimary}"/>
                                         </Border>
                                     </StackPanel>
+                                    <Grid ColumnSpacing="16" Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- ComboBox STATO (Auto-Salvataggio) -->
+                                        <ComboBox Grid.Column="0"
+                                                  Header="Stato"
+                                            ItemsSource="{Binding ElementName=ThisPage, Path=AllStati}"
+                                                  
+                                                  DisplayMemberPath="Nome"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{x:Bind StatoId, Mode=TwoWay}"
+                                                  SelectionChanged="StatoComboBox_SelectionChanged"
+                                                  Tag="{x:Bind Nticket}"/>
+
+                                            <!-- ComboBox ASSEGNATO A (Auto-Salvataggio) -->
+                                        <ComboBox Grid.Column="1"
+                                                  Header="Assegnato a"                                                
+                                            ItemsSource="{Binding ElementName=ThisPage, Path=AllItUsers}"
+                                                  DisplayMemberPath="UsernameAd"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{x:Bind AssegnatoaId, Mode=TwoWay, TargetNullValue=0}"
+                                                  SelectionChanged="AssegnatoaComboBox_SelectionChanged"
+                                                  Tag="{x:Bind Nticket}"/>
+                                    </Grid>
 
                                     <!-- Riga Utente, Macchina e Assegnato (NUOVO) -->
                                     <TextBlock Opacity="0.8" 

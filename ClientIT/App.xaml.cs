@@ -31,7 +31,7 @@ namespace ClientIT
                 e.Handled = true;
             };
 
-            this.InitializeComponent();
+            // this.InitializeComponent(); // <-- RIMUOVI o COMMENTA QUESTA RIGA
 
             // Inizializza il client HTTP con le credenziali AD
             var handler = new HttpClientHandler

@@ -45,8 +45,8 @@
 
                 <TextBox x:Name="txtFunzione" 
                          Grid.Column="0"
-                         Header="La tua Funzione / Reparto" 
-                         PlaceholderText="Es: Amministrazione, Vendite..."/>
+                         Header="Funzione protex" 
+                         PlaceholderText="Codice in basso a destra in protex"/>
 
                 <ComboBox x:Name="cmbSede"
                           Grid.Column="1"

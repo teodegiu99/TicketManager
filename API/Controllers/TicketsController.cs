@@ -58,7 +58,7 @@ namespace TicketAPI.Controllers
 
         // --- Endpoint per recuperare TUTTI i ticket (per ClientIT) ---
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllTickets([FromQuery] int? assegnatoaId)
+        public async Task<IActionResult> GetAllTickets([FromQuery] int? assegnatoaid)
         {
             // Inizia la query sulla tabella Ticket
             var query = _context.Ticket
@@ -71,10 +71,10 @@ namespace TicketAPI.Controllers
 
             // --- Logica di Filtro ---
             // Se l'URL (ClientIT) passa un nome utente (es. ?assegnatoaId=5)
-            if (assegnatoaId.HasValue)
+            if (assegnatoaid.HasValue)
             {
                 // Filtra per ID (int)
-                query = query.Where(t => t.AssegnatoaId == assegnatoaId.Value);
+                query = query.Where(t => t.AssegnatoaId == assegnatoaid.Value);
             }
             // Se 'assegnatoaId' è null o vuoto, il filtro non viene applicato
             // e verranno restituiti tutti i ticket (come richiesto da "Mostra Tutti")
@@ -102,12 +102,72 @@ namespace TicketAPI.Controllers
                     Macchina = t.Macchina,
                     AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.UsernameAd : "Non assegnato",
                     DataCreazione = t.DataCreazione,
-                    ScreenshotPath = t.ScreenshotPath
+                    ScreenshotPath = t.ScreenshotPath,
+
+                    StatoId = t.StatoId,
+                    AssegnatoaId = t.AssegnatoaId // Sarà null se non assegnato
                 })
                 .ToListAsync();
 
             return Ok(tickets);
         }
+
+
+        [HttpPut("{nticket}/update")]
+        public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
+        {
+            var ticket = await _context.Ticket.FirstOrDefaultAsync(t => t.Nticket == nticket);
+            if (ticket == null)
+            {
+                return NotFound($"Ticket {nticket} non trovato.");
+            }
+
+            bool modified = false;
+
+            // Logica per aggiornare lo Stato
+            if (request.StatoId.HasValue)
+            {
+                if (ticket.StatoId != request.StatoId.Value)
+                {
+                    ticket.StatoId = request.StatoId.Value;
+                    modified = true;
+                }
+            }
+            // Logica per aggiornare l'Utente Assegnato
+            // (Il client invierà 'null' se l'ID è 0)
+            else if (request.AssegnatoaId.HasValue || request.AssegnatoaId == null)
+            {
+                int? idDaSalvare = request.AssegnatoaId;
+
+                // Converte l'ID 0 (che significa "Non assegnato" nel client) in 'null' per il DB
+                if (idDaSalvare == 0) idDaSalvare = null;
+
+                if (ticket.AssegnatoaId != idDaSalvare)
+                {
+                    ticket.AssegnatoaId = idDaSalvare;
+                    modified = true;
+                }
+            }
+
+            if (modified)
+            {
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, $"Errore DB durante l'aggiornamento: {ex.InnerException?.Message ?? ex.Message}");
+                }
+            }
+
+            return Ok(); // Invia 200 OK
+        }
+
+
+
+
+
 
 
         // --- Logica POST per creare un ticket (per ClientUser) ---
@@ -232,6 +292,17 @@ namespace TicketAPI.Controllers
                 .Select(s => s.Nome)
                 .ToListAsync();
             return Ok(data);
+        }
+
+        [HttpGet("stati")]
+        public async Task<IActionResult> GetAllStati()
+        {
+            // Restituisce l'ID e il Nome, necessari per il ComboBox del ClientIT
+            var stati = await _context.Stati // Usa Stati (plurale) come da DbContext
+                                    .OrderBy(s => s.Id)
+                                    .Select(s => new { s.Id, s.Nome })
+                                    .ToListAsync();
+            return Ok(stati);
         }
     }
 }
