@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketsAPI", "API\TicketsAP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientUser", "ClientUser\ClientUser.csproj", "{B19769AD-7E7B-43E4-8695-0D1DC080D421}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientIT", "ClientIT\ClientIT.csproj", "{D557FE60-9300-DB68-10AF-314ECA180DA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,12 @@ Global
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.ActiveCfg = Release|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.Build.0 = Release|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.Deploy.0 = Release|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Debug|Any CPU.Build.0 = Debug|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Debug|Any CPU.Deploy.0 = Debug|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Release|Any CPU.ActiveCfg = Release|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Release|Any CPU.Build.0 = Release|x64
+		{D557FE60-9300-DB68-10AF-314ECA180DA6}.Release|Any CPU.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

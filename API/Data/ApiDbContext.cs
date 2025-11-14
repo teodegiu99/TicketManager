@@ -16,7 +16,7 @@ namespace TicketAPI.Data
         public DbSet<Tipologia> Tipologie { get; set; }
         public DbSet<Urgenza> Urgenza { get; set; }
         public DbSet<Sede> Sedi { get; set; }
-
+        public DbSet<Stato> Stati { get; set; }
         public DbSet<ItUtente> ItUtenti { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -28,6 +28,7 @@ namespace TicketAPI.Data
             modelBuilder.Entity<Urgenza>().ToTable("urgenza");
             modelBuilder.Entity<Sede>().ToTable("sedi");
             modelBuilder.Entity<ItUtente>().ToTable("it_utenti");
+            modelBuilder.Entity<Stato>().ToTable("stato");
         }
     }
 }

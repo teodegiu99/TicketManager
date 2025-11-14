@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ClientIT (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "ClientIT (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -2,10 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TicketAPI.Data;
+using TicketAPI.Models;
 
 namespace TicketAPI.Controllers
 {
-    [Authorize] // Richiede che l'utente sia autenticato (con AD)
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
@@ -17,14 +18,9 @@ namespace TicketAPI.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Controlla se l'utente AD autenticato è presente
-        /// nella tabella 'it_utenti' e ne restituisce i permessi.
-        /// </summary>
         [HttpGet("check")]
         public async Task<IActionResult> CheckUserPermission()
         {
-            // Ottiene l'username (es. "AZIENDA\mrossi") dall'autenticazione Windows
             string adUsername = User.Identity.Name;
 
             if (string.IsNullOrEmpty(adUsername))
@@ -32,19 +28,36 @@ namespace TicketAPI.Controllers
                 return Unauthorized("Autenticazione AD fallita.");
             }
 
-            // Cerca l'utente nella nostra tabella 'it_utenti'
             var utenteAbilitato = await _context.ItUtenti
                 .FirstOrDefaultAsync(u => u.UsernameAd == adUsername);
 
             if (utenteAbilitato == null)
             {
-                // Se non è nella tabella, non è autorizzato
-                return Forbid("Utente non abilitato all'accesso.");
+                // --- QUESTA È LA CORREZIONE ---
+                // Se non è nella tabella, restituiamo un errore 403 (Forbidden)
+                // con un messaggio chiaro, invece di usare Forbid("messaggio")
+                // che causa il crash.
+                return StatusCode(403, "Utente non abilitato all'accesso.");
+                // --- FINE DELLA CORREZIONE ---
             }
 
-            // Se l'utente esiste, restituiamo i suoi dati (ID, Permesso, Tipologie)
-            // L'app client userà questi dati per decidere cosa mostrare.
             return Ok(utenteAbilitato);
+        }
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetItUsers()
+        {
+            var utenti = await _context.ItUtenti
+                .Select(u => new
+                {
+                    u.Id,
+                    u.UsernameAd,
+                    u.Permesso,
+                    u.TipologieAbilitate
+                })
+                .ToListAsync();
+
+            return Ok(utenti);
         }
     }
 }
