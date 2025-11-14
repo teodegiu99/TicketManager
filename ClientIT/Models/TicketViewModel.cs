@@ -22,5 +22,9 @@ namespace ClientIT.Models
         public string Macchina { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
+        public string StatoNome { get; set; } = string.Empty;
+        public string AssegnatoaNome { get; set; } = string.Empty;
+        public int StatoId { get; set; }
+        public int? AssegnatoaId { get; set; } // Nullable (può non essere assegnato)
     }
 }

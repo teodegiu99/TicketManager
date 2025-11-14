@@ -46,8 +46,8 @@ namespace TicketAPI.Models
         [Column("sedeid")]
         public int SedeId { get; set; }
 
-        [Column("assegnatoa")]
-        public string? Assegnatoa { get; set; }
+        [Column("assegnatoaid")]
+        public int? AssegnatoaId { get; set; }
 
         [Column("statoid")]
         public int StatoId { get; set; } = 1;
@@ -64,5 +64,8 @@ namespace TicketAPI.Models
 
         [ForeignKey("StatoId")]
         public virtual Stato? Stato { get; set; }
+
+        [ForeignKey("AssegnatoaId")]
+        public virtual ItUtente? Assegnatoa { get; set; }
     }
 }

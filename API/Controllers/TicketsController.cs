@@ -58,38 +58,57 @@ namespace TicketAPI.Controllers
 
         // --- Endpoint per recuperare TUTTI i ticket (per ClientIT) ---
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllTickets()
+        public async Task<IActionResult> GetAllTickets([FromQuery] int? assegnatoaId)
         {
-            var tickets = await _context.Ticket
-                .Include(t => t.Tipologia) // Include i dati dalla tabella tipologie
-                .Include(t => t.Urgenza)   // Include i dati dalla tabella urgenze
-                .Include(t => t.Sede)      // Include i dati dalla tabella sedi
-                .Include(t => t.Stato)
+            // Inizia la query sulla tabella Ticket
+            var query = _context.Ticket
+                .Include(t => t.Tipologia)
+                .Include(t => t.Urgenza)
+                .Include(t => t.Sede)
+                .Include(t => t.Stato) // Include il nuovo stato
+                .Include(t => t.Assegnatoa)
+                .AsQueryable(); // Permette di aggiungere filtri
+
+            // --- Logica di Filtro ---
+            // Se l'URL (ClientIT) passa un nome utente (es. ?assegnatoaId=5)
+            if (assegnatoaId.HasValue)
+            {
+                // Filtra per ID (int)
+                query = query.Where(t => t.AssegnatoaId == assegnatoaId.Value);
+            }
+            // Se 'assegnatoaId' è null o vuoto, il filtro non viene applicato
+            // e verranno restituiti tutti i ticket (come richiesto da "Mostra Tutti")
+
+            // Esegui la query finale
+            var tickets = await query
                 .OrderByDescending(t => t.DataCreazione) // I più recenti prima
                 .Select(t => new
                 {
-                    // Nota: Mappiamo Nticket sia su Id che su Nticket
+                    // Mappiamo Nticket sia su Id che su Nticket
                     // per corrispondere al ClientIT/Models/TicketViewModel.cs
                     Id = t.Nticket,
                     Nticket = t.Nticket,
                     Titolo = t.Titolo,
                     Testo = t.Testo,
+
                     // Usiamo le proprietà di navigazione (rese sicure per i null)
                     TipologiaNome = t.Tipologia != null ? t.Tipologia.Nome : "N/D",
                     UrgenzaNome = t.Urgenza != null ? t.Urgenza.Nome : "N/D",
                     SedeNome = t.Sede != null ? t.Sede.Nome : "N/D",
+                    StatoNome = t.Stato != null ? t.Stato.Nome : "N/D", // Aggiunto
+
                     Username = t.Username,
                     Funzione = t.Funzione,
                     Macchina = t.Macchina,
+                    AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.UsernameAd : "Non assegnato",
                     DataCreazione = t.DataCreazione,
-                    ScreenshotPath = t.ScreenshotPath,
-                    Assegnatoa = t.Assegnatoa,
-                    StatoNome = t.Stato != null ? t.Stato.Nome : "N/D",
+                    ScreenshotPath = t.ScreenshotPath
                 })
                 .ToListAsync();
 
             return Ok(tickets);
         }
+
 
         // --- Logica POST per creare un ticket (per ClientUser) ---
         [HttpPost]
