@@ -14,11 +14,9 @@ namespace ClientIT
         private Window m_window;
         private HttpClient _apiClient;
 
-        // ⚠️⚠️⚠️ MODIFICA QUESTO URL ⚠️⚠️⚠️
         // Metti l'URL base della tua API (lo stesso di ClientUser)
         private string _apiBaseUrl = "http://localhost:5210";
 
-        // Salveremo qui i dati dell'utente che ha effettuato l'accesso
         public static ItAuthData? CurrentUser { get; private set; } // Reso Nullable
 
         public App()

@@ -15,8 +15,7 @@ namespace ClientIT
     {
         private HttpClient _apiClient;
         
-        // ⚠️⚠️⚠️ MODIFICA QUESTO URL ⚠️⚠️⚠️
-        private string _apiBaseUrl = "http://localhost:5210"; // Esempio! Metti il tuo.
+        private string _apiBaseUrl = "http://localhost:5210"; 
 
         public ObservableCollection<Stato> AllStati { get; } = new();
         public ObservableCollection<ItUtente> AllItUsers { get; } = new();
@@ -100,9 +99,7 @@ namespace ClientIT
                 }
             }
         }
-        /// <summary>
-        /// Carica la lista di utenti IT nella colonna sinistra.
-        /// </summary>
+        // Carica la lista di utenti IT nella colonna sinistra.
         private async Task LoadItUsersAsync()
         {
             var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/users");
@@ -115,7 +112,6 @@ namespace ClientIT
             // Popola la lista a sinistra
             UserListView.ItemsSource = utenti;
 
-            // --- ECCO LA LOGICA MANCANTE ---
             // Popola la lista per il ComboBox (aggiungendo "Non assegnato")
             AllItUsers.Clear();
             AllItUsers.Add(ItUtente.NonAssegnato); // Aggiunge l'opzione "Non assegnato" (ID 0)
@@ -126,7 +122,7 @@ namespace ClientIT
                     AllItUsers.Add(utente);
                 }
             }
-            // --- FINE LOGICA MANCANTE ---
+         
         }
 
         /// <summary>

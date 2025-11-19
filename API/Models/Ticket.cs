@@ -46,7 +46,7 @@ namespace TicketAPI.Models
         [Column("sedeid")]
         public int SedeId { get; set; }
 
-        [Column("assegnatoaid")]
+        [Column("assegnatoa_id")]
         public int? AssegnatoaId { get; set; }
 
         [Column("statoid")]

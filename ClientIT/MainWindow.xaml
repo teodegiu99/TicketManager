@@ -64,7 +64,7 @@
                         <DataTemplate x:DataType="models:ItUtente">
                             <StackPanel Padding="8">
                                 <TextBlock Text="{x:Bind UsernameAd}" FontWeight="Bold"/>
-                                <TextBlock Text="{x:Bind Permesso}" FontSize="12" Opacity="0.8"/>
+                               <!-- <TextBlock Text="{x:Bind Permesso}" FontSize="12" Opacity="0.8"/> -->
                             </StackPanel>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -156,7 +156,6 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- ComboBox STATO (Auto-Salvataggio) -->
                                         <ComboBox Grid.Column="0"
                                                   Header="Stato"
                                             ItemsSource="{Binding ElementName=ThisPage, Path=AllStati}"
@@ -167,7 +166,6 @@
                                                   SelectionChanged="StatoComboBox_SelectionChanged"
                                                   Tag="{x:Bind Nticket}"/>
 
-                                            <!-- ComboBox ASSEGNATO A (Auto-Salvataggio) -->
                                         <ComboBox Grid.Column="1"
                                                   Header="Assegnato a"                                                
                                             ItemsSource="{Binding ElementName=ThisPage, Path=AllItUsers}"

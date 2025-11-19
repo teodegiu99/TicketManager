@@ -58,7 +58,7 @@ namespace TicketAPI.Controllers
 
         // --- Endpoint per recuperare TUTTI i ticket (per ClientIT) ---
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllTickets([FromQuery] int? assegnatoaid)
+        public async Task<IActionResult> GetAllTickets([FromQuery] int? assegnatoa_id)
         {
             // Inizia la query sulla tabella Ticket
             var query = _context.Ticket
@@ -71,10 +71,10 @@ namespace TicketAPI.Controllers
 
             // --- Logica di Filtro ---
             // Se l'URL (ClientIT) passa un nome utente (es. ?assegnatoaId=5)
-            if (assegnatoaid.HasValue)
+            if (assegnatoa_id.HasValue)
             {
                 // Filtra per ID (int)
-                query = query.Where(t => t.AssegnatoaId == assegnatoaid.Value);
+                query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
             }
             // Se 'assegnatoaId' è null o vuoto, il filtro non viene applicato
             // e verranno restituiti tutti i ticket (come richiesto da "Mostra Tutti")
@@ -262,7 +262,7 @@ namespace TicketAPI.Controllers
                 return StatusCode(500, $"Errore durante il salvataggio sul DB: {ex.InnerException?.Message ?? ex.Message}");
             }
 
-            // Fatto!
+
             return Ok(newTicket); // Restituisce il ticket appena creato (con Nticket)
         }
 
