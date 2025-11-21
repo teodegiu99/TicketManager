@@ -89,12 +89,13 @@
 
             <!-- 
                 TRUCCO DEL TAG: 
-                Tag="{x:Bind}" permette di accedere alle liste della MainWindow (AllStati, AllTipologie, ecc.)
-                da dentro il DataTemplate.
+                Tag="{x:Bind}" permette di accedere alle liste della MainWindow
             -->
             <ListView x:Name="TicketListView" 
                       Grid.Row="1"
                       SelectionMode="None"
+                      IsItemClickEnabled="True"
+                      ItemClick="TicketListView_ItemClick"
                       Tag="{x:Bind}">
 
                 <ListView.ItemContainerStyle>

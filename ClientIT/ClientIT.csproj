@@ -11,19 +11,10 @@
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
-
-		<!-- 1. DISATTIVA L'INCLUSIONE AUTOMATICA XAML -->
-		<EnableDefaultPageItems>true</EnableDefaultPageItems>
-
-		<!-- 2. (LA CORREZIONE) DISATTIVA L'INCLUSIONE AUTOMATICA C# -->
-		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
-
+		<!-- Default: l'inclusione automatica è attiva, quindi non serve specificarla o disattivarla -->
 	</PropertyGroup>
-	<ItemGroup>
-	  <None Remove="Controls\TicketItemControl.xaml" />
-	</ItemGroup>
 
-	<!-- Asset e Manifest (standard) -->
+	<!-- Asset e Manifest -->
 	<ItemGroup>
 		<Content Include="Assets\SplashScreen.scale-200.png" />
 		<Content Include="Assets\LockScreenLogo.scale-200.png" />
@@ -33,6 +24,7 @@
 		<Content Include="Assets\StoreLogo.png" />
 		<Content Include="Assets\Wide310x150Logo.scale-200.png" />
 	</ItemGroup>
+
 	<ItemGroup>
 		<Manifest Include="$(ApplicationManifest)" />
 	</ItemGroup>
@@ -42,21 +34,15 @@
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
 	</ItemGroup>
 
-	<!-- 3. DEFINIZIONE MANUALE DEI FILE (Ora è l'unica fonte) -->
-	
-
-	<!-- Proprietà MSIX (standard) -->
+	<!-- Proprietà MSIX -->
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Page Update="Controls\TicketItemControl.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
-	</ItemGroup>
+
 	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
 	</PropertyGroup>
+
 	<PropertyGroup>
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>

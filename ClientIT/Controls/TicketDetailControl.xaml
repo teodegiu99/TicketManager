@@ -1,0 +1,120 @@
+<UserControl
+    x:Class="ClientIT.Controls.TicketDetailControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ClientIT.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:ClientIT.Models"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <Style x:Key="DetailLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Opacity" Value="0.6"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="DetailValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Padding="0,16,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Header Info -->
+            <RowDefinition Height="*"/>
+            <!-- Message Body (Scrollable) -->
+            <RowDefinition Height="Auto"/>
+            <!-- Divider -->
+            <RowDefinition Height="Auto"/>
+            <!-- Action Bar (Editable) -->
+        </Grid.RowDefinitions>
+
+        <!-- HEADER: Info Tecniche -->
+        <Grid Grid.Row="0" ColumnSpacing="24" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Col 1: Utente -->
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Richiedente" Style="{StaticResource DetailLabelStyle}"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PersonPicture Width="24" Initials="{x:Bind ViewModel.Username.Substring(0,1), Mode=OneWay}"/>
+                    <TextBlock Text="{x:Bind ViewModel.Username, Mode=OneWay}" Style="{StaticResource DetailValueStyle}" Margin="0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="{x:Bind ViewModel.Funzione, Mode=OneWay}" FontSize="12" Opacity="0.5"/>
+            </StackPanel>
+
+            <!-- Col 2: Macchina/Sede -->
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="Postazione" Style="{StaticResource DetailLabelStyle}"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE7F4;" FontSize="14"/>
+                    <TextBlock Text="{x:Bind ViewModel.Macchina, Mode=OneWay}" FontWeight="SemiBold"/>
+                </StackPanel>
+                <TextBlock Text="{x:Bind ViewModel.SedeNome, Mode=OneWay}" FontSize="12" Opacity="0.5" Margin="24,2,0,0"/>
+            </StackPanel>
+
+            <!-- Col 3: Data -->
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Data Creazione" Style="{StaticResource DetailLabelStyle}"/>
+                <TextBlock Text="{x:Bind FormatDate(ViewModel.DataCreazione), Mode=OneWay}" Style="{StaticResource DetailValueStyle}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- BODY: Messaggio e Screenshot -->
+        <ScrollViewer Grid.Row="1" Padding="0,0,12,0">
+            <StackPanel>
+                <TextBlock Text="Oggetto" Style="{StaticResource DetailLabelStyle}"/>
+                <TextBlock Text="{x:Bind ViewModel.Titolo, Mode=OneWay}" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                <TextBlock Text="Descrizione" Style="{StaticResource DetailLabelStyle}"/>
+                <Border Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="4" Padding="12" Margin="0,0,0,16">
+                    <TextBlock Text="{x:Bind ViewModel.Testo, Mode=OneWay}" TextWrapping="Wrap" FontSize="14" LineHeight="20"/>
+                </Border>
+
+                <!-- Screenshot Button (FIXED) -->
+                <Button x:Name="BtnScreenshot"
+                        Visibility="{x:Bind HasScreenshot(ViewModel.ScreenshotPath), Mode=OneWay}"
+                        Click="BtnScreenshot_Click"
+                        Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE91B;"/>
+                        <TextBlock Text="Visualizza Screenshot Allegato"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,16"/>
+
+        <!-- FOOTER: Modifiche -->
+        <Grid Grid.Row="3" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ComboBox x:Name="TipologiaCombo" Grid.Column="0" Header="Tipologia" HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="TipologiaComboBox_SelectionChanged"/>
+
+            <ComboBox x:Name="UrgenzaCombo" Grid.Column="1" Header="Urgenza" HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="UrgenzaComboBox_SelectionChanged"/>
+
+            <ComboBox x:Name="StatoCombo" Grid.Column="2" Header="Stato" HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="StatoComboBox_SelectionChanged"/>
+
+            <ComboBox x:Name="AssegnatoCombo" Grid.Column="3" Header="Assegna a" HorizontalAlignment="Stretch"
+                      DisplayMemberPath="UsernameAd" SelectedValuePath="Id" SelectionChanged="AssegnatoaComboBox_SelectionChanged"/>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -16,7 +16,8 @@ namespace ClientIT
     public sealed partial class MainWindow : Window
     {
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://localhost:5210"; // Controlla la porta!
+        // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API (es. 5001 o 5210)
+        private string _apiBaseUrl = "http://localhost:5210";
 
         // --- LISTE PUBBLICHE PER I COMBOBOX ---
         public ObservableCollection<Stato> AllStati { get; } = new();
@@ -96,31 +97,47 @@ namespace ClientIT
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             // 1. Stati
-            var stati = await _apiClient.GetFromJsonAsync<List<Stato>>($"{_apiBaseUrl}/api/tickets/stati", options);
-            AllStati.Clear();
-            if (stati != null) foreach (var s in stati) AllStati.Add(s);
+            try
+            {
+                var stati = await _apiClient.GetFromJsonAsync<List<Stato>>($"{_apiBaseUrl}/api/tickets/stati", options);
+                AllStati.Clear();
+                if (stati != null) foreach (var s in stati) AllStati.Add(s);
+            }
+            catch { }
 
             // 2. Utenti IT
-            var utenti = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
-            AllItUsers.Clear();
-            var nonAssegnato = ItUtente.NonAssegnato ?? new ItUtente { Id = 0, UsernameAd = "Non assegnato" };
-            AllItUsers.Add(nonAssegnato);
-
-            if (utenti != null)
+            try
             {
-                if (UserListView != null) UserListView.ItemsSource = utenti;
-                foreach (var u in utenti) AllItUsers.Add(u);
+                var utenti = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
+                AllItUsers.Clear();
+                var nonAssegnato = ItUtente.NonAssegnato ?? new ItUtente { Id = 0, UsernameAd = "Non assegnato" };
+                AllItUsers.Add(nonAssegnato);
+
+                if (utenti != null)
+                {
+                    if (UserListView != null) UserListView.ItemsSource = utenti;
+                    foreach (var u in utenti) AllItUsers.Add(u);
+                }
             }
+            catch { }
 
             // 3. Tipologie (NUOVO)
-            var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
-            AllTipologie.Clear();
-            if (tipologie != null) foreach (var t in tipologie) AllTipologie.Add(t);
+            try
+            {
+                var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
+                AllTipologie.Clear();
+                if (tipologie != null) foreach (var t in tipologie) AllTipologie.Add(t);
+            }
+            catch { }
 
             // 4. Urgenze (NUOVO)
-            var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
-            AllUrgenze.Clear();
-            if (urgenze != null) foreach (var u in urgenze) AllUrgenze.Add(u);
+            try
+            {
+                var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
+                AllUrgenze.Clear();
+                if (urgenze != null) foreach (var u in urgenze) AllUrgenze.Add(u);
+            }
+            catch { }
         }
 
         private async Task LoadTicketsAsync(int? assegnatoa_id = null)
@@ -157,6 +174,45 @@ namespace ClientIT
             }
         }
 
+        // NUOVO: Apertura Modale Dettaglio al Click
+        private async void TicketListView_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (e.ClickedItem is TicketViewModel ticket)
+            {
+                // Creiamo il contenuto del Dialog usando il nuovo controllo TicketDetailControl
+                var detailControl = new TicketDetailControl
+                {
+                    ViewModel = ticket,
+                    // Passiamo le liste per le combo del dettaglio
+                    StatoOptions = AllStati,
+                    AssigneeOptions = AllItUsers,
+                    TipologiaOptions = AllTipologie,
+                    UrgenzaOptions = AllUrgenze
+                };
+
+                // Colleghiamo gli eventi di modifica anche qui, così se l'utente modifica nel dettaglio, salviamo
+                detailControl.TicketStateChanged += OnTicketStateChanged;
+                detailControl.TicketAssigneeChanged += OnTicketAssigneeChanged;
+                detailControl.TicketPropertyChanged += OnTicketPropertyChanged;
+
+                // Creiamo il Dialog
+                var dialog = new ContentDialog
+                {
+                    Title = $"Ticket #{ticket.Nticket}",
+                    Content = detailControl,
+                    CloseButtonText = "Chiudi",
+                    XamlRoot = this.Content.XamlRoot, // Fondamentale in WinUI 3
+                    Width = 900,
+                    MaxWidth = 1200
+                };
+
+                // Stile custom per renderlo più largo
+                dialog.Resources["ContentDialogMaxWidth"] = 1200;
+
+                await dialog.ShowAsync();
+            }
+        }
+
         // --- GESTORI EVENTI TICKET (SALVATAGGIO) ---
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
@@ -177,9 +233,6 @@ namespace ClientIT
 
         // --- LOGICA SALVATAGGIO ROBUSTA ---
 
-        // Invece di inviare solo il campo modificato, inviamo lo stato corrente del ViewModel.
-        // Questo è necessario perché il Server (come visto nel codice) potrebbe resettare a null
-        // l'Assegnatario se non viene specificato nella richiesta JSON.
         private async Task SaveFullTicketStateAsync(int nticket)
         {
             // 1. Trova il ViewModel aggiornato nella lista
@@ -195,11 +248,10 @@ namespace ClientIT
             {
                 string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
 
-                // Costruiamo il payload completo per evitare che il server cancelli dati (es. Assegnatario)
+                // Costruiamo il payload completo per evitare che il server cancelli dati
                 var request = new
                 {
                     StatoId = ticket.StatoId,
-                    // Convertiamo 0 in null per il DB
                     AssegnatoaId = ticket.AssegnatoaId == 0 ? null : ticket.AssegnatoaId,
                     UrgenzaId = ticket.UrgenzaId,
                     TipologiaId = ticket.TipologiaId
