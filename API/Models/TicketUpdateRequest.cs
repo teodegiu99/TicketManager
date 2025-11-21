@@ -10,5 +10,7 @@
     {
         public int? StatoId { get; set; }
         public int? AssegnatoaId { get; set; }
+        public int? UrgenzaId { get; set; }   
+        public int? TipologiaId { get; set; } 
     }
 }

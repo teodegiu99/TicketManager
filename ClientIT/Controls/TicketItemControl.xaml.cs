@@ -13,7 +13,7 @@ namespace ClientIT.Controls
             this.InitializeComponent();
         }
 
-        // --- 1. PROPRIETÀ DIPENDENTI ---
+        // --- 1. PROPRIETÀ DIPENDENTI (ViewModel & Liste) ---
 
         public static readonly DependencyProperty ViewModelProperty =
             DependencyProperty.Register(nameof(ViewModel), typeof(TicketViewModel), typeof(TicketItemControl),
@@ -25,27 +25,48 @@ namespace ClientIT.Controls
             set => SetValue(ViewModelProperty, value);
         }
 
+        // Lista Stati
         public static readonly DependencyProperty StatoOptionsProperty =
             DependencyProperty.Register(nameof(StatoOptions), typeof(IList<Stato>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
-
         public IList<Stato> StatoOptions
         {
             get => (IList<Stato>)GetValue(StatoOptionsProperty);
             set => SetValue(StatoOptionsProperty, value);
         }
 
+        // Lista Utenti IT
         public static readonly DependencyProperty AssigneeOptionsProperty =
             DependencyProperty.Register(nameof(AssigneeOptions), typeof(IList<ItUtente>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
-
         public IList<ItUtente> AssigneeOptions
         {
             get => (IList<ItUtente>)GetValue(AssigneeOptionsProperty);
             set => SetValue(AssigneeOptionsProperty, value);
         }
 
-        // --- 2. GESTIONE AGGIORNAMENTO ---
+        // CORREZIONE: Deve essere IList<Tipologia>, NON IList<object>
+        // Controlla attentamente il "typeof(IList<Tipologia>)" nel Register qui sotto
+        public static readonly DependencyProperty TipologiaOptionsProperty =
+            DependencyProperty.Register(nameof(TipologiaOptions), typeof(IList<Tipologia>), typeof(TicketItemControl),
+                new PropertyMetadata(null, OnDataChanged));
+        public IList<Tipologia> TipologiaOptions
+        {
+            get => (IList<Tipologia>)GetValue(TipologiaOptionsProperty);
+            set => SetValue(TipologiaOptionsProperty, value);
+        }
+
+        // CORREZIONE: Deve essere IList<Urgenza>, NON IList<object>
+        public static readonly DependencyProperty UrgenzaOptionsProperty =
+            DependencyProperty.Register(nameof(UrgenzaOptions), typeof(IList<Urgenza>), typeof(TicketItemControl),
+                new PropertyMetadata(null, OnDataChanged));
+        public IList<Urgenza> UrgenzaOptions
+        {
+            get => (IList<Urgenza>)GetValue(UrgenzaOptionsProperty);
+            set => SetValue(UrgenzaOptionsProperty, value);
+        }
+
+        // --- 2. GESTIONE AGGIORNAMENTO UI ---
 
         private static void OnDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -59,77 +80,92 @@ namespace ClientIT.Controls
         {
             if (ViewModel == null) return;
 
-            // --- GESTIONE STATO ---
-            if (StatoCombo != null && StatoOptions != null)
+            // Helper: usa IEnumerable per accettare le liste generiche senza problemi di cast
+            void UpdateCombo(ComboBox combo, System.Collections.IEnumerable items, object? currentValue, SelectionChangedEventHandler handler)
             {
-                if (StatoCombo.ItemsSource == null || StatoCombo.ItemsSource != StatoOptions)
+                if (combo == null) return;
+
+                if (items != null && (combo.ItemsSource == null || combo.ItemsSource != items))
                 {
-                    StatoCombo.ItemsSource = StatoOptions;
+                    combo.ItemsSource = items;
                 }
 
-                StatoCombo.SelectionChanged -= StatoComboBox_SelectionChanged;
-                StatoCombo.SelectedValue = ViewModel.StatoId;
-                StatoCombo.SelectionChanged += StatoComboBox_SelectionChanged;
+                combo.SelectionChanged -= handler;
+                combo.SelectedValue = currentValue;
+                combo.SelectionChanged += handler;
             }
 
-            // --- GESTIONE ASSEGNATARIO ---
-            if (AssegnatoCombo != null && AssigneeOptions != null)
-            {
-                if (AssegnatoCombo.ItemsSource == null || AssegnatoCombo.ItemsSource != AssigneeOptions)
-                {
-                    AssegnatoCombo.ItemsSource = AssigneeOptions;
-                }
+            // 1. Tipologia
+            UpdateCombo(TipologiaCombo, TipologiaOptions, ViewModel.TipologiaId, TipologiaComboBox_SelectionChanged);
 
-                AssegnatoCombo.SelectionChanged -= AssegnatoaComboBox_SelectionChanged;
+            // 2. Urgenza
+            UpdateCombo(UrgenzaCombo, UrgenzaOptions, ViewModel.UrgenzaId, UrgenzaComboBox_SelectionChanged);
 
-                var val = ViewModel.AssegnatoaId ?? 0;
-                AssegnatoCombo.SelectedValue = val;
+            // 3. Stato
+            UpdateCombo(StatoCombo, StatoOptions, ViewModel.StatoId, StatoComboBox_SelectionChanged);
 
-                AssegnatoCombo.SelectionChanged += AssegnatoaComboBox_SelectionChanged;
-            }
+            // 4. Assegnatario
+            UpdateCombo(AssegnatoCombo, AssigneeOptions, ViewModel.AssegnatoaId ?? 0, AssegnatoaComboBox_SelectionChanged);
         }
 
-        // --- HELPER PER FORMATTAZIONE DATA (Fix WMC1110) ---
-        public string FormatDate(DateTime date)
-        {
-            return date.ToString("dd/MM/yyyy HH:mm");
-        }
+        public string FormatDate(DateTime date) => date.ToString("dd/MM/yyyy HH:mm");
 
-        // --- 3. EVENTI ESTERNI ---
+        // --- 3. EVENTI ---
 
         public event EventHandler<TicketStateChangedEventArgs>? TicketStateChanged;
         public event EventHandler<TicketAssigneeChangedEventArgs>? TicketAssigneeChanged;
+        public event EventHandler<TicketGenericChangedEventArgs>? TicketPropertyChanged;
 
         // --- 4. HANDLERS UI ---
 
+        private void TipologiaComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int newVal) return;
+
+            if (newVal != ViewModel.TipologiaId)
+            {
+                ViewModel.TipologiaId = newVal;
+                TicketPropertyChanged?.Invoke(this, new TicketGenericChangedEventArgs(ViewModel.Nticket, "TipologiaId", newVal));
+            }
+        }
+
+        private void UrgenzaComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int newVal) return;
+
+            if (newVal != ViewModel.UrgenzaId)
+            {
+                ViewModel.UrgenzaId = newVal;
+                TicketPropertyChanged?.Invoke(this, new TicketGenericChangedEventArgs(ViewModel.Nticket, "UrgenzaId", newVal));
+            }
+        }
+
         private void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ViewModel == null) return;
+            if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int newVal) return;
 
-            if (sender is ComboBox comboBox && comboBox.SelectedValue is int nuovoId)
+            if (newVal != ViewModel.StatoId)
             {
-                if (nuovoId == ViewModel.StatoId) return;
-
-                ViewModel.StatoId = nuovoId;
-                TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, nuovoId));
+                ViewModel.StatoId = newVal;
+                TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, newVal));
             }
         }
 
         private void AssegnatoaComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ViewModel == null) return;
+            if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int newVal) return;
 
-            if (sender is ComboBox comboBox && comboBox.SelectedValue is int nuovoId)
+            int? idLogico = newVal == 0 ? null : newVal;
+
+            if (newVal != (ViewModel.AssegnatoaId ?? 0))
             {
-                int? idConfronto = (nuovoId == 0) ? null : nuovoId;
-                if (nuovoId == (ViewModel.AssegnatoaId ?? 0)) return;
-
-                ViewModel.AssegnatoaId = idConfronto;
-                TicketAssigneeChanged?.Invoke(this, new TicketAssigneeChangedEventArgs(ViewModel.Nticket, nuovoId));
+                ViewModel.AssegnatoaId = idLogico;
+                TicketAssigneeChanged?.Invoke(this, new TicketAssigneeChangedEventArgs(ViewModel.Nticket, newVal));
             }
         }
     }
 
+    // Classi eventi
     public class TicketStateChangedEventArgs : EventArgs
     {
         public int Nticket { get; }
@@ -142,5 +178,18 @@ namespace ClientIT.Controls
         public int Nticket { get; }
         public int AssegnatoaId { get; }
         public TicketAssigneeChangedEventArgs(int n, int a) { Nticket = n; AssegnatoaId = a; }
+    }
+
+    public class TicketGenericChangedEventArgs : EventArgs
+    {
+        public int Nticket { get; }
+        public string PropertyName { get; }
+        public int NewValue { get; }
+        public TicketGenericChangedEventArgs(int n, string prop, int val)
+        {
+            Nticket = n;
+            PropertyName = prop;
+            NewValue = val;
+        }
     }
 }

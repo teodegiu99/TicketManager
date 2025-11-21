@@ -1,29 +1,30 @@
-﻿using ClientIT.Controls; // Necessario per gli eventi TicketStateChangedEventArgs
+﻿using ClientIT.Controls;
 using ClientIT.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel; // Fondamentale per il Binding dinamico
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json; // Per PutAsJsonAsync
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace ClientIT
 {
     public sealed partial class MainWindow : Window
     {
         private HttpClient _apiClient;
-
-        // ⚠️ Controlla che l'URL sia corretto
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://localhost:5210"; // Controlla la porta!
 
         // --- LISTE PUBBLICHE PER I COMBOBOX ---
-        // Usiamo ObservableCollection così la UI si accorge quando aggiungiamo elementi.
         public ObservableCollection<Stato> AllStati { get; } = new();
         public ObservableCollection<ItUtente> AllItUsers { get; } = new();
+
+        // NUOVE LISTE
+        public ObservableCollection<Tipologia> AllTipologie { get; } = new();
+        public ObservableCollection<Urgenza> AllUrgenze { get; } = new();
 
         public MainWindow()
         {
@@ -37,7 +38,6 @@ namespace ClientIT
             };
             _apiClient = new HttpClient(handler);
 
-            // Carichiamo i dati quando la finestra viene attivata per la prima volta
             this.Activated += MainWindow_Activated;
         }
 
@@ -56,7 +56,6 @@ namespace ClientIT
 
         private async Task LoadDataAsync()
         {
-            // Gestione UI di caricamento
             if (LoadingProgressRing != null)
             {
                 LoadingProgressRing.IsActive = true;
@@ -66,18 +65,15 @@ namespace ClientIT
 
             try
             {
-                // 1. Benvenuto
                 if (WelcomeMessage != null && App.CurrentUser != null)
                 {
                     WelcomeMessage.Text = $"Bentornato, {App.CurrentUser.UsernameAd} ({App.CurrentUser.Permesso})";
                 }
 
-                // 2. Carica le liste di supporto (Stati e Utenti) PRIMA dei ticket
-                // Questo assicura che i ComboBox abbiano i dati pronti quando i ticket arrivano
-                await LoadStatiAsync();
-                await LoadItUsersAsync();
+                // Carica tutte le liste di riferimento
+                await LoadReferenceDataAsync();
 
-                // 3. Carica i ticket (inizialmente tutti)
+                // Carica i ticket
                 await LoadTicketsAsync();
             }
             catch (Exception ex)
@@ -95,93 +91,57 @@ namespace ClientIT
             }
         }
 
-        private async Task LoadStatiAsync()
+        private async Task LoadReferenceDataAsync()
         {
-            var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/tickets/stati");
-            response.EnsureSuccessStatusCode();
-
-            string jsonResponse = await response.Content.ReadAsStringAsync();
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var stati = JsonSerializer.Deserialize<List<Stato>>(jsonResponse, options);
 
+            // 1. Stati
+            var stati = await _apiClient.GetFromJsonAsync<List<Stato>>($"{_apiBaseUrl}/api/tickets/stati", options);
             AllStati.Clear();
-            if (stati != null)
-            {
-                foreach (var s in stati) AllStati.Add(s);
-            }
-        }
+            if (stati != null) foreach (var s in stati) AllStati.Add(s);
 
-        private async Task LoadItUsersAsync()
-        {
-            var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/users");
-            response.EnsureSuccessStatusCode();
-
-            string jsonResponse = await response.Content.ReadAsStringAsync();
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var utenti = JsonSerializer.Deserialize<List<ItUtente>>(jsonResponse, options);
-
-            // 1. Popola la lista visiva a sinistra (solo utenti reali)
-            if (UserListView != null)
-            {
-                UserListView.ItemsSource = utenti;
-            }
-
-            // 2. Popola la lista per i ComboBox (aggiungendo l'opzione "Non assegnato")
+            // 2. Utenti IT
+            var utenti = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
             AllItUsers.Clear();
-            // Usiamo la proprietà statica definita nel Modello per coerenza
             var nonAssegnato = ItUtente.NonAssegnato ?? new ItUtente { Id = 0, UsernameAd = "Non assegnato" };
             AllItUsers.Add(nonAssegnato);
 
             if (utenti != null)
             {
+                if (UserListView != null) UserListView.ItemsSource = utenti;
                 foreach (var u in utenti) AllItUsers.Add(u);
             }
+
+            // 3. Tipologie (NUOVO)
+            var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
+            AllTipologie.Clear();
+            if (tipologie != null) foreach (var t in tipologie) AllTipologie.Add(t);
+
+            // 4. Urgenze (NUOVO)
+            var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
+            AllUrgenze.Clear();
+            if (urgenze != null) foreach (var u in urgenze) AllUrgenze.Add(u);
         }
 
         private async Task LoadTicketsAsync(int? assegnatoa_id = null)
         {
-            // Mostra caricamento solo se non stiamo già caricando tutto (micro-ottimizzazione visiva)
-            if (LoadingProgressRing != null && !LoadingProgressRing.IsActive)
-            {
-                LoadingProgressRing.IsActive = true;
-                LoadingProgressRing.Visibility = Visibility.Visible;
-            }
-
-            // Svuota la lista per feedback visivo immediato
             if (TicketListView != null) TicketListView.ItemsSource = null;
 
             try
             {
                 string url = $"{_apiBaseUrl}/api/tickets/all";
-                if (assegnatoa_id.HasValue)
-                {
-                    url += $"?assegnatoa_id={assegnatoa_id.Value}";
-                }
+                if (assegnatoa_id.HasValue) url += $"?assegnatoa_id={assegnatoa_id.Value}";
 
-                var response = await _apiClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-
-                string jsonResponse = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var tickets = JsonSerializer.Deserialize<List<TicketViewModel>>(jsonResponse, options);
-
+                var tickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url);
                 if (TicketListView != null) TicketListView.ItemsSource = tickets;
             }
             catch (Exception ex)
             {
                 await ShowErrorDialog($"Impossibile caricare i ticket: {ex.Message}");
             }
-            finally
-            {
-                if (LoadingProgressRing != null)
-                {
-                    LoadingProgressRing.IsActive = false;
-                    LoadingProgressRing.Visibility = Visibility.Collapsed;
-                }
-            }
         }
 
-        // --- GESTORI EVENTI UI (FILTRI) ---
+        // --- GESTORI EVENTI UI ---
 
         private async void ShowAllButton_Click(object sender, RoutedEventArgs e)
         {
@@ -193,31 +153,41 @@ namespace ClientIT
         {
             if (UserListView?.SelectedItem is ItUtente selectedUser)
             {
-                // Filtra la lista dei ticket per l'ID di questo utente
                 await LoadTicketsAsync(selectedUser.Id);
             }
         }
 
-        // --- GESTORI EVENTI TICKET (AUTO-SALVATAGGIO) ---
-
-        // Questi metodi vengono chiamati dal TicketItemControl tramite evento.
-        // Riceviamo i dati puliti: ID del ticket e il nuovo valore.
+        // --- GESTORI EVENTI TICKET (SALVATAGGIO) ---
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {
-            await UpdateTicketAsync(e.Nticket, e.StatoId, null);
+            await SaveFullTicketStateAsync(e.Nticket);
         }
 
         public async void OnTicketAssigneeChanged(object sender, TicketAssigneeChangedEventArgs e)
         {
-            await UpdateTicketAsync(e.Nticket, null, e.AssegnatoaId);
+            await SaveFullTicketStateAsync(e.Nticket);
         }
 
-        // --- LOGICA API PUT ---
-
-        private async Task UpdateTicketAsync(int nticket, int? statoId, int? assegnatoaId)
+        // Nuovo Handler Generico (per Tipologia e Urgenza)
+        public async void OnTicketPropertyChanged(object sender, TicketGenericChangedEventArgs e)
         {
-            // Blocca l'interfaccia per evitare modifiche concorrenti rapide
+            await SaveFullTicketStateAsync(e.Nticket);
+        }
+
+        // --- LOGICA SALVATAGGIO ROBUSTA ---
+
+        // Invece di inviare solo il campo modificato, inviamo lo stato corrente del ViewModel.
+        // Questo è necessario perché il Server (come visto nel codice) potrebbe resettare a null
+        // l'Assegnatario se non viene specificato nella richiesta JSON.
+        private async Task SaveFullTicketStateAsync(int nticket)
+        {
+            // 1. Trova il ViewModel aggiornato nella lista
+            var tickets = TicketListView?.ItemsSource as List<TicketViewModel>;
+            var ticket = tickets?.FirstOrDefault(t => t.Nticket == nticket);
+
+            if (ticket == null) return;
+
             if (RootGrid != null) RootGrid.IsHitTestVisible = false;
             if (LoadingProgressRing != null) { LoadingProgressRing.IsActive = true; LoadingProgressRing.Visibility = Visibility.Visible; }
 
@@ -225,24 +195,23 @@ namespace ClientIT
             {
                 string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
 
+                // Costruiamo il payload completo per evitare che il server cancelli dati (es. Assegnatario)
                 var request = new
                 {
-                    StatoId = statoId,
-                    AssegnatoaId = assegnatoaId
+                    StatoId = ticket.StatoId,
+                    // Convertiamo 0 in null per il DB
+                    AssegnatoaId = ticket.AssegnatoaId == 0 ? null : ticket.AssegnatoaId,
+                    UrgenzaId = ticket.UrgenzaId,
+                    TipologiaId = ticket.TipologiaId
                 };
 
                 var response = await _apiClient.PutAsJsonAsync(url, request);
                 response.EnsureSuccessStatusCode();
-
-                // Successo. Non serve ricaricare la lista perché il ComboBox 
-                // nel TicketItemControl si è già aggiornato visivamente.
             }
             catch (Exception ex)
             {
                 await ShowErrorDialog($"Errore salvataggio: {ex.Message}");
-
-                // Se fallisce, ricarichiamo la lista per ripristinare i dati corretti dal DB
-                // (così l'utente vede che la modifica non è andata a buon fine)
+                // Ricarica per ripristinare i dati corretti in caso di errore
                 var currentFilterId = (UserListView?.SelectedItem as ItUtente)?.Id;
                 await LoadTicketsAsync(currentFilterId);
             }

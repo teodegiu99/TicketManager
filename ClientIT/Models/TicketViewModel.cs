@@ -12,27 +12,35 @@ namespace ClientIT.Models
         private void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        // Campi privati
+        // Campi privati per la gestione del binding (ComboBox)
         private int _statoId;
         private int? _assegnatoaId;
+
+        // NUOVI CAMPI PRIVATI
+        private int _urgenzaId;
+        private int _tipologiaId;
+
         private string _statoNome = string.Empty;
         private string _assegnatoaNome = string.Empty;
 
-        // Proprietà standard
+        // Proprietà standard (Dati visuali o di sola lettura)
         public int Id { get; set; }
         public int Nticket { get; set; }
         public string Titolo { get; set; } = string.Empty;
         public string Testo { get; set; } = string.Empty;
+
+        // Queste rimangono auto-props per ora, a meno che non serva aggiornare il testo manualmente
         public string TipologiaNome { get; set; } = string.Empty;
         public string UrgenzaNome { get; set; } = string.Empty;
         public string SedeNome { get; set; } = string.Empty;
+
         public string Username { get; set; } = string.Empty;
         public string Funzione { get; set; } = string.Empty;
         public string Macchina { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
 
-        // --- PROPRIETÀ COLLEGATE AI COMBOBOX ---
+        // --- PROPRIETÀ COLLEGATE AI COMBOBOX (MODIFICABILI) ---
 
         public int StatoId
         {
@@ -61,7 +69,35 @@ namespace ClientIT.Models
             }
         }
 
-        // Aggiorniamo anche i testi se necessario
+        // NUOVA PROPRIETÀ: URGENZA
+        public int UrgenzaId
+        {
+            get => _urgenzaId;
+            set
+            {
+                if (_urgenzaId != value)
+                {
+                    _urgenzaId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // NUOVA PROPRIETÀ: TIPOLOGIA
+        public int TipologiaId
+        {
+            get => _tipologiaId;
+            set
+            {
+                if (_tipologiaId != value)
+                {
+                    _tipologiaId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Aggiorniamo anche i testi se necessario (Utile se cambi ID e vuoi cambiare label, ma qui lo fa la combo)
         public string StatoNome
         {
             get => _statoNome;

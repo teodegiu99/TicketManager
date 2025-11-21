@@ -9,7 +9,6 @@
     mc:Ignorable="d">
 
     <UserControl.Resources>
-        <!-- Stile per i Badge (Etichette) -->
         <Style x:Key="BadgeBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="8,2"/>
@@ -45,7 +44,7 @@
         <!-- PARTE SUPERIORE: INFO TICKET -->
         <StackPanel Grid.Row="0" Padding="16,16,16,12" Spacing="12">
 
-            <!-- Riga 1: ID e Data (Meta info sottile) -->
+            <!-- Riga 1: ID e Data -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -62,8 +61,6 @@
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Opacity="0.6">
                     <FontIcon Glyph="&#xE787;" FontSize="12"/>
-                    <!-- Icona Calendario -->
-                    <!-- FIX: Uso della funzione FormatDate definita nel code-behind -->
                     <TextBlock Text="{x:Bind FormatDate(ViewModel.DataCreazione), Mode=OneWay}" 
                                FontSize="12" VerticalAlignment="Center"/>
                 </StackPanel>
@@ -75,26 +72,7 @@
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"/>
 
-            <!-- Riga 3: Badge (Tags) -->
-            <StackPanel Orientation="Horizontal">
-                <!-- Badge Tipologia -->
-                <Border Style="{StaticResource BadgeBorderStyle}">
-                    <TextBlock Text="{x:Bind ViewModel.TipologiaNome, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"/>
-                </Border>
-                <!-- Badge Urgenza -->
-                <Border Style="{StaticResource BadgeBorderStyle}">
-                    <TextBlock Text="{x:Bind ViewModel.UrgenzaNome, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"/>
-                </Border>
-                <!-- Badge Sede -->
-                <Border Style="{StaticResource BadgeBorderStyle}">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <FontIcon Glyph="&#xE81D;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock Text="{x:Bind ViewModel.SedeNome, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-
-            <!-- Riga 4: Utente e Macchina -->
+            <!-- Riga 3: Badge Info (Solo Sede e Utente ora, il resto è modificabile sotto) -->
             <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -111,36 +89,67 @@
                 <!-- Macchina -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Opacity="0.7">
                     <FontIcon Glyph="&#xE7F4;" FontSize="14" VerticalAlignment="Center"/>
-                    <!-- Icona PC -->
                     <TextBlock Text="{x:Bind ViewModel.Macchina, Mode=OneWay}" 
                                FontSize="13" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
+
+            <!-- Badge Sede (Informazione statica) -->
+            <Border HorizontalAlignment="Left" Style="{StaticResource BadgeBorderStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <FontIcon Glyph="&#xE81D;" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Text="{x:Bind ViewModel.SedeNome, Mode=OneWay}" Style="{StaticResource BadgeTextStyle}"/>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
 
         <!-- DIVIDER -->
         <Border Grid.Row="1" Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.5"/>
 
-        <!-- PARTE INFERIORE: ACTION BAR (Sfondo leggermente diverso) -->
-        <Grid Grid.Row="2" Background="{ThemeResource LayerFillColorAltBrush}" Padding="12" CornerRadius="0,0,8,8">
+        <!-- PARTE INFERIORE: ACTION BAR -->
+        <Grid Grid.Row="2" Background="{ThemeResource LayerFillColorAltBrush}" Padding="12" CornerRadius="0,0,8,8" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
+                <!-- Tipologia -->
                 <ColumnDefinition Width="*"/>
+                <!-- Urgenza -->
+                <ColumnDefinition Width="*"/>
+                <!-- Stato -->
+                <ColumnDefinition Width="*"/>
+                <!-- Assegnato -->
             </Grid.ColumnDefinitions>
 
-            <!-- STATO -->
-            <ComboBox x:Name="StatoCombo"
+            <!-- Tipologia -->
+            <ComboBox x:Name="TipologiaCombo"
                       Grid.Column="0"
+                      Header="Tipologia"
+                      HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Nome"
+                      SelectedValuePath="Id"
+                      SelectionChanged="TipologiaComboBox_SelectionChanged"/>
+
+            <!-- Urgenza -->
+            <ComboBox x:Name="UrgenzaCombo"
+                      Grid.Column="1"
+                      Header="Urgenza"
+                      HorizontalAlignment="Stretch"
+                      DisplayMemberPath="Nome"
+                      SelectedValuePath="Id"
+                      SelectionChanged="UrgenzaComboBox_SelectionChanged"/>
+
+            <!-- Stato -->
+            <ComboBox x:Name="StatoCombo"
+                      Grid.Column="2"
                       Header="Stato"
                       HorizontalAlignment="Stretch"
                       DisplayMemberPath="Nome"
                       SelectedValuePath="Id"
                       SelectionChanged="StatoComboBox_SelectionChanged"/>
 
-            <!-- ASSEGNATARIO -->
+            <!-- Assegnatario -->
             <ComboBox x:Name="AssegnatoCombo"
-                      Grid.Column="2"
+                      Grid.Column="3"
                       Header="Assegna a"
                       HorizontalAlignment="Stretch"
                       DisplayMemberPath="UsernameAd"

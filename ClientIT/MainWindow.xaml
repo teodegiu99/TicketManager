@@ -89,8 +89,8 @@
 
             <!-- 
                 TRUCCO DEL TAG: 
-                Tag="{x:Bind}" lega l'istanza della finestra (MainWindow) alla proprietà Tag della ListView.
-                Questo ci permette di accedere alle liste AllStati/AllItUsers dall'interno del DataTemplate.
+                Tag="{x:Bind}" permette di accedere alle liste della MainWindow (AllStati, AllTipologie, ecc.)
+                da dentro il DataTemplate.
             -->
             <ListView x:Name="TicketListView" 
                       Grid.Row="1"
@@ -109,16 +109,20 @@
                     <DataTemplate x:DataType="models:TicketViewModel">
 
                         <!-- 
-                            BINDING AGGIORNATO:
-                            Usiamo ElementName=TicketListView per trovare la lista,
-                            e Path=Tag.AllStati per prendere la lista dalla finestra salvata nel Tag.
+                            NUOVI BINDING AGGIUNTI:
+                            - TipologiaOptions
+                            - UrgenzaOptions
+                            - TicketPropertyChanged (Nuovo evento generico)
                         -->
                         <controls:TicketItemControl 
                             ViewModel="{x:Bind}"
                             StatoOptions="{Binding ElementName=TicketListView, Path=Tag.AllStati}"
                             AssigneeOptions="{Binding ElementName=TicketListView, Path=Tag.AllItUsers}"
+                            TipologiaOptions="{Binding ElementName=TicketListView, Path=Tag.AllTipologie}"
+                            UrgenzaOptions="{Binding ElementName=TicketListView, Path=Tag.AllUrgenze}"
                             TicketStateChanged="OnTicketStateChanged"
-                            TicketAssigneeChanged="OnTicketAssigneeChanged"/>
+                            TicketAssigneeChanged="OnTicketAssigneeChanged"
+                            TicketPropertyChanged="OnTicketPropertyChanged"/>
 
                     </DataTemplate>
                 </ListView.ItemTemplate>
