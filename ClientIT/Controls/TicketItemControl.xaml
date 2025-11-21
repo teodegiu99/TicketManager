@@ -1,0 +1,99 @@
+<UserControl
+    x:Class="ClientIT.Controls.TicketItemControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ClientIT.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:ClientIT.Models"
+    mc:Ignorable="d">
+
+    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" 
+            CornerRadius="8" 
+            BorderThickness="1" 
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            Padding="16" 
+            Margin="0,0,0,8">
+
+        <StackPanel Spacing="12">
+
+            <!-- RIGA 1: Titolo e Numero Ticket -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" 
+                           Text="{x:Bind ViewModel.Titolo, Mode=OneWay}" 
+                           Style="{ThemeResource SubtitleTextBlockStyle}" 
+                           FontWeight="Bold" 
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" 
+                           Text="{x:Bind ViewModel.Nticket, Mode=OneWay}" 
+                           Opacity="0.7" 
+                           VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- RIGA 2: Badge Fissi -->
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Border Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="8,4">
+                    <TextBlock Text="{x:Bind ViewModel.TipologiaNome, Mode=OneWay}" 
+                               FontSize="12" 
+                               Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                </Border>
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" Padding="8,4">
+                    <TextBlock Text="{x:Bind ViewModel.UrgenzaNome, Mode=OneWay}" 
+                               FontSize="12" 
+                               Foreground="{ThemeResource TextFillColorPrimary}"/>
+                </Border>
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" Padding="8,4">
+                    <TextBlock Text="{x:Bind ViewModel.SedeNome, Mode=OneWay}" 
+                               FontSize="12" 
+                               Foreground="{ThemeResource TextFillColorPrimary}"/>
+                </Border>
+            </StackPanel>
+
+            <!-- RIGA 3: Dropdown Interattivi -->
+            <Grid ColumnSpacing="16" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ComboBox STATO -->
+                <!-- SelectedValue gestito da C# (UpdateSelections) -->
+                <ComboBox x:Name="StatoCombo"
+                          Grid.Column="0"
+                          Header="Stato"
+                          HorizontalAlignment="Stretch"
+                          ItemsSource="{x:Bind StatoOptions, Mode=OneWay}"
+                          DisplayMemberPath="Nome"
+                          SelectedValuePath="Id"
+                          SelectionChanged="StatoComboBox_SelectionChanged"/>
+
+                <!-- ComboBox ASSEGNATO A -->
+                <!-- CORREZIONE: Rimosso SelectedValue="{x:Bind...}" -->
+                <!-- Ora è gestito da C# (UpdateSelections), come StatoCombo -->
+                <ComboBox x:Name="AssegnatoCombo"
+                          Grid.Column="1"
+                          Header="Assegnato a"
+                          HorizontalAlignment="Stretch"
+                          ItemsSource="{x:Bind AssigneeOptions, Mode=OneWay}"
+                          DisplayMemberPath="UsernameAd"
+                          SelectedValuePath="Id"
+                          SelectionChanged="AssegnatoaComboBox_SelectionChanged"/>
+            </Grid>
+
+            <!-- RIGA 4: Footer -->
+            <TextBlock Opacity="0.8" FontSize="12" Margin="0,8,0,0">
+                <Run Text="Inviato da:"/>
+                <Run Text="{x:Bind ViewModel.Username, Mode=OneWay}" FontWeight="Bold"/>
+                <Run Text=" | Macchina: "/>
+                <Run Text="{x:Bind ViewModel.Macchina, Mode=OneWay}" FontWeight="Bold"/>
+                <Run Text=" | Data: "/>
+                <Run Text="{x:Bind ViewModel.DataCreazione, Mode=OneWay}"/>
+            </TextBlock>
+
+        </StackPanel>
+    </Border>
+</UserControl>

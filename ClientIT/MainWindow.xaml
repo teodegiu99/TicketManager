@@ -6,9 +6,10 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:ClientIT.Models"
-    x:Name="ThisPage"
-    mc:Ignorable="d">
-    
+    xmlns:controls="using:ClientIT.Controls"
+    mc:Ignorable="d"
+    x:Name="ThisPage">
+
     <Window.SystemBackdrop>
         <MicaBackdrop/>
     </Window.SystemBackdrop>
@@ -16,185 +17,112 @@
     <!-- Layout Principale a 2 colonne -->
     <Grid x:Name="RootGrid" Padding="12">
         <Grid.ColumnDefinitions>
-            <!-- Colonna Sinistra (Utenti IT) -->
-            <ColumnDefinition Width="1*" MinWidth="200"/>
-            <!-- Colonna Destra (Ticket) -->
-            <ColumnDefinition Width="5*"/>
-            <!-- Rapporto 1:5 -->
+            <ColumnDefinition Width="1*" MinWidth="220"/>
+            <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- ProgressRing per il caricamento -->
+        <!-- Indicatore di Caricamento -->
         <ProgressRing x:Name="LoadingProgressRing" 
                       Grid.ColumnSpan="2"
                       IsActive="False"
                       Visibility="Collapsed"
-                      Width="50" 
-                      Height="50"
+                      Width="60" Height="60"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
                       Canvas.ZIndex="999"/>
 
-        <!-- === COLONNA SINISTRA (Utenti IT) === -->
-        <StackPanel Grid.Column="0" Margin="0,0,12,0" Spacing="8">
+        <!-- === COLONNA SINISTRA: FILTRI UTENTI === -->
+        <Grid Grid.Column="0" Margin="0,0,16,0" RowDefinitions="Auto, *">
 
-            <!-- Pulsante per resettare il filtro -->
-            <Button x:Name="ShowAllButton" 
-                    HorizontalAlignment="Stretch"
-                    Click="ShowAllButton_Click"
-                    Style="{ThemeResource AccentButtonStyle}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE8A5;"/>
-                    <!-- Icona per "Tutti i file" -->
-                    <TextBlock Text="Mostra Tutti i Ticket"/>
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,12">
+                <TextBlock Text="Team IT" Style="{ThemeResource SubtitleTextBlockStyle}"/>
 
-            <!-- Bordo per la lista utenti -->
-            <Border Background="{ThemeResource LayerFillColorDefaultBrush}" 
+                <Button x:Name="ShowAllButton" 
+                        HorizontalAlignment="Stretch"
+                        Click="ShowAllButton_Click"
+                        Style="{ThemeResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE71D;"/>
+                        <TextBlock Text="Tutti i Ticket"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+            <Border Grid.Row="1"
+                    Background="{ThemeResource LayerFillColorDefaultBrush}" 
                     CornerRadius="8" 
                     BorderThickness="1" 
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
 
-                <!-- Lista utenti cliccabile -->
                 <ListView x:Name="UserListView" 
-                          Margin="4"
+                          Padding="4"
                           SelectionMode="Single"
                           SelectionChanged="UserListView_SelectionChanged">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:ItUtente">
-                            <StackPanel Padding="8">
-                                <TextBlock Text="{x:Bind UsernameAd}" FontWeight="Bold"/>
-                               <!-- <TextBlock Text="{x:Bind Permesso}" FontSize="12" Opacity="0.8"/> -->
-                            </StackPanel>
+                            <Grid Padding="8" ColumnDefinitions="Auto, *">
+                                <PersonPicture Width="32" 
+                                               Initials="{x:Bind UsernameAd.Substring(0,1), Mode=OneWay}" 
+                                               Margin="0,0,12,0"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind UsernameAd}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{x:Bind Permesso}" FontSize="11" Opacity="0.6"/>
+                                </StackPanel>
+                            </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
             </Border>
-        </StackPanel>
+        </Grid>
 
+        <!-- === COLONNA DESTRA: LISTA TICKET === -->
+        <Grid Grid.Column="1" RowDefinitions="Auto, *">
 
-        <!-- === COLONNA DESTRA (Ticket) === -->
-        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="8">
-                <!-- Messaggio di Benvenuto -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
                 <TextBlock x:Name="WelcomeMessage" 
                            Style="{ThemeResource TitleTextBlockStyle}" 
-                           Margin="0,0,0,12"/>
-
-                <!-- Lista dei Ticket -->
-                <ListView x:Name="TicketListView" 
-                          SelectionMode="Single"
-                          HorizontalContentAlignment="Stretch">
-                    <ListView.ItemTemplate>
-                        <!-- Template per un singolo ticket -->
-                        <DataTemplate x:DataType="models:TicketViewModel">
-                            <Border Background="{ThemeResource LayerFillColorDefaultBrush}" 
-                                    CornerRadius="8" 
-                                    BorderThickness="1" 
-                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                    Padding="16" 
-                                    Margin="0,0,0,8">
-                                <StackPanel Spacing="8">
-                                    <!-- Riga Titolo + N. Ticket -->
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" 
-                                                   Text="{x:Bind Titolo}" 
-                                                   Style="{ThemeResource SubtitleTextBlockStyle}" 
-                                                   FontWeight="Bold" 
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" 
-                                                   Text="{x:Bind Nticket}" 
-                                                   Opacity="0.7" 
-                                                   VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Riga per i "Badge" -->
-                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-
-                                        <!-- Badge Stato (NUOVO) -->
-                                        <Border Background="{ThemeResource AccentFillColorSecondaryBrush}" 
-                                                CornerRadius="4" 
-                                                Padding="8,4">
-                                            <TextBlock Text="{x:Bind StatoNome}" 
-                                                       FontSize="12" 
-                                                       FontWeight="Bold"
-                                                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                                        </Border>
-
-                                        <!-- Badge Tipologia -->
-                                        <Border Background="{ThemeResource AccentFillColorDefaultBrush}" 
-                                                CornerRadius="4" 
-                                                Padding="8,4">
-                                            <TextBlock Text="{x:Bind TipologiaNome}" 
-                                                       FontSize="12" 
-                                                       Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
-                                        </Border>
-                                        <!-- Badge Urgenza -->
-                                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                                                CornerRadius="4" 
-                                                Padding="8,4">
-                                            <TextBlock Text="{x:Bind UrgenzaNome}" 
-                                                       FontSize="12"
-                                                       Foreground="{ThemeResource TextFillColorPrimary}"/>
-                                        </Border>
-                                        <!-- Badge Sede -->
-                                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                                                CornerRadius="4" 
-                                                Padding="8,4">
-                                            <TextBlock Text="{x:Bind SedeNome}" 
-                                                       FontSize="12"
-                                                       Foreground="{ThemeResource TextFillColorPrimary}"/>
-                                        </Border>
-                                    </StackPanel>
-                                    <Grid ColumnSpacing="16" Margin="0,8,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <ComboBox Grid.Column="0"
-                                                  Header="Stato"
-                                            ItemsSource="{Binding ElementName=ThisPage, Path=AllStati}"
-                                                  
-                                                  DisplayMemberPath="Nome"
-                                                  SelectedValuePath="Id"
-                                                  SelectedValue="{x:Bind StatoId, Mode=TwoWay}"
-                                                  SelectionChanged="StatoComboBox_SelectionChanged"
-                                                  Tag="{x:Bind Nticket}"/>
-
-                                        <ComboBox Grid.Column="1"
-                                                  Header="Assegnato a"                                                
-                                            ItemsSource="{Binding ElementName=ThisPage, Path=AllItUsers}"
-                                                  DisplayMemberPath="UsernameAd"
-                                                  SelectedValuePath="Id"
-                                                  SelectedValue="{x:Bind AssegnatoaId, Mode=TwoWay, TargetNullValue=0}"
-                                                  SelectionChanged="AssegnatoaComboBox_SelectionChanged"
-                                                  Tag="{x:Bind Nticket}"/>
-                                    </Grid>
-
-                                    <!-- Riga Utente, Macchina e Assegnato (NUOVO) -->
-                                    <TextBlock Opacity="0.8" 
-                                               FontSize="12" 
-                                               Margin="0,8,0,0">
-                                        <Run Text="Inviato da:"/>
-                                        <Run Text="{x:Bind Username}" FontWeight="Bold"/>
-                                        <Run Text=" | Macchina: "/>
-                                        <Run Text="{x:Bind Macchina}" FontWeight="Bold"/>
-                                        <Run Text=" | Assegnato a: "/>
-                                        <Run Text="{x:Bind AssegnatoaNome}" FontWeight="Bold"/>
-                                    </TextBlock>
-
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                           Text="Gestione Ticket"/>
+                <TextBlock Text="Visualizza e gestisci le richieste di assistenza" 
+                           Style="{ThemeResource BodyTextBlockStyle}" 
+                           Opacity="0.6"/>
             </StackPanel>
-        </ScrollViewer>
 
+            <!-- 
+                TRUCCO DEL TAG: 
+                Tag="{x:Bind}" lega l'istanza della finestra (MainWindow) alla proprietà Tag della ListView.
+                Questo ci permette di accedere alle liste AllStati/AllItUsers dall'interno del DataTemplate.
+            -->
+            <ListView x:Name="TicketListView" 
+                      Grid.Row="1"
+                      SelectionMode="None"
+                      Tag="{x:Bind}">
+
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0,0,0,8"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:TicketViewModel">
+
+                        <!-- 
+                            BINDING AGGIORNATO:
+                            Usiamo ElementName=TicketListView per trovare la lista,
+                            e Path=Tag.AllStati per prendere la lista dalla finestra salvata nel Tag.
+                        -->
+                        <controls:TicketItemControl 
+                            ViewModel="{x:Bind}"
+                            StatoOptions="{Binding ElementName=TicketListView, Path=Tag.AllStati}"
+                            AssigneeOptions="{Binding ElementName=TicketListView, Path=Tag.AllItUsers}"
+                            TicketStateChanged="OnTicketStateChanged"
+                            TicketAssigneeChanged="OnTicketAssigneeChanged"/>
+
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
     </Grid>
 </Window>

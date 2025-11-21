@@ -19,6 +19,9 @@
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="Controls\TicketItemControl.xaml" />
+	</ItemGroup>
 
 	<!-- Asset e Manifest (standard) -->
 	<ItemGroup>
@@ -45,6 +48,11 @@
 	<!-- Proprietà MSIX (standard) -->
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Page Update="Controls\TicketItemControl.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>

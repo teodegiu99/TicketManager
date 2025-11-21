@@ -1,15 +1,24 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace ClientIT.Models
 {
-    // Questo modello rappresenta i dati inviati da TicketsController/all
-
-    // MODIFICA: Inizializziamo tutte le stringhe a 'string.Empty'
-    // e rimuoviamo il '?' (nullable).
-    // Questo impedisce a x:Bind di crashare se l'API invia 'null'.
-
-    public class TicketViewModel
+    public class TicketViewModel : INotifyPropertyChanged
     {
+        // --- Implementazione INotifyPropertyChanged ---
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string name = null) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        // Campi privati
+        private int _statoId;
+        private int? _assegnatoaId;
+        private string _statoNome = string.Empty;
+        private string _assegnatoaNome = string.Empty;
+
+        // Proprietà standard
         public int Id { get; set; }
         public int Nticket { get; set; }
         public string Titolo { get; set; } = string.Empty;
@@ -22,9 +31,47 @@ namespace ClientIT.Models
         public string Macchina { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
-        public string StatoNome { get; set; } = string.Empty;
-        public string AssegnatoaNome { get; set; } = string.Empty;
-        public int StatoId { get; set; }
-        public int? AssegnatoaId { get; set; } // Nullable (può non essere assegnato)
+
+        // --- PROPRIETÀ COLLEGATE AI COMBOBOX ---
+
+        public int StatoId
+        {
+            get => _statoId;
+            set
+            {
+                if (_statoId != value)
+                {
+                    _statoId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int? AssegnatoaId
+        {
+            // TRUCCO: Se è null, restituisci 0 (così seleziona "Non Assegnato" nel ComboBox)
+            get => _assegnatoaId ?? 0;
+            set
+            {
+                if (_assegnatoaId != value)
+                {
+                    _assegnatoaId = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        // Aggiorniamo anche i testi se necessario
+        public string StatoNome
+        {
+            get => _statoNome;
+            set { _statoNome = value; OnPropertyChanged(); }
+        }
+
+        public string AssegnatoaNome
+        {
+            get => _assegnatoaNome;
+            set { _assegnatoaNome = value; OnPropertyChanged(); }
+        }
     }
 }

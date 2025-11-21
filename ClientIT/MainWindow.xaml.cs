@@ -1,28 +1,33 @@
-﻿using ClientIT.Models;
+﻿using ClientIT.Controls; // Necessario per gli eventi TicketStateChangedEventArgs
+using ClientIT.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Collections.ObjectModel; // Fondamentale per il Binding dinamico
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Net.Http.Json; // Per PutAsJsonAsync
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace ClientIT
 {
     public sealed partial class MainWindow : Window
     {
         private HttpClient _apiClient;
-        
-        private string _apiBaseUrl = "http://localhost:5210"; 
 
+        // ⚠️ Controlla che l'URL sia corretto
+        private string _apiBaseUrl = "http://localhost:5210";
+
+        // --- LISTE PUBBLICHE PER I COMBOBOX ---
+        // Usiamo ObservableCollection così la UI si accorge quando aggiungiamo elementi.
         public ObservableCollection<Stato> AllStati { get; } = new();
         public ObservableCollection<ItUtente> AllItUsers { get; } = new();
 
         public MainWindow()
         {
-            this.InitializeComponent(); 
+            this.InitializeComponent();
             this.Title = "Gestione Ticket (IT)";
 
             var handler = new HttpClientHandler
@@ -32,55 +37,64 @@ namespace ClientIT
             };
             _apiClient = new HttpClient(handler);
 
-            // Agganciamo l'evento Loaded per caricare i dati
+            // Carichiamo i dati quando la finestra viene attivata per la prima volta
             this.Activated += MainWindow_Activated;
-        }       
+        }
 
-        // Modifica la firma del gestore evento:
+        private bool _isFirstActivation = true;
+
         private void MainWindow_Activated(object sender, WindowActivatedEventArgs e)
         {
-            // Chiamata asincrona corretta
-            _ = LoadDataAsync();
+            if (_isFirstActivation)
+            {
+                _isFirstActivation = false;
+                _ = LoadDataAsync();
+            }
         }
+
+        // --- CARICAMENTO DATI ---
 
         private async Task LoadDataAsync()
         {
-            // 1. Imposta il messaggio di benvenuto
-            var currentUser = App.CurrentUser; // Recupera l'utente da App.xaml.cs
-            if (currentUser != null)
+            // Gestione UI di caricamento
+            if (LoadingProgressRing != null)
             {
-                WelcomeMessage.Text = $"Bentornato, {currentUser.UsernameAd} (Livello: {currentUser.Permesso})";
+                LoadingProgressRing.IsActive = true;
+                LoadingProgressRing.Visibility = Visibility.Visible;
             }
-            else
-            {
-                WelcomeMessage.Text = "Benvenuto, utente non riconosciuto.";
-            }
-
-            // 2. Mostra il caricamento
-            LoadingProgressRing.IsActive = true;
-            LoadingProgressRing.Visibility = Visibility.Visible;
-            RootGrid.IsHitTestVisible = false; // Disabilita l'intera griglia
+            if (RootGrid != null) RootGrid.IsHitTestVisible = false;
 
             try
             {
-                // Carica la lista utenti (a sinistra)
-                await LoadItUsersAsync();
+                // 1. Benvenuto
+                if (WelcomeMessage != null && App.CurrentUser != null)
+                {
+                    WelcomeMessage.Text = $"Bentornato, {App.CurrentUser.UsernameAd} ({App.CurrentUser.Permesso})";
+                }
+
+                // 2. Carica le liste di supporto (Stati e Utenti) PRIMA dei ticket
+                // Questo assicura che i ComboBox abbiano i dati pronti quando i ticket arrivano
                 await LoadStatiAsync();
-                // Carica tutti i ticket (a destra) all'avvio
-                await LoadTicketsAsync(); // Carica senza filtro
+                await LoadItUsersAsync();
+
+                // 3. Carica i ticket (inizialmente tutti)
+                await LoadTicketsAsync();
             }
             catch (Exception ex)
             {
-                // Gestisce errori di rete o API
                 await ShowErrorDialog($"Errore nel caricamento dati: {ex.Message}");
             }
             finally
             {
-                LoadingProgressRing.IsActive = false;
-                LoadingProgressRing.Visibility = Visibility.Collapsed;
-                RootGrid.IsHitTestVisible = true; // Riabilita l'intera griglia
+                if (LoadingProgressRing != null)
+                {
+                    LoadingProgressRing.IsActive = false;
+                    LoadingProgressRing.Visibility = Visibility.Collapsed;
+                }
+                if (RootGrid != null) RootGrid.IsHitTestVisible = true;
             }
         }
+
         private async Task LoadStatiAsync()
         {
             var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/tickets/stati");
@@ -93,13 +107,10 @@ namespace ClientIT
             AllStati.Clear();
             if (stati != null)
             {
-                foreach (var stato in stati)
-                {
-                    AllStati.Add(stato);
-                }
+                foreach (var s in stati) AllStati.Add(s);
             }
         }
-        // Carica la lista di utenti IT nella colonna sinistra.
+
         private async Task LoadItUsersAsync()
         {
             var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/users");
@@ -109,36 +120,39 @@ namespace ClientIT
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var utenti = JsonSerializer.Deserialize<List<ItUtente>>(jsonResponse, options);
 
-            // Popola la lista a sinistra
-            UserListView.ItemsSource = utenti;
+            // 1. Popola la lista visiva a sinistra (solo utenti reali)
+            if (UserListView != null)
+            {
+                UserListView.ItemsSource = utenti;
+            }
 
-            // Popola la lista per il ComboBox (aggiungendo "Non assegnato")
+            // 2. Popola la lista per i ComboBox (aggiungendo l'opzione "Non assegnato")
             AllItUsers.Clear();
-            AllItUsers.Add(ItUtente.NonAssegnato); // Aggiunge l'opzione "Non assegnato" (ID 0)
+            // Usiamo la proprietà statica definita nel Modello per coerenza
+            var nonAssegnato = ItUtente.NonAssegnato ?? new ItUtente { Id = 0, UsernameAd = "Non assegnato" };
+            AllItUsers.Add(nonAssegnato);
+
             if (utenti != null)
             {
-                foreach (var utente in utenti)
-                {
-                    AllItUsers.Add(utente);
-                }
+                foreach (var u in utenti) AllItUsers.Add(u);
             }
-         
         }
 
-        /// <summary>
-        /// Carica la lista dei ticket (filtrata o completa) nella colonna destra.
-        /// </summary>
         private async Task LoadTicketsAsync(int? assegnatoa_id = null)
         {
-            LoadingProgressRing.IsActive = true;
-            LoadingProgressRing.Visibility = Visibility.Visible;
-            TicketListView.ItemsSource = null; // Svuota la lista precedente
+            // Mostra caricamento solo se non stiamo già caricando tutto (micro-ottimizzazione visiva)
+            if (LoadingProgressRing != null && !LoadingProgressRing.IsActive)
+            {
+                LoadingProgressRing.IsActive = true;
+                LoadingProgressRing.Visibility = Visibility.Visible;
+            }
+
+            // Svuota la lista per feedback visivo immediato
+            if (TicketListView != null) TicketListView.ItemsSource = null;
 
             try
             {
                 string url = $"{_apiBaseUrl}/api/tickets/all";
-
-                // Se è stato fornito un ID, aggiungilo come filtro
                 if (assegnatoa_id.HasValue)
                 {
                     url += $"?assegnatoa_id={assegnatoa_id.Value}";
@@ -151,7 +165,7 @@ namespace ClientIT
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var tickets = JsonSerializer.Deserialize<List<TicketViewModel>>(jsonResponse, options);
 
-                TicketListView.ItemsSource = tickets;
+                if (TicketListView != null) TicketListView.ItemsSource = tickets;
             }
             catch (Exception ex)
             {
@@ -159,120 +173,95 @@ namespace ClientIT
             }
             finally
             {
-                LoadingProgressRing.IsActive = false;
-                LoadingProgressRing.Visibility = Visibility.Collapsed;
+                if (LoadingProgressRing != null)
+                {
+                    LoadingProgressRing.IsActive = false;
+                    LoadingProgressRing.Visibility = Visibility.Collapsed;
+                }
             }
         }
 
-        /// <summary>
-        /// Chiamato quando l'utente clicca su "Mostra Tutti".
-        /// </summary>
+        // --- GESTORI EVENTI UI (FILTRI) ---
+
         private async void ShowAllButton_Click(object sender, RoutedEventArgs e)
         {
-            UserListView.SelectedItem = null; // Deseleziona la lista
-            await LoadTicketsAsync(); // Carica tutti i ticket
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+            await LoadTicketsAsync(null);
         }
-        /// <summary>
-        /// (NUOVO) Auto-Salvataggio quando si cambia lo STATO
-        /// </summary>
-        private async void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+
+        private async void UserListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var comboBox = sender as ComboBox;
-            // Troviamo il Nticket (ID) del ticket che abbiamo salvato nel Tag
-            // e ci assicuriamo che l'evento non sia causato da un binding iniziale
-            if (comboBox?.Tag is int nticket &&
-                comboBox.SelectedValue is int statoId &&
-                e.AddedItems.Count > 0)
+            if (UserListView?.SelectedItem is ItUtente selectedUser)
             {
-                await UpdateTicketAsync(nticket, statoId, null);
+                // Filtra la lista dei ticket per l'ID di questo utente
+                await LoadTicketsAsync(selectedUser.Id);
             }
         }
 
-        /// <summary>
-        /// (NUOVO) Auto-Salvataggio quando si cambia l'ASSEGNATARIO
-        /// </summary>
-        private async void AssegnatoaComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // --- GESTORI EVENTI TICKET (AUTO-SALVATAGGIO) ---
+
+        // Questi metodi vengono chiamati dal TicketItemControl tramite evento.
+        // Riceviamo i dati puliti: ID del ticket e il nuovo valore.
+
+        public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {
-            var comboBox = sender as ComboBox;
-            if (comboBox?.Tag is int nticket &&
-                comboBox.SelectedValue is int assegnatoaId &&
-                e.AddedItems.Count > 0)
-            {
-                await UpdateTicketAsync(nticket, null, assegnatoaId);
-            }
+            await UpdateTicketAsync(e.Nticket, e.StatoId, null);
         }
 
-        /// <summary>
-        /// (NUOVO) Chiama l'endpoint PUT dell'API per l'auto-salvataggio.
-        /// </summary>
+        public async void OnTicketAssigneeChanged(object sender, TicketAssigneeChangedEventArgs e)
+        {
+            await UpdateTicketAsync(e.Nticket, null, e.AssegnatoaId);
+        }
+
+        // --- LOGICA API PUT ---
+
         private async Task UpdateTicketAsync(int nticket, int? statoId, int? assegnatoaId)
         {
-            LoadingProgressRing.IsActive = true;
-            LoadingProgressRing.Visibility = Visibility.Visible;
-            RootGrid.IsHitTestVisible = false; // Blocca l'interfaccia durante il salvataggio
+            // Blocca l'interfaccia per evitare modifiche concorrenti rapide
+            if (RootGrid != null) RootGrid.IsHitTestVisible = false;
+            if (LoadingProgressRing != null) { LoadingProgressRing.IsActive = true; LoadingProgressRing.Visibility = Visibility.Visible; }
 
             try
             {
-                // Costruisce l'URL (es. /api/tickets/123/update)
                 string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
 
-                // Crea l'oggetto da inviare (solo con i campi che vogliamo cambiare)
                 var request = new
                 {
                     StatoId = statoId,
                     AssegnatoaId = assegnatoaId
                 };
 
-                // Invia la richiesta PUT
                 var response = await _apiClient.PutAsJsonAsync(url, request);
                 response.EnsureSuccessStatusCode();
 
-                // Auto-salvataggio riuscito.
+                // Successo. Non serve ricaricare la lista perché il ComboBox 
+                // nel TicketItemControl si è già aggiornato visivamente.
             }
             catch (Exception ex)
             {
-                await ShowErrorDialog($"Errore during l'auto-salvataggio: {ex.Message}");
-                // Se il salvataggio fallisce, ricarichiamo la lista per annullare la modifica
-                await LoadTicketsAsync();
+                await ShowErrorDialog($"Errore salvataggio: {ex.Message}");
+
+                // Se fallisce, ricarichiamo la lista per ripristinare i dati corretti dal DB
+                // (così l'utente vede che la modifica non è andata a buon fine)
+                var currentFilterId = (UserListView?.SelectedItem as ItUtente)?.Id;
+                await LoadTicketsAsync(currentFilterId);
             }
             finally
             {
-                LoadingProgressRing.IsActive = false;
-                LoadingProgressRing.Visibility = Visibility.Collapsed;
-                RootGrid.IsHitTestVisible = true; // Sblocca l'interfaccia
+                if (RootGrid != null) RootGrid.IsHitTestVisible = true;
+                if (LoadingProgressRing != null) { LoadingProgressRing.IsActive = false; LoadingProgressRing.Visibility = Visibility.Collapsed; }
             }
         }
 
-        /// <summary>
-        /// Chiamato quando l'utente seleziona un nome dalla lista.
-        /// </summary>
-        private async void UserListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Ottieni l'utente selezionato
-            var selectedUser = UserListView.SelectedItem as ItUtente;
-            
-            // Se la selezione è stata cancellata (es. da "Mostra Tutti"), non fare nulla
-            if (selectedUser == null)
-            {
-                return;
-            }
-
-            // Carica i ticket filtrando per l'utente selezionato (passando l'ID)
-            await LoadTicketsAsync(selectedUser.Id);
-        }
-
-        /// <summary>
-        /// Mostra un popup di errore in modo sicuro, usando il XamlRoot corretto.
-        /// </summary>
         private async Task ShowErrorDialog(string content)
         {
+            if (RootGrid?.XamlRoot == null) return;
             ContentDialog errorDialog = new ContentDialog
             {
                 Title = "Errore",
                 Content = content,
                 CloseButtonText = "OK",
-                // Usiamo XamlRoot della griglia principale (RootGrid)
-                XamlRoot = RootGrid.XamlRoot 
+                XamlRoot = RootGrid.XamlRoot
             };
             await errorDialog.ShowAsync();
         }
