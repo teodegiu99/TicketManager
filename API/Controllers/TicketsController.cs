@@ -71,6 +71,12 @@ namespace TicketAPI.Controllers
 
             // --- Logica di Filtro ---
             // Se l'URL (ClientIT) passa un nome utente (es. ?assegnatoaId=5)
+
+
+            //filtra per escludere i ticket terminati 
+            query = query.Where(t => t.StatoId != 3);
+
+
             if (assegnatoa_id.HasValue)
             {
                 // Filtra per ID (int)
@@ -81,7 +87,8 @@ namespace TicketAPI.Controllers
 
             // Esegui la query finale
             var tickets = await query
-                .OrderByDescending(t => t.DataCreazione) // I più recenti prima
+                .OrderByDescending(t => t.UrgenzaId) // MODIFICA: Prima l'urgenza (ID alto = priorità alta)
+                .ThenByDescending(t => t.DataCreazione)
                 .Select(t => new
                 {
                     // Mappiamo Nticket sia su Id che su Nticket
