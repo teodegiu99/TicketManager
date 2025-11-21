@@ -13,10 +13,8 @@ namespace ClientIT.Controls
             this.InitializeComponent();
         }
 
-        // --- 1. PROPRIETÀ DIPENDENTI (Props) ---
-        // Usiamo il callback "OnChanged" per aggiornare la grafica quando i dati arrivano
+        // --- 1. PROPRIETÀ DIPENDENTI ---
 
-        // Il Ticket (ViewModel)
         public static readonly DependencyProperty ViewModelProperty =
             DependencyProperty.Register(nameof(ViewModel), typeof(TicketViewModel), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
@@ -27,7 +25,6 @@ namespace ClientIT.Controls
             set => SetValue(ViewModelProperty, value);
         }
 
-        // Lista Stati
         public static readonly DependencyProperty StatoOptionsProperty =
             DependencyProperty.Register(nameof(StatoOptions), typeof(IList<Stato>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
@@ -38,7 +35,6 @@ namespace ClientIT.Controls
             set => SetValue(StatoOptionsProperty, value);
         }
 
-        // Lista Utenti IT
         public static readonly DependencyProperty AssigneeOptionsProperty =
             DependencyProperty.Register(nameof(AssigneeOptions), typeof(IList<ItUtente>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
@@ -49,9 +45,8 @@ namespace ClientIT.Controls
             set => SetValue(AssigneeOptionsProperty, value);
         }
 
-        // --- 2. GESTIONE AGGIORNAMENTO GRAFICO ---
+        // --- 2. GESTIONE AGGIORNAMENTO ---
 
-        // Questo metodo scatta ogni volta che cambia il Ticket o arrivano le Liste
         private static void OnDataChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TicketItemControl control)
@@ -60,51 +55,62 @@ namespace ClientIT.Controls
             }
         }
 
-        // Forza i ComboBox a mostrare il valore corretto
         private void UpdateSelections()
         {
             if (ViewModel == null) return;
 
-            // Aggiorna ComboBox Stato
+            // --- GESTIONE STATO ---
             if (StatoCombo != null && StatoOptions != null)
             {
-                // Disattiviamo l'evento per evitare che scatti l'auto-salvataggio mentre carichiamo
+                if (StatoCombo.ItemsSource == null || StatoCombo.ItemsSource != StatoOptions)
+                {
+                    StatoCombo.ItemsSource = StatoOptions;
+                }
+
                 StatoCombo.SelectionChanged -= StatoComboBox_SelectionChanged;
                 StatoCombo.SelectedValue = ViewModel.StatoId;
                 StatoCombo.SelectionChanged += StatoComboBox_SelectionChanged;
             }
 
-            // Aggiorna ComboBox Assegnatario
+            // --- GESTIONE ASSEGNATARIO ---
             if (AssegnatoCombo != null && AssigneeOptions != null)
             {
+                if (AssegnatoCombo.ItemsSource == null || AssegnatoCombo.ItemsSource != AssigneeOptions)
+                {
+                    AssegnatoCombo.ItemsSource = AssigneeOptions;
+                }
+
                 AssegnatoCombo.SelectionChanged -= AssegnatoaComboBox_SelectionChanged;
-                // Se è null, mettiamo 0 ("Non assegnato")
-                AssegnatoCombo.SelectedValue = ViewModel.AssegnatoaId ?? 0;
+
+                var val = ViewModel.AssegnatoaId ?? 0;
+                AssegnatoCombo.SelectedValue = val;
+
                 AssegnatoCombo.SelectionChanged += AssegnatoaComboBox_SelectionChanged;
             }
         }
 
-        // --- 3. EVENTI ESTERNI (Auto-Salvataggio) ---
+        // --- HELPER PER FORMATTAZIONE DATA (Fix WMC1110) ---
+        public string FormatDate(DateTime date)
+        {
+            return date.ToString("dd/MM/yyyy HH:mm");
+        }
+
+        // --- 3. EVENTI ESTERNI ---
 
         public event EventHandler<TicketStateChangedEventArgs>? TicketStateChanged;
         public event EventHandler<TicketAssigneeChangedEventArgs>? TicketAssigneeChanged;
 
-        // --- 4. GESTORI EVENTI UI ---
+        // --- 4. HANDLERS UI ---
 
         private void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Controllo di sicurezza per evitare crash o loop
             if (ViewModel == null) return;
 
             if (sender is ComboBox comboBox && comboBox.SelectedValue is int nuovoId)
             {
-                // Se il valore è identico, non fare nulla
                 if (nuovoId == ViewModel.StatoId) return;
 
-                // Aggiorna MANUALMENTE il ViewModel (perché nel XAML è OneWay)
                 ViewModel.StatoId = nuovoId;
-
-                // Avvisa la MainWindow di salvare
                 TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, nuovoId));
             }
         }
@@ -116,19 +122,14 @@ namespace ClientIT.Controls
             if (sender is ComboBox comboBox && comboBox.SelectedValue is int nuovoId)
             {
                 int? idConfronto = (nuovoId == 0) ? null : nuovoId;
+                if (nuovoId == (ViewModel.AssegnatoaId ?? 0)) return;
 
-                if (idConfronto == ViewModel.AssegnatoaId) return;
-
-                // Aggiorna MANUALMENTE il ViewModel
                 ViewModel.AssegnatoaId = idConfronto;
-
-                // Avvisa la MainWindow di salvare
                 TicketAssigneeChanged?.Invoke(this, new TicketAssigneeChangedEventArgs(ViewModel.Nticket, nuovoId));
             }
         }
     }
 
-    // Classi per passare i dati degli eventi
     public class TicketStateChangedEventArgs : EventArgs
     {
         public int Nticket { get; }
