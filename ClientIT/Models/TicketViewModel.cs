@@ -16,13 +16,12 @@ namespace ClientIT.Models
         private int _statoId;
         private int? _assegnatoaId;
 
-        // NUOVI CAMPI PRIVATI
         private int _urgenzaId;
         private int _tipologiaId;
 
         private string _statoNome = string.Empty;
         private string _assegnatoaNome = string.Empty;
-
+        private string _note = string.Empty;
         // Proprietà standard (Dati visuali o di sola lettura)
         public int Id { get; set; }
         public int Nticket { get; set; }
@@ -109,5 +108,11 @@ namespace ClientIT.Models
             get => _assegnatoaNome;
             set { _assegnatoaNome = value; OnPropertyChanged(); }
         }
+        public string Note
+        {
+            get => _note;
+            set { if (_note != value) { _note = value; OnPropertyChanged(); } }
+        }
+
     }
 }

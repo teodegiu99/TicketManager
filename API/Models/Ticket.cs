@@ -52,6 +52,9 @@ namespace TicketAPI.Models
         [Column("statoid")]
         public int StatoId { get; set; } = 1;
 
+        [Column("note")]
+        public string? Note { get; set; }
+
         // --- Proprietà di Navigazione (queste sono corrette) ---
         [ForeignKey("TipologiaId")]
         public virtual Tipologia? Tipologia { get; set; }

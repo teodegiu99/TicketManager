@@ -80,7 +80,17 @@
                     <TextBlock Text="{x:Bind ViewModel.Testo, Mode=OneWay}" TextWrapping="Wrap" FontSize="14" LineHeight="20"/>
                 </Border>
 
-                <!-- Screenshot Button (FIXED) -->
+                <!-- AGGIUNTO: CAMPO NOTE -->
+                <TextBlock Text="Note IT (Admin)" Style="{StaticResource DetailLabelStyle}"/>
+                <TextBox Text="{x:Bind ViewModel.Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                         AcceptsReturn="True" 
+                         TextWrapping="Wrap" 
+                         Height="100" 
+                         Margin="0,0,0,16"
+                         PlaceholderText="Scrivi qui le note interne..."
+                         LostFocus="NoteTextBox_LostFocus"/>
+
+                <!-- Screenshot Button -->
                 <Button x:Name="BtnScreenshot"
                         Visibility="{x:Bind HasScreenshot(ViewModel.ScreenshotPath), Mode=OneWay}"
                         Click="BtnScreenshot_Click"

@@ -51,7 +51,7 @@ namespace ClientUser
                 btnInvia.IsEnabled = true;
             }
         }
-        // --- FINE SOLUZIONE ---
+
 
         // Nuovo metodo ASYNC per popolare le ComboBox dall'API
         private async Task PopolaComboBoxAsync()
@@ -60,7 +60,7 @@ namespace ClientUser
             {
                 // Popola Tipologia
                 await PopolaSingolaComboBox(cmbTipologia, $"{_apiBaseUrl}/api/tickets/tipologie");
-
+                 
                 // Popola Urgenza
                 await PopolaSingolaComboBox(cmbUrgenza, $"{_apiBaseUrl}/api/tickets/urgenze");
 

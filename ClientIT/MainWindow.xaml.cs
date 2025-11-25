@@ -16,7 +16,7 @@ namespace ClientIT
     public sealed partial class MainWindow : Window
     {
         private HttpClient _apiClient;
-        // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API (es. 5001 o 5210)
+        // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API
         private string _apiBaseUrl = "http://localhost:5210";
 
         // --- LISTE PUBBLICHE PER I COMBOBOX ---
@@ -225,7 +225,7 @@ namespace ClientIT
             await SaveFullTicketStateAsync(e.Nticket);
         }
 
-        // Nuovo Handler Generico (per Tipologia e Urgenza)
+        // Nuovo Handler Generico (per Tipologia, Urgenza e NOTE)
         public async void OnTicketPropertyChanged(object sender, TicketGenericChangedEventArgs e)
         {
             await SaveFullTicketStateAsync(e.Nticket);
@@ -254,7 +254,8 @@ namespace ClientIT
                     StatoId = ticket.StatoId,
                     AssegnatoaId = ticket.AssegnatoaId == 0 ? null : ticket.AssegnatoaId,
                     UrgenzaId = ticket.UrgenzaId,
-                    TipologiaId = ticket.TipologiaId
+                    TipologiaId = ticket.TipologiaId,
+                    Note = ticket.Note // <--- AGGIUNTO: Salva le note inviate dalla modale
                 };
 
                 var response = await _apiClient.PutAsJsonAsync(url, request);

@@ -61,6 +61,7 @@ namespace TicketAPI.Controllers
             public int? AssegnatoaId { get; set; }
             public int? UrgenzaId { get; set; }
             public int? TipologiaId { get; set; }
+            public string? Note { get; set; }
         }
 
         // --- GET ALL OPEN TICKETS ---
@@ -105,7 +106,8 @@ namespace TicketAPI.Controllers
                     StatoId = t.StatoId,
                     AssegnatoaId = t.AssegnatoaId,
                     TipologiaId = t.TipologiaId,
-                    UrgenzaId = t.UrgenzaId
+                    UrgenzaId = t.UrgenzaId,
+                     Note = t.Note
                 })
                 .ToListAsync();
 
@@ -126,6 +128,16 @@ namespace TicketAPI.Controllers
                 ticket.StatoId = request.StatoId.Value;
                 modified = true;
             }
+
+            if (request.Note != null)
+            {
+                if (ticket.Note != request.Note)
+                {
+                    ticket.Note = request.Note;
+                    modified = true;
+                }
+            }
+
 
             if (request.AssegnatoaId.HasValue || request.AssegnatoaId == null)
             {
