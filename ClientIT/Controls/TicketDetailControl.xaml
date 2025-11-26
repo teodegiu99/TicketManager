@@ -25,16 +25,9 @@
     <Grid Padding="0,16,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Header Info -->
             <RowDefinition Height="*"/>
-            <!-- Message Body (Scrollable) -->
-            <RowDefinition Height="Auto"/>
-            <!-- Divider -->
-            <RowDefinition Height="Auto"/>
-            <!-- Action Bar (Editable) -->
         </Grid.RowDefinitions>
 
-        <!-- HEADER: Info Tecniche -->
         <Grid Grid.Row="0" ColumnSpacing="24" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -42,7 +35,6 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Col 1: Utente -->
             <StackPanel Grid.Column="0">
                 <TextBlock Text="Richiedente" Style="{StaticResource DetailLabelStyle}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -52,7 +44,6 @@
                 <TextBlock Text="{x:Bind ViewModel.Funzione, Mode=OneWay}" FontSize="12" Opacity="0.5"/>
             </StackPanel>
 
-            <!-- Col 2: Macchina/Sede -->
             <StackPanel Grid.Column="1">
                 <TextBlock Text="Postazione" Style="{StaticResource DetailLabelStyle}"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -62,69 +53,79 @@
                 <TextBlock Text="{x:Bind ViewModel.SedeNome, Mode=OneWay}" FontSize="12" Opacity="0.5" Margin="24,2,0,0"/>
             </StackPanel>
 
-            <!-- Col 3: Data -->
             <StackPanel Grid.Column="2">
                 <TextBlock Text="Data Creazione" Style="{StaticResource DetailLabelStyle}"/>
                 <TextBlock Text="{x:Bind FormatDate(ViewModel.DataCreazione), Mode=OneWay}" Style="{StaticResource DetailValueStyle}"/>
             </StackPanel>
         </Grid>
 
-        <!-- BODY: Messaggio e Screenshot -->
         <ScrollViewer Grid.Row="1" Padding="0,0,12,0">
             <StackPanel>
+
                 <TextBlock Text="Oggetto" Style="{StaticResource DetailLabelStyle}"/>
                 <TextBlock Text="{x:Bind ViewModel.Titolo, Mode=OneWay}" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
 
                 <TextBlock Text="Descrizione" Style="{StaticResource DetailLabelStyle}"/>
-                <Border Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="4" Padding="12" Margin="0,0,0,16">
+                <Border Background="{ThemeResource LayerFillColorAltBrush}" CornerRadius="4" Padding="12" Margin="0,0,0,24">
                     <TextBlock Text="{x:Bind ViewModel.Testo, Mode=OneWay}" TextWrapping="Wrap" FontSize="14" LineHeight="20"/>
                 </Border>
 
-                <!-- AGGIUNTO: CAMPO NOTE -->
-                <TextBlock Text="Note IT (Admin)" Style="{StaticResource DetailLabelStyle}"/>
-                <TextBox Text="{x:Bind ViewModel.Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                         AcceptsReturn="True" 
-                         TextWrapping="Wrap" 
-                         Height="100" 
-                         Margin="0,0,0,16"
-                         PlaceholderText="Scrivi qui le note interne..."
-                         LostFocus="NoteTextBox_LostFocus"/>
-
-                <!-- Screenshot Button -->
                 <Button x:Name="BtnScreenshot"
                         Visibility="{x:Bind HasScreenshot(ViewModel.ScreenshotPath), Mode=OneWay}"
                         Click="BtnScreenshot_Click"
-                        Margin="0,0,0,16">
+                        Margin="0,0,0,24">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE91B;"/>
                         <TextBlock Text="Visualizza Screenshot Allegato"/>
                     </StackPanel>
                 </Button>
+
+                <TextBlock Text="Note IT (Admin)" Style="{StaticResource DetailLabelStyle}"/>
+                <TextBox Text="{x:Bind ViewModel.Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                         AcceptsReturn="True" 
+                         TextWrapping="Wrap" 
+                         Height="200" 
+                         Margin="0,0,0,24"
+                         PlaceholderText="Scrivi qui le note interne..."
+                         LostFocus="NoteTextBox_LostFocus"/>
+
+                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,0,0,24"/>
+
+                <TextBlock Text="Gestione Ticket" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
+
+                <Grid ColumnSpacing="16" RowSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ComboBox x:Name="TipologiaCombo" Grid.Row="0" Grid.Column="0" 
+                              Header="Tipologia" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id" 
+                              SelectionChanged="TipologiaComboBox_SelectionChanged"/>
+
+                    <ComboBox x:Name="UrgenzaCombo" Grid.Row="0" Grid.Column="1" 
+                              Header="Urgenza" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id" 
+                              SelectionChanged="UrgenzaComboBox_SelectionChanged"/>
+
+                    <ComboBox x:Name="StatoCombo" Grid.Row="1" Grid.Column="0" 
+                              Header="Stato" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id" 
+                              SelectionChanged="StatoComboBox_SelectionChanged"/>
+
+                    <ComboBox x:Name="AssegnatoCombo" Grid.Row="1" Grid.Column="1" 
+                              Header="Assegna a" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="UsernameAd" SelectedValuePath="Id" 
+                              SelectionChanged="AssegnatoaComboBox_SelectionChanged"/>
+                </Grid>
+
+                <Rectangle Height="40"/>
             </StackPanel>
         </ScrollViewer>
-
-        <Border Grid.Row="2" Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,16"/>
-
-        <!-- FOOTER: Modifiche -->
-        <Grid Grid.Row="3" ColumnSpacing="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <ComboBox x:Name="TipologiaCombo" Grid.Column="0" Header="Tipologia" HorizontalAlignment="Stretch"
-                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="TipologiaComboBox_SelectionChanged"/>
-
-            <ComboBox x:Name="UrgenzaCombo" Grid.Column="1" Header="Urgenza" HorizontalAlignment="Stretch"
-                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="UrgenzaComboBox_SelectionChanged"/>
-
-            <ComboBox x:Name="StatoCombo" Grid.Column="2" Header="Stato" HorizontalAlignment="Stretch"
-                      DisplayMemberPath="Nome" SelectedValuePath="Id" SelectionChanged="StatoComboBox_SelectionChanged"/>
-
-            <ComboBox x:Name="AssegnatoCombo" Grid.Column="3" Header="Assegna a" HorizontalAlignment="Stretch"
-                      DisplayMemberPath="UsernameAd" SelectedValuePath="Id" SelectionChanged="AssegnatoaComboBox_SelectionChanged"/>
-        </Grid>
     </Grid>
 </UserControl>

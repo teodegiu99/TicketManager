@@ -72,115 +72,127 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto, *">
+        <Grid Grid.Column="1">
 
-            <Grid Grid.Row="0" Margin="0,0,0,16" ColumnDefinitions="*, Auto">
+            <Grid x:Name="ListViewArea" Visibility="Visible">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <AutoSuggestBox x:Name="SearchBox" 
-                                QueryIcon="Find"
-                                PlaceholderText="Cerca per oggetto, testo o note..."
-                                HorizontalAlignment="Stretch"
-                                VerticalAlignment="Center"
-                                QuerySubmitted="SearchBox_QuerySubmitted"/>
+                <Grid Grid.Row="0" Margin="0,0,0,16" ColumnDefinitions="*, Auto">
+                    <AutoSuggestBox x:Name="SearchBox" 
+                                    QueryIcon="Find"
+                                    PlaceholderText="Cerca per oggetto, testo o note..."
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    QuerySubmitted="SearchBox_QuerySubmitted"/>
 
-                <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE71C;"/>
-                        <TextBlock Text="Filtri"/>
-                    </StackPanel>
-
-                    <Button.Flyout>
-                        <Flyout Placement="BottomEdgeAlignedRight">
-                            <Grid Width="340" RowSpacing="16" Padding="4">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE71C;"/>
-                                    <TextBlock Text="Filtri Avanzati" Style="{ThemeResource SubtitleTextBlockStyle}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Row="1" Spacing="12">
-                                    <ComboBox x:Name="FilterStato" Header="Stato" HorizontalAlignment="Stretch"
-                                              ItemsSource="{x:Bind AllStati}" DisplayMemberPath="Nome" SelectedValuePath="Id"
-                                              PlaceholderText="Qualsiasi"/>
-
-                                    <ComboBox x:Name="FilterAssegnato" Header="Assegnato a" HorizontalAlignment="Stretch"
-                                              ItemsSource="{x:Bind AllItUsers}" DisplayMemberPath="UsernameAd" SelectedValuePath="Id"
-                                              PlaceholderText="Qualsiasi"/>
-
-                                    <Grid ColumnSpacing="12">
+                    <Button Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE71C;"/>
+                            <TextBlock Text="Filtri"/>
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight">
+                                <Grid Width="340" RowSpacing="16" Padding="4">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE71C;"/>
+                                        <TextBlock Text="Filtri Avanzati" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Spacing="12">
+                                        <ComboBox x:Name="FilterStato" Header="Stato" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllStati}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
+                                        <ComboBox x:Name="FilterAssegnato" Header="Assegnato a" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllItUsers}" DisplayMemberPath="UsernameAd" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
+                                        <Grid ColumnSpacing="12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox x:Name="FilterTipologia" Grid.Column="0" Header="Tipologia" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllTipologie}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Tutte"/>
+                                            <ComboBox x:Name="FilterUrgenza" Grid.Column="1" Header="Urgenza" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllUrgenze}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Tutte"/>
+                                        </Grid>
+                                        <ComboBox x:Name="FilterSede" Header="Sede" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllSedi}" PlaceholderText="Qualsiasi"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="2" Spacing="12">
+                                        <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="Es: PC-AMM-01"/>
+                                        <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Es: mrossi"/>
+                                    </StackPanel>
+                                    <Grid Grid.Row="3" Margin="0,8,0,0" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <ComboBox x:Name="FilterTipologia" Grid.Column="0" Header="Tipologia" HorizontalAlignment="Stretch"
-                                                  ItemsSource="{x:Bind AllTipologie}" DisplayMemberPath="Nome" SelectedValuePath="Id"
-                                                  PlaceholderText="Tutte"/>
-                                        <ComboBox x:Name="FilterUrgenza" Grid.Column="1" Header="Urgenza" HorizontalAlignment="Stretch"
-                                                  ItemsSource="{x:Bind AllUrgenze}" DisplayMemberPath="Nome" SelectedValuePath="Id"
-                                                  PlaceholderText="Tutte"/>
+                                        <Button Content="Resetta" HorizontalAlignment="Stretch" Click="ResetFilters_Click"/>
+                                        <Button Content="Applica" Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Grid.Column="1" Click="ApplyFilters_Click"/>
                                     </Grid>
-
-                                    <ComboBox x:Name="FilterSede" Header="Sede" HorizontalAlignment="Stretch"
-                                              ItemsSource="{x:Bind AllSedi}" 
-                                              PlaceholderText="Qualsiasi"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Row="2" Spacing="12">
-                                    <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="Es: PC-AMM-01"/>
-                                    <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Es: mrossi"/>
-                                </StackPanel>
-
-                                <Grid Grid.Row="3" Margin="0,8,0,0" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Button Content="Resetta" HorizontalAlignment="Stretch" Click="ResetFilters_Click"/>
-                                    <Button Content="Applica" Style="{ThemeResource AccentButtonStyle}" 
-                                            HorizontalAlignment="Stretch" Grid.Column="1" Click="ApplyFilters_Click"/>
                                 </Grid>
-                            </Grid>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </Grid>
+
+                <ListView x:Name="TicketListView" 
+                          Grid.Row="1"
+                          SelectionMode="None"
+                          IsItemClickEnabled="True"
+                          ItemClick="TicketListView_ItemClick"
+                          Tag="{x:Bind}">
+
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0,0,0,8"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:TicketViewModel">
+                            <controls:TicketItemControl 
+                                ViewModel="{x:Bind}"
+                                StatoOptions="{Binding ElementName=TicketListView, Path=Tag.AllStati}"
+                                AssigneeOptions="{Binding ElementName=TicketListView, Path=Tag.AllItUsers}"
+                                TipologiaOptions="{Binding ElementName=TicketListView, Path=Tag.AllTipologie}"
+                                UrgenzaOptions="{Binding ElementName=TicketListView, Path=Tag.AllUrgenze}"
+                                TicketStateChanged="OnTicketStateChanged"
+                                TicketAssigneeChanged="OnTicketAssigneeChanged"
+                                TicketPropertyChanged="OnTicketPropertyChanged"/>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
             </Grid>
 
-            <ListView x:Name="TicketListView" 
-                      Grid.Row="1"
-                      SelectionMode="None"
-                      IsItemClickEnabled="True"
-                      ItemClick="TicketListView_ItemClick"
-                      Tag="{x:Bind}">
+            <Grid x:Name="DetailViewArea" Visibility="Collapsed" Background="{ThemeResource LayerFillColorDefaultBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Margin" Value="0,0,0,8"/>
-                    </Style>
-                </ListView.ItemContainerStyle>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+                    <Button Click="BackToList_Click" Background="Transparent" BorderThickness="0">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE72B;"/>
+                            <TextBlock Text="Torna alla lista"/>
+                        </StackPanel>
+                    </Button>
+                    <Border Height="20" Width="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,4"/>
+                    <TextBlock Text="Dettaglio Ticket" VerticalAlignment="Center" FontWeight="SemiBold" Opacity="0.8"/>
+                </StackPanel>
 
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="models:TicketViewModel">
-                        <controls:TicketItemControl 
-                            ViewModel="{x:Bind}"
-                            StatoOptions="{Binding ElementName=TicketListView, Path=Tag.AllStati}"
-                            AssigneeOptions="{Binding ElementName=TicketListView, Path=Tag.AllItUsers}"
-                            TipologiaOptions="{Binding ElementName=TicketListView, Path=Tag.AllTipologie}"
-                            UrgenzaOptions="{Binding ElementName=TicketListView, Path=Tag.AllUrgenze}"
-                            TicketStateChanged="OnTicketStateChanged"
-                            TicketAssigneeChanged="OnTicketAssigneeChanged"
-                            TicketPropertyChanged="OnTicketPropertyChanged"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                <controls:TicketDetailControl 
+                    x:Name="DetailControl"
+                    Grid.Row="1"
+                    TicketStateChanged="OnTicketStateChanged"
+                    TicketAssigneeChanged="OnTicketAssigneeChanged"
+                    TicketPropertyChanged="OnTicketPropertyChanged"/>
+            </Grid>
+
         </Grid>
     </Grid>
 </Window>

@@ -296,36 +296,43 @@ namespace ClientIT
         // --- GESTIONE MODIFICA TICKET (INVARIATA) ---
 
         // Apertura Modale Dettaglio al Click
-        private async void TicketListView_ItemClick(object sender, ItemClickEventArgs e)
+        private void TicketListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             if (e.ClickedItem is TicketViewModel ticket)
             {
-                var detailControl = new TicketDetailControl
-                {
-                    ViewModel = ticket,
-                    StatoOptions = AllStati,
-                    AssigneeOptions = AllItUsers,
-                    TipologiaOptions = AllTipologie,
-                    UrgenzaOptions = AllUrgenze
-                };
+                // 1. Passa i dati al controllo di dettaglio (che è già nello XAML)
+                DetailControl.ViewModel = ticket;
 
-                detailControl.TicketStateChanged += OnTicketStateChanged;
-                detailControl.TicketAssigneeChanged += OnTicketAssigneeChanged;
-                detailControl.TicketPropertyChanged += OnTicketPropertyChanged;
+                // 2. Passa le liste per le dropdown
+                DetailControl.StatoOptions = AllStati;
+                DetailControl.AssigneeOptions = AllItUsers;
+                DetailControl.TipologiaOptions = AllTipologie;
+                DetailControl.UrgenzaOptions = AllUrgenze;
 
-                var dialog = new ContentDialog
-                {
-                    Title = $"Ticket #{ticket.Nticket}",
-                    Content = detailControl,
-                    CloseButtonText = "Chiudi",
-                    XamlRoot = this.Content.XamlRoot,
-                    Width = 900,
-                    MaxWidth = 1200
-                };
+                // Nota: Gli eventi (TicketStateChanged, ecc.) sono già collegati nello XAML 
+                // ai metodi OnTicketStateChanged, ecc., quindi funzioneranno automaticamente.
 
-                dialog.Resources["ContentDialogMaxWidth"] = 1200;
-                await dialog.ShowAsync();
+                // 3. Switch della vista
+                ListViewArea.Visibility = Visibility.Collapsed;
+                DetailViewArea.Visibility = Visibility.Visible;
             }
+        }
+
+        // Quando clicco "Torna alla lista"
+        private void BackToList_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Pulisci il dettaglio (opzionale ma consigliato)
+            DetailControl.ViewModel = null;
+
+            // 2. Deseleziona l'item nella lista (per estetica)
+            TicketListView.SelectedItem = null;
+
+            // 3. Switch della vista
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            ListViewArea.Visibility = Visibility.Visible;
+
+            // Opzionale: Ricarica i ticket se pensi che siano cambiati mentre eri nel dettaglio
+            // await LoadTicketsAsync(); 
         }
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
