@@ -1,10 +1,10 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
-using System.Collections.Generic; // Per List<string>
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
-using System.Text.Json; // Per il JSON
+using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -12,97 +12,117 @@ using WinRT.Interop;
 
 namespace ClientUser
 {
+    // Classe di supporto per deserializzare la risposta API { Id, Nome }
+    public class ApiItem
+    {
+        public int Id { get; set; }
+        public string Nome { get; set; } = string.Empty;
+    }
+
     public sealed partial class MainWindow : Window
     {
-        private StorageFile? fileScreenshot = null; // Reso Nullable
+        private StorageFile? fileScreenshot = null;
         private HttpClient _apiClient;
 
-        // ⚠️ Ricorda di impostare l'URL corretto
+        // ⚠️ Assicurati che la porta corrisponda alla tua API (es. 5210 o 7186)
         private string _apiBaseUrl = "http://localhost:5210";
 
         public MainWindow()
         {
-            this.InitializeComponent(); // Ora questo funzionerà
+            this.InitializeComponent();
             this.Title = "Nuovo Ticket Assistenza";
 
             var handler = new HttpClientHandler
             {
                 UseDefaultCredentials = true,
-                ServerCertificateCustomValidationCallback =
-                    (sender, cert, chain, sslPolicyErrors) => true
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
             };
             _apiClient = new HttpClient(handler);
         }
 
-        // --- SOLUZIONE (Aggiramento) ---
-        // Abbiamo sostituito 'RootPanel' con '(sender as FrameworkElement)'
         private async void RootPanel_Loaded(object sender, RoutedEventArgs e)
         {
-            // Disabilita solo il pulsante di invio durante il caricamento
             btnInvia.IsEnabled = false;
-            
             try
             {
                 await PopolaComboBoxAsync();
             }
             finally
             {
-                // Riabilita il pulsante al termine
                 btnInvia.IsEnabled = true;
             }
         }
 
-
-        // Nuovo metodo ASYNC per popolare le ComboBox dall'API
         private async Task PopolaComboBoxAsync()
         {
             try
             {
-                // Popola Tipologia
-                await PopolaSingolaComboBox(cmbTipologia, $"{_apiBaseUrl}/api/tickets/tipologie");
-                 
-                // Popola Urgenza
-                await PopolaSingolaComboBox(cmbUrgenza, $"{_apiBaseUrl}/api/tickets/urgenze");
+                // Tipologie e Urgenze restituiscono oggetti [{Id, Nome}]
+                await PopolaComboBoxOggetti(cmbTipologia, $"{_apiBaseUrl}/api/tickets/tipologie");
+                await PopolaComboBoxOggetti(cmbUrgenza, $"{_apiBaseUrl}/api/tickets/urgenze");
 
-                // Popola Sede
-                await PopolaSingolaComboBox(cmbSede, $"{_apiBaseUrl}/api/tickets/sedi");
+                // Sedi restituisce ancora stringhe ["Sede1", "Sede2"]
+                await PopolaComboBoxStringhe(cmbSede, $"{_apiBaseUrl}/api/tickets/sedi");
             }
             catch (Exception ex)
             {
                 await MostraDialogo("Errore di Caricamento",
-                    $"Impossibile caricare i dati dall'API.\nVerifica che l'API sia in esecuzione e l'URL sia corretto.\n\nDettagli: {ex.Message}");
-                this.Close();
+                    $"Impossibile caricare i dati dall'API.\nVerifica che l'API sia avviata.\n\nDettagli: {ex.Message}");
+                // Non chiudere l'app brutalmente, lascia che l'utente riprovi o legga l'errore
             }
         }
 
-        // Funzione helper per caricare i dati in una ComboBox
-        private async Task PopolaSingolaComboBox(ComboBox comboBox, string url)
+        // Per endpoint che restituiscono [{ "id": 1, "nome": "..." }]
+        private async Task PopolaComboBoxOggetti(ComboBox comboBox, string url)
         {
-            var response = await _apiClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            string jsonResponse = await response.Content.ReadAsStringAsync();
-
-            var options = new JsonSerializerOptions
+            try
             {
-                PropertyNameCaseInsensitive = true
-            };
-            var opzioni = JsonSerializer.Deserialize<List<string>>(jsonResponse, options);
+                var response = await _apiClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-            if (opzioni != null)
-            {
+                var items = JsonSerializer.Deserialize<List<ApiItem>>(json, options);
+
                 comboBox.Items.Clear();
-                foreach (var opzione in opzioni)
+                if (items != null)
                 {
-                    comboBox.Items.Add(opzione);
-                }
-                if (comboBox.Items.Count > 0)
-                {
-                    comboBox.SelectedIndex = 0;
+                    foreach (var item in items)
+                    {
+                        // Aggiungiamo solo la stringa 'Nome', così SelectedItem rimane stringa
+                        // e non rompe la logica di btnInvia_Click
+                        comboBox.Items.Add(item.Nome);
+                    }
+                    if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
                 }
             }
+            catch { /* Gestione opzionale o ignorata per non bloccare tutto */ }
         }
 
+        // Per endpoint che restituiscono ["Stringa1", "Stringa2"]
+        private async Task PopolaComboBoxStringhe(ComboBox comboBox, string url)
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                var items = JsonSerializer.Deserialize<List<string>>(json, options);
+
+                comboBox.Items.Clear();
+                if (items != null)
+                {
+                    foreach (var item in items)
+                    {
+                        comboBox.Items.Add(item);
+                    }
+                    if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
+                }
+            }
+            catch { }
+        }
 
         private async void btnUpload_Click(object sender, RoutedEventArgs e)
         {
@@ -117,15 +137,13 @@ namespace ClientUser
 
             if (fileScreenshot != null)
             {
-                lblFileScelto.Text = $"File selezionato: {fileScreenshot.Name}";
+                lblFileScelto.Text = $"File: {fileScreenshot.Name}";
             }
         }
 
         private async void btnInvia_Click(object sender, RoutedEventArgs e)
         {
-            // Validazione
-            if (string.IsNullOrWhiteSpace(txtOggetto.Text) ||
-                string.IsNullOrWhiteSpace(txtTesto.Text))
+            if (string.IsNullOrWhiteSpace(txtOggetto.Text) || string.IsNullOrWhiteSpace(txtTesto.Text))
             {
                 await MostraDialogo("Errore", "Titolo e Messaggio sono obbligatori.");
                 return;
@@ -133,12 +151,12 @@ namespace ClientUser
 
             var content = new MultipartFormDataContent();
 
-            // Correzione Nullable
+            // Qui SelectedItem è una stringa perché abbiamo popolato items con stringhe (item.Nome)
             content.Add(new StringContent(cmbTipologia.SelectedItem?.ToString() ?? ""), "ProblemType");
             content.Add(new StringContent(cmbUrgenza.SelectedItem?.ToString() ?? ""), "Urgency");
             content.Add(new StringContent(txtFunzione.Text ?? ""), "Funzione");
             content.Add(new StringContent(cmbSede.SelectedItem?.ToString() ?? ""), "Sede");
-            content.Add(new StringContent(System.Environment.MachineName ?? "Sconosciuto"), "Macchina");
+            content.Add(new StringContent(System.Environment.MachineName), "Macchina");
             content.Add(new StringContent(txtOggetto.Text ?? ""), "Title");
             content.Add(new StringContent(txtTesto.Text ?? ""), "Message");
 
@@ -149,35 +167,25 @@ namespace ClientUser
                 content.Add(streamContent, "Screenshot", fileScreenshot.Name);
             }
 
-            // --- Logica di invio all'API ---
             try
             {
                 btnInvia.IsEnabled = false;
-                string apiUrl = $"{_apiBaseUrl}/api/tickets";
-                var response = await _apiClient.PostAsync(apiUrl, content);
+                var response = await _apiClient.PostAsync($"{_apiBaseUrl}/api/tickets", content);
 
                 if (response.IsSuccessStatusCode)
                 {
                     await MostraDialogo("Successo", "Ticket inviato con successo!");
-                    // Pulisci i campi
-                    txtOggetto.Text = "";
-                    txtTesto.Text = "";
-                    txtFunzione.Text = "";
-                    fileScreenshot = null;
-                    lblFileScelto.Text = "";
-                    cmbTipologia.SelectedIndex = 0;
-                    cmbUrgenza.SelectedIndex = 0;
-                    cmbSede.SelectedIndex = 0;
+                    PulisciCampi();
                 }
                 else
                 {
                     string errore = await response.Content.ReadAsStringAsync();
-                    await MostraDialogo("Errore API", $"Errore: {response.StatusCode}\n{errore}");
+                    await MostraDialogo("Errore API", $"Stato: {response.StatusCode}\n{errore}");
                 }
             }
             catch (Exception ex)
             {
-                await MostraDialogo("Errore Grave", $"Errore di connessione: {ex.Message}");
+                await MostraDialogo("Errore Grave", $"Connessione fallita: {ex.Message}");
             }
             finally
             {
@@ -185,24 +193,32 @@ namespace ClientUser
             }
         }
 
-        // Helper per mostrare i dialoghi
+        private void PulisciCampi()
+        {
+            txtOggetto.Text = "";
+            txtTesto.Text = "";
+            txtFunzione.Text = "";
+            fileScreenshot = null;
+            lblFileScelto.Text = "";
+            if (cmbTipologia.Items.Count > 0) cmbTipologia.SelectedIndex = 0;
+            if (cmbUrgenza.Items.Count > 0) cmbUrgenza.SelectedIndex = 0;
+            if (cmbSede.Items.Count > 0) cmbSede.SelectedIndex = 0;
+        }
+
         private async Task MostraDialogo(string titolo, string contenuto)
         {
+            if (RootPanel.XamlRoot == null) return;
+
             ContentDialog dialog = new ContentDialog
             {
                 Title = titolo,
                 Content = contenuto,
                 CloseButtonText = "OK",
-                // 'RootPanel' qui funzionerà, perché questo metodo
-                // viene chiamato molto dopo il 'Loaded'.
                 XamlRoot = RootPanel.XamlRoot
             };
             await dialog.ShowAsync();
         }
 
-        private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
-        {
-            // Puoi lasciare questo vuoto
-        }
+        private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e) { }
     }
 }
