@@ -65,17 +65,18 @@ namespace TicketAPI.Controllers
         }
 
         // --- GET ALL OPEN TICKETS ---
+        // --- GET TICKETS CON FILTRI ---
         [HttpGet("all")]
         public async Task<IActionResult> GetTickets(
-                [FromQuery] string? search,
-                [FromQuery] int? assegnatoa_id,
-                [FromQuery] int? tipologia_id,
-                [FromQuery] int? urgenza_id,
-                [FromQuery] int? stato_id,
-                [FromQuery] string? sede,
-                [FromQuery] string? macchina,
-                [FromQuery] string? username
-            )
+            [FromQuery] string? search,
+            [FromQuery] int? assegnatoa_id,
+            [FromQuery] int? tipologia_id,
+            [FromQuery] int? urgenza_id,
+            [FromQuery] int? stato_id,
+            [FromQuery] string? sede,
+            [FromQuery] string? macchina,
+            [FromQuery] string? username
+        )
         {
             var query = _context.Ticket
                 .Include(t => t.Tipologia)
@@ -85,7 +86,7 @@ namespace TicketAPI.Controllers
                 .Include(t => t.Assegnatoa)
                 .AsQueryable();
 
-            // 1. Ricerca Testuale (Oggetto, Testo, Note)
+            // 1. Ricerca Testuale
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string s = search.ToLower();
@@ -95,30 +96,27 @@ namespace TicketAPI.Controllers
                     (t.Note != null && t.Note.ToLower().Contains(s))
                 );
             }
+            else
+            {
+                // LOGICA DEFAULT: Se NON sto cercando e NON filtro per stato...
+                if (!stato_id.HasValue)
+                {
+                    // ...mostra solo quelli NON terminati (Aperti/In Lavorazione)
+                    query = query.Where(t => t.StatoId != 3);
+                }
+            }
 
             // 2. Filtri specifici
-            if (assegnatoa_id.HasValue)
-                query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
+            if (assegnatoa_id.HasValue) query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
+            if (tipologia_id.HasValue) query = query.Where(t => t.TipologiaId == tipologia_id.Value);
+            if (urgenza_id.HasValue) query = query.Where(t => t.UrgenzaId == urgenza_id.Value);
 
-            if (tipologia_id.HasValue)
-                query = query.Where(t => t.TipologiaId == tipologia_id.Value);
+            // Se specifico uno stato (es. "Terminato"), il filtro default sopra viene ignorato e uso questo
+            if (stato_id.HasValue) query = query.Where(t => t.StatoId == stato_id.Value);
 
-            if (urgenza_id.HasValue)
-                query = query.Where(t => t.UrgenzaId == urgenza_id.Value);
-
-            if (stato_id.HasValue)
-                query = query.Where(t => t.StatoId == stato_id.Value);
-            // NOTA: Ho rimosso il "Where(t => t.StatoId != 3)" automatico 
-            // per permetterti di cercare anche nei ticket chiusi.
-
-            if (!string.IsNullOrEmpty(sede))
-                query = query.Where(t => t.Sede != null && t.Sede.Nome == sede);
-
-            if (!string.IsNullOrEmpty(macchina))
-                query = query.Where(t => t.Macchina != null && t.Macchina.ToLower().Contains(macchina.ToLower()));
-
-            if (!string.IsNullOrEmpty(username))
-                query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
+            if (!string.IsNullOrEmpty(sede)) query = query.Where(t => t.Sede != null && t.Sede.Nome == sede);
+            if (!string.IsNullOrEmpty(macchina)) query = query.Where(t => t.Macchina != null && t.Macchina.ToLower().Contains(macchina.ToLower()));
+            if (!string.IsNullOrEmpty(username)) query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
 
             // Esecuzione query
             var tickets = await query
@@ -139,6 +137,8 @@ namespace TicketAPI.Controllers
                     Macchina = t.Macchina,
                     AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.UsernameAd : "Non assegnato",
                     DataCreazione = t.DataCreazione,
+                    // INCLUDI LA DATA CHIUSURA
+                    DataChiusura = t.DataChiusura,
                     ScreenshotPath = t.ScreenshotPath,
                     StatoId = t.StatoId,
                     AssegnatoaId = t.AssegnatoaId,
@@ -152,6 +152,7 @@ namespace TicketAPI.Controllers
         }
 
         // --- UPDATE TICKET ---
+        // --- UPDATE TICKET ---
         [HttpPut("{nticket}/update")]
         public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
         {
@@ -160,11 +161,27 @@ namespace TicketAPI.Controllers
 
             bool modified = false;
 
+            // --- LOGICA CAMBIO STATO E DATA CHIUSURA ---
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
                 ticket.StatoId = request.StatoId.Value;
+
+                // 3 è l'ID per "Terminato"
+                if (ticket.StatoId == 3)
+                {
+                    // CORREZIONE: Usa UtcNow invece di Now per compatibilità con Postgres
+                    ticket.DataChiusura = DateTime.UtcNow;
+                }
+                else
+                {
+                    // Se cambia in qualsiasi altro stato -> Null
+                    ticket.DataChiusura = null;
+                }
+
                 modified = true;
             }
+
+            // ... (Il resto del metodo rimane uguale: controlli su Note, AssegnatoaId, ecc.)
 
             if (request.Note != null)
             {
@@ -174,7 +191,6 @@ namespace TicketAPI.Controllers
                     modified = true;
                 }
             }
-
 
             if (request.AssegnatoaId.HasValue || request.AssegnatoaId == null)
             {

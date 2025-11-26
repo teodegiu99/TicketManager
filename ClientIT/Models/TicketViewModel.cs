@@ -32,7 +32,7 @@ namespace ClientIT.Models
         public string TipologiaNome { get; set; } = string.Empty;
         public string UrgenzaNome { get; set; } = string.Empty;
         public string SedeNome { get; set; } = string.Empty;
-
+        public DateTime? DataChiusura { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Funzione { get; set; } = string.Empty;
         public string Macchina { get; set; } = string.Empty;

@@ -319,20 +319,22 @@ namespace ClientIT
         }
 
         // Quando clicco "Torna alla lista"
-        private void BackToList_Click(object sender, RoutedEventArgs e)
+        // Quando clicco "Torna alla lista"
+        private async void BackToList_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Pulisci il dettaglio (opzionale ma consigliato)
+            // 1. Pulisci il dettaglio
             DetailControl.ViewModel = null;
 
-            // 2. Deseleziona l'item nella lista (per estetica)
+            // 2. Deseleziona l'item
             TicketListView.SelectedItem = null;
 
             // 3. Switch della vista
             DetailViewArea.Visibility = Visibility.Collapsed;
             ListViewArea.Visibility = Visibility.Visible;
 
-            // Opzionale: Ricarica i ticket se pensi che siano cambiati mentre eri nel dettaglio
-            // await LoadTicketsAsync(); 
+            // 4. CRUCIALE: Ricarica i ticket per aggiornare lo stato (es. rimuovere se chiuso)
+            //    Mantiene il filtro utente corrente se c'è.
+            await LoadTicketsAsync();
         }
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)

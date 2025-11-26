@@ -33,6 +33,9 @@ namespace TicketAPI.Models
         [Column("datacreazione")]
         public DateTime DataCreazione { get; set; }
 
+        [Column("datachiusura")]
+        public DateTime? DataChiusura { get; set; }
+
         [Column("macchina")]
         public string? Macchina { get; set; }
 
