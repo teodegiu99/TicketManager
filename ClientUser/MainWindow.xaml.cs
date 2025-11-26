@@ -12,7 +12,6 @@ using WinRT.Interop;
 
 namespace ClientUser
 {
-    // Classe di supporto per deserializzare la risposta API { Id, Nome }
     public class ApiItem
     {
         public int Id { get; set; }
@@ -23,8 +22,6 @@ namespace ClientUser
     {
         private StorageFile? fileScreenshot = null;
         private HttpClient _apiClient;
-
-        // ⚠️ Assicurati che la porta corrisponda alla tua API (es. 5210 o 7186)
         private string _apiBaseUrl = "http://localhost:5210";
 
         public MainWindow()
@@ -57,22 +54,17 @@ namespace ClientUser
         {
             try
             {
-                // Tipologie e Urgenze restituiscono oggetti [{Id, Nome}]
                 await PopolaComboBoxOggetti(cmbTipologia, $"{_apiBaseUrl}/api/tickets/tipologie");
                 await PopolaComboBoxOggetti(cmbUrgenza, $"{_apiBaseUrl}/api/tickets/urgenze");
-
-                // Sedi restituisce ancora stringhe ["Sede1", "Sede2"]
                 await PopolaComboBoxStringhe(cmbSede, $"{_apiBaseUrl}/api/tickets/sedi");
             }
             catch (Exception ex)
             {
                 await MostraDialogo("Errore di Caricamento",
                     $"Impossibile caricare i dati dall'API.\nVerifica che l'API sia avviata.\n\nDettagli: {ex.Message}");
-                // Non chiudere l'app brutalmente, lascia che l'utente riprovi o legga l'errore
             }
         }
 
-        // Per endpoint che restituiscono [{ "id": 1, "nome": "..." }]
         private async Task PopolaComboBoxOggetti(ComboBox comboBox, string url)
         {
             try
@@ -89,17 +81,14 @@ namespace ClientUser
                 {
                     foreach (var item in items)
                     {
-                        // Aggiungiamo solo la stringa 'Nome', così SelectedItem rimane stringa
-                        // e non rompe la logica di btnInvia_Click
                         comboBox.Items.Add(item.Nome);
                     }
                     if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
                 }
             }
-            catch { /* Gestione opzionale o ignorata per non bloccare tutto */ }
+            catch { }
         }
 
-        // Per endpoint che restituiscono ["Stringa1", "Stringa2"]
         private async Task PopolaComboBoxStringhe(ComboBox comboBox, string url)
         {
             try
@@ -151,7 +140,6 @@ namespace ClientUser
 
             var content = new MultipartFormDataContent();
 
-            // Qui SelectedItem è una stringa perché abbiamo popolato items con stringhe (item.Nome)
             content.Add(new StringContent(cmbTipologia.SelectedItem?.ToString() ?? ""), "ProblemType");
             content.Add(new StringContent(cmbUrgenza.SelectedItem?.ToString() ?? ""), "Urgency");
             content.Add(new StringContent(txtFunzione.Text ?? ""), "Funzione");
@@ -219,6 +207,28 @@ namespace ClientUser
             await dialog.ShowAsync();
         }
 
-        private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e) { }
+        // --- LOGICA CAMPO PROTEX ---
+        private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (txtFunzione == null || cmbTipologia == null) return;
+
+            if (cmbTipologia.SelectedItem is string selezione)
+            {
+                // Se contiene "protex" (case-insensitive), mostra il campo
+                if (selezione.Contains("protex", StringComparison.OrdinalIgnoreCase))
+                {
+                    txtFunzione.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    txtFunzione.Visibility = Visibility.Collapsed;
+                    txtFunzione.Text = string.Empty; // Pulisce il testo se nascondi
+                }
+            }
+            else
+            {
+                txtFunzione.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 }

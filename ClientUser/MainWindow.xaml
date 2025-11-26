@@ -46,13 +46,13 @@
                 <TextBox x:Name="txtFunzione" 
                          Grid.Column="0"
                          Header="Funzione protex" 
-                         PlaceholderText="Codice in basso a destra in protex"/>
+                         PlaceholderText="Codice in basso a destra in protex"
+                         Visibility="Collapsed"/>
 
                 <ComboBox x:Name="cmbSede"
                           Grid.Column="1"
                           Header="Sede"
                           HorizontalAlignment="Stretch" />
-
             </Grid>
 
             <TextBox x:Name="txtOggetto" 
