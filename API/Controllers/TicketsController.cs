@@ -66,7 +66,16 @@ namespace TicketAPI.Controllers
 
         // --- GET ALL OPEN TICKETS ---
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllOpenTickets([FromQuery] int? assegnatoa_id)
+        public async Task<IActionResult> GetTickets(
+                [FromQuery] string? search,
+                [FromQuery] int? assegnatoa_id,
+                [FromQuery] int? tipologia_id,
+                [FromQuery] int? urgenza_id,
+                [FromQuery] int? stato_id,
+                [FromQuery] string? sede,
+                [FromQuery] string? macchina,
+                [FromQuery] string? username
+            )
         {
             var query = _context.Ticket
                 .Include(t => t.Tipologia)
@@ -76,16 +85,44 @@ namespace TicketAPI.Controllers
                 .Include(t => t.Assegnatoa)
                 .AsQueryable();
 
-            // Esclude i ticket "Terminati" (ID 3)
-            query = query.Where(t => t.StatoId != 3);
-
-            if (assegnatoa_id.HasValue)
+            // 1. Ricerca Testuale (Oggetto, Testo, Note)
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
+                string s = search.ToLower();
+                query = query.Where(t =>
+                    t.Titolo.ToLower().Contains(s) ||
+                    t.Testo.ToLower().Contains(s) ||
+                    (t.Note != null && t.Note.ToLower().Contains(s))
+                );
             }
 
+            // 2. Filtri specifici
+            if (assegnatoa_id.HasValue)
+                query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
+
+            if (tipologia_id.HasValue)
+                query = query.Where(t => t.TipologiaId == tipologia_id.Value);
+
+            if (urgenza_id.HasValue)
+                query = query.Where(t => t.UrgenzaId == urgenza_id.Value);
+
+            if (stato_id.HasValue)
+                query = query.Where(t => t.StatoId == stato_id.Value);
+            // NOTA: Ho rimosso il "Where(t => t.StatoId != 3)" automatico 
+            // per permetterti di cercare anche nei ticket chiusi.
+
+            if (!string.IsNullOrEmpty(sede))
+                query = query.Where(t => t.Sede != null && t.Sede.Nome == sede);
+
+            if (!string.IsNullOrEmpty(macchina))
+                query = query.Where(t => t.Macchina != null && t.Macchina.ToLower().Contains(macchina.ToLower()));
+
+            if (!string.IsNullOrEmpty(username))
+                query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
+
+            // Esecuzione query
             var tickets = await query
-                .OrderByDescending(t => t.UrgenzaId) // Prima priorità alta
+                .OrderByDescending(t => t.UrgenzaId)
                 .ThenByDescending(t => t.DataCreazione)
                 .Select(t => new
                 {
@@ -107,7 +144,7 @@ namespace TicketAPI.Controllers
                     AssegnatoaId = t.AssegnatoaId,
                     TipologiaId = t.TipologiaId,
                     UrgenzaId = t.UrgenzaId,
-                     Note = t.Note
+                    Note = t.Note
                 })
                 .ToListAsync();
 

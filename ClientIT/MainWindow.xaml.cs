@@ -19,13 +19,14 @@ namespace ClientIT
         // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API
         private string _apiBaseUrl = "http://localhost:5210";
 
-        // --- LISTE PUBBLICHE PER I COMBOBOX ---
+        // --- LISTE PER I COMBOBOX E FILTRI ---
         public ObservableCollection<Stato> AllStati { get; } = new();
         public ObservableCollection<ItUtente> AllItUsers { get; } = new();
-
-        // NUOVE LISTE
         public ObservableCollection<Tipologia> AllTipologie { get; } = new();
         public ObservableCollection<Urgenza> AllUrgenze { get; } = new();
+
+        // NUOVA LISTA: SEDI
+        public ObservableCollection<string> AllSedi { get; } = new();
 
         public MainWindow()
         {
@@ -66,15 +67,10 @@ namespace ClientIT
 
             try
             {
-                if (WelcomeMessage != null && App.CurrentUser != null)
-                {
-                    WelcomeMessage.Text = $"Bentornato, {App.CurrentUser.UsernameAd} ({App.CurrentUser.Permesso})";
-                }
-
-                // Carica tutte le liste di riferimento
+                // Carica tutte le liste di riferimento (Stati, Utenti, Sedi, ecc.)
                 await LoadReferenceDataAsync();
 
-                // Carica i ticket
+                // Carica i ticket iniziali (senza filtri)
                 await LoadTicketsAsync();
             }
             catch (Exception ex)
@@ -115,13 +111,14 @@ namespace ClientIT
 
                 if (utenti != null)
                 {
+                    // Popola la lista a sinistra e quella nei filtri
                     if (UserListView != null) UserListView.ItemsSource = utenti;
                     foreach (var u in utenti) AllItUsers.Add(u);
                 }
             }
             catch { }
 
-            // 3. Tipologie (NUOVO)
+            // 3. Tipologie
             try
             {
                 var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
@@ -130,7 +127,7 @@ namespace ClientIT
             }
             catch { }
 
-            // 4. Urgenze (NUOVO)
+            // 4. Urgenze
             try
             {
                 var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
@@ -138,17 +135,78 @@ namespace ClientIT
                 if (urgenze != null) foreach (var u in urgenze) AllUrgenze.Add(u);
             }
             catch { }
+
+            // 5. Sedi (NUOVO)
+            try
+            {
+                var sedi = await _apiClient.GetFromJsonAsync<List<string>>($"{_apiBaseUrl}/api/tickets/sedi", options);
+                AllSedi.Clear();
+                if (sedi != null) foreach (var s in sedi) AllSedi.Add(s);
+            }
+            catch { }
         }
 
-        private async Task LoadTicketsAsync(int? assegnatoa_id = null)
+        // --- CARICAMENTO TICKET (NUOVO SISTEMA DI FILTRAGGIO) ---
+
+        private async Task LoadTicketsAsync()
         {
             if (TicketListView != null) TicketListView.ItemsSource = null;
 
             try
             {
-                string url = $"{_apiBaseUrl}/api/tickets/all";
-                if (assegnatoa_id.HasValue) url += $"?assegnatoa_id={assegnatoa_id.Value}";
+                // Costruiamo la lista dei parametri query
+                var queryParams = new List<string>();
 
+                // 1. Ricerca Testuale
+                if (SearchBox != null && !string.IsNullOrWhiteSpace(SearchBox.Text))
+                {
+                    queryParams.Add($"search={Uri.EscapeDataString(SearchBox.Text)}");
+                }
+
+                // 2. Controllo conflitti: Se è selezionato un utente a sinistra, ha la priorità sul filtro "Assegnato" del flyout
+                int? assegnatoId = null;
+
+                if (UserListView != null && UserListView.SelectedItem is ItUtente selectedUser)
+                {
+                    assegnatoId = selectedUser.Id;
+                }
+                else if (FilterAssegnato != null && FilterAssegnato.SelectedValue is int flyoutUserId && flyoutUserId > 0)
+                {
+                    assegnatoId = flyoutUserId;
+                }
+
+                if (assegnatoId.HasValue)
+                {
+                    queryParams.Add($"assegnatoa_id={assegnatoId.Value}");
+                }
+
+                // 3. Altri Filtri dal Flyout
+                if (FilterStato?.SelectedValue is int sId)
+                    queryParams.Add($"stato_id={sId}");
+
+                if (FilterTipologia?.SelectedValue is int tId)
+                    queryParams.Add($"tipologia_id={tId}");
+
+                if (FilterUrgenza?.SelectedValue is int uId)
+                    queryParams.Add($"urgenza_id={uId}");
+
+                if (FilterSede?.SelectedItem is string sede && !string.IsNullOrEmpty(sede))
+                    queryParams.Add($"sede={Uri.EscapeDataString(sede)}");
+
+                if (FilterMacchina != null && !string.IsNullOrWhiteSpace(FilterMacchina.Text))
+                    queryParams.Add($"macchina={Uri.EscapeDataString(FilterMacchina.Text)}");
+
+                if (FilterUsername != null && !string.IsNullOrWhiteSpace(FilterUsername.Text))
+                    queryParams.Add($"username={Uri.EscapeDataString(FilterUsername.Text)}");
+
+                // Costruiamo l'URL finale
+                string url = $"{_apiBaseUrl}/api/tickets/all";
+                if (queryParams.Any())
+                {
+                    url += "?" + string.Join("&", queryParams);
+                }
+
+                // Chiamata API
                 var tickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url);
                 if (TicketListView != null) TicketListView.ItemsSource = tickets;
             }
@@ -158,62 +216,117 @@ namespace ClientIT
             }
         }
 
-        // --- GESTORI EVENTI UI ---
 
+        // --- GESTORI EVENTI UI (FILTRI & NAVBAR) ---
+
+        // 1. Click su "Tutti i Ticket" (Colonna sinistra)
         private async void ShowAllButton_Click(object sender, RoutedEventArgs e)
         {
+            // Resetta selezione sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
-            await LoadTicketsAsync(null);
+
+            // Resetta filtri visuali (Opzionale: se vuoi resettare anche la ricerca quando premi qui)
+            ResetFiltersVisuals();
+
+            await LoadTicketsAsync();
         }
 
+        // 2. Selezione Utente (Colonna sinistra)
         private async void UserListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (UserListView?.SelectedItem is ItUtente selectedUser)
+            // Se stiamo deselezionando (SelectedIndex diventa -1), non facciamo nulla qui,
+            // ci penseranno gli altri metodi.
+            if (UserListView.SelectedIndex != -1)
             {
-                await LoadTicketsAsync(selectedUser.Id);
+                // Se seleziono a sinistra, resetto il combo nel flyout per evitare confusione visiva
+                if (FilterAssegnato != null) FilterAssegnato.SelectedIndex = -1;
+
+                await LoadTicketsAsync();
             }
         }
 
-        // NUOVO: Apertura Modale Dettaglio al Click
+        // 3. Ricerca (Invio nella SearchBar)
+        private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            // Resetta selezione utente laterale per cercare globalmente
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            await LoadTicketsAsync();
+        }
+
+        // 4. Click su "Applica" nel Flyout
+        private async void ApplyFilters_Click(object sender, RoutedEventArgs e)
+        {
+            // Chiude il Flyout (il pulsante "Filtri" è il genitore del Flyout)
+            // In WinUI 3 l'accesso al Flyout parent è meno diretto, ma il click nasconde il flyout di default
+            // se non impostato diversamente. Se rimane aperto, useremo:
+            if (sender is Button btn && btn.XamlRoot != null)
+            {
+                // Codice per chiudere flyout se necessario, solitamente automatico su Button Click
+            }
+
+            // Resetta selezione sinistra per dare priorità ai filtri avanzati
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            await LoadTicketsAsync();
+        }
+
+        // 5. Click su "Resetta" nel Flyout
+        private async void ResetFilters_Click(object sender, RoutedEventArgs e)
+        {
+            ResetFiltersVisuals();
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            await LoadTicketsAsync();
+        }
+
+        private void ResetFiltersVisuals()
+        {
+            if (SearchBox != null) SearchBox.Text = "";
+            if (FilterStato != null) FilterStato.SelectedIndex = -1;
+            if (FilterAssegnato != null) FilterAssegnato.SelectedIndex = -1;
+            if (FilterTipologia != null) FilterTipologia.SelectedIndex = -1;
+            if (FilterUrgenza != null) FilterUrgenza.SelectedIndex = -1;
+            if (FilterSede != null) FilterSede.SelectedIndex = -1;
+            if (FilterMacchina != null) FilterMacchina.Text = "";
+            if (FilterUsername != null) FilterUsername.Text = "";
+        }
+
+
+        // --- GESTIONE MODIFICA TICKET (INVARIATA) ---
+
+        // Apertura Modale Dettaglio al Click
         private async void TicketListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             if (e.ClickedItem is TicketViewModel ticket)
             {
-                // Creiamo il contenuto del Dialog usando il nuovo controllo TicketDetailControl
                 var detailControl = new TicketDetailControl
                 {
                     ViewModel = ticket,
-                    // Passiamo le liste per le combo del dettaglio
                     StatoOptions = AllStati,
                     AssigneeOptions = AllItUsers,
                     TipologiaOptions = AllTipologie,
                     UrgenzaOptions = AllUrgenze
                 };
 
-                // Colleghiamo gli eventi di modifica anche qui, così se l'utente modifica nel dettaglio, salviamo
                 detailControl.TicketStateChanged += OnTicketStateChanged;
                 detailControl.TicketAssigneeChanged += OnTicketAssigneeChanged;
                 detailControl.TicketPropertyChanged += OnTicketPropertyChanged;
 
-                // Creiamo il Dialog
                 var dialog = new ContentDialog
                 {
                     Title = $"Ticket #{ticket.Nticket}",
                     Content = detailControl,
                     CloseButtonText = "Chiudi",
-                    XamlRoot = this.Content.XamlRoot, // Fondamentale in WinUI 3
+                    XamlRoot = this.Content.XamlRoot,
                     Width = 900,
                     MaxWidth = 1200
                 };
 
-                // Stile custom per renderlo più largo
                 dialog.Resources["ContentDialogMaxWidth"] = 1200;
-
                 await dialog.ShowAsync();
             }
         }
-
-        // --- GESTORI EVENTI TICKET (SALVATAGGIO) ---
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {
@@ -225,37 +338,33 @@ namespace ClientIT
             await SaveFullTicketStateAsync(e.Nticket);
         }
 
-        // Nuovo Handler Generico (per Tipologia, Urgenza e NOTE)
         public async void OnTicketPropertyChanged(object sender, TicketGenericChangedEventArgs e)
         {
             await SaveFullTicketStateAsync(e.Nticket);
         }
 
-        // --- LOGICA SALVATAGGIO ROBUSTA ---
-
         private async Task SaveFullTicketStateAsync(int nticket)
         {
-            // 1. Trova il ViewModel aggiornato nella lista
+            // Trova il ViewModel aggiornato nella lista
             var tickets = TicketListView?.ItemsSource as List<TicketViewModel>;
             var ticket = tickets?.FirstOrDefault(t => t.Nticket == nticket);
 
             if (ticket == null) return;
 
             if (RootGrid != null) RootGrid.IsHitTestVisible = false;
-            if (LoadingProgressRing != null) { LoadingProgressRing.IsActive = true; LoadingProgressRing.Visibility = Visibility.Visible; }
+            // Evitiamo di mostrare il loading pieno per salvataggi veloci, blocchiamo solo input
 
             try
             {
                 string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
 
-                // Costruiamo il payload completo per evitare che il server cancelli dati
                 var request = new
                 {
                     StatoId = ticket.StatoId,
                     AssegnatoaId = ticket.AssegnatoaId == 0 ? null : ticket.AssegnatoaId,
                     UrgenzaId = ticket.UrgenzaId,
                     TipologiaId = ticket.TipologiaId,
-                    Note = ticket.Note // <--- AGGIUNTO: Salva le note inviate dalla modale
+                    Note = ticket.Note
                 };
 
                 var response = await _apiClient.PutAsJsonAsync(url, request);
@@ -265,13 +374,11 @@ namespace ClientIT
             {
                 await ShowErrorDialog($"Errore salvataggio: {ex.Message}");
                 // Ricarica per ripristinare i dati corretti in caso di errore
-                var currentFilterId = (UserListView?.SelectedItem as ItUtente)?.Id;
-                await LoadTicketsAsync(currentFilterId);
+                await LoadTicketsAsync();
             }
             finally
             {
                 if (RootGrid != null) RootGrid.IsHitTestVisible = true;
-                if (LoadingProgressRing != null) { LoadingProgressRing.IsActive = false; LoadingProgressRing.Visibility = Visibility.Collapsed; }
             }
         }
 
