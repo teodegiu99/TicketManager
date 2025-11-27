@@ -13,6 +13,9 @@
 		<Nullable>enable</Nullable>
 
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="Controls\StatisticsControl.xaml" />
+	</ItemGroup>
 
 	<!-- Asset e Manifest -->
 	<ItemGroup>
@@ -37,6 +40,11 @@
 	<!-- Proprietà MSIX -->
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Page Update="Controls\StatisticsControl.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">

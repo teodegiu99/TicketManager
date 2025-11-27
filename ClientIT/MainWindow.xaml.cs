@@ -230,11 +230,13 @@ namespace ClientIT
         // 1. Click su "Tutti i Ticket" (Colonna sinistra)
         private async void ShowAllButton_Click(object sender, RoutedEventArgs e)
         {
-            // Resetta selezione sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
-
-            // Resetta filtri visuali (Opzionale: se vuoi resettare anche la ricerca quando premi qui)
             ResetFiltersVisuals();
+
+            // Navigazione: Torna alla lista
+            ListViewArea.Visibility = Visibility.Visible;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
 
             await LoadTicketsAsync();
         }
@@ -242,12 +244,14 @@ namespace ClientIT
         // 2. Selezione Utente (Colonna sinistra)
         private async void UserListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Se stiamo deselezionando (SelectedIndex diventa -1), non facciamo nulla qui,
-            // ci penseranno gli altri metodi.
             if (UserListView.SelectedIndex != -1)
             {
-                // Se seleziono a sinistra, resetto il combo nel flyout per evitare confusione visiva
                 if (FilterAssegnato != null) FilterAssegnato.SelectedIndex = -1;
+
+                // Navigazione: Torna alla lista (se ero in Statistiche)
+                ListViewArea.Visibility = Visibility.Visible;
+                DetailViewArea.Visibility = Visibility.Collapsed;
+                StatisticsViewArea.Visibility = Visibility.Collapsed;
 
                 await LoadTicketsAsync();
             }
@@ -331,20 +335,30 @@ namespace ClientIT
         // Quando clicco "Torna alla lista"
         private async void BackToList_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Pulisci il dettaglio
             DetailControl.ViewModel = null;
-
-            // 2. Deseleziona l'item
             TicketListView.SelectedItem = null;
 
-            // 3. Switch della vista
-            DetailViewArea.Visibility = Visibility.Collapsed;
             ListViewArea.Visibility = Visibility.Visible;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
 
-            // 4. CRUCIALE: Ricarica i ticket per aggiornare lo stato (es. rimuovere se chiuso)
-            //    Mantiene il filtro utente corrente se c'è.
             await LoadTicketsAsync();
         }
+
+        private void StatsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Resetta selezioni lista sinistra
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            // 2. Mostra la vista Statistiche, nascondi le altre
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Visible;
+
+            // Opzionale: Carica i dati delle statistiche qui
+            // StatsControl.LoadData(); 
+        }
+
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {
