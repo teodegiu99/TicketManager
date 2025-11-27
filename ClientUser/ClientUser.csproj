@@ -12,10 +12,9 @@
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
 
-		<!-- 1. DISATTIVA L'INCLUSIONE AUTOMATICA XAML -->
+
 		<EnableDefaultPageItems>true</EnableDefaultPageItems>
 
-		<!-- 2. (LA CORREZIONE) DISATTIVA L'INCLUSIONE AUTOMATICA C# -->
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 
 	</PropertyGroup>

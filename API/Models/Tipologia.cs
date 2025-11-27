@@ -10,5 +10,8 @@ namespace TicketAPI.Models
 
         [Column("nome")]
         public string Nome { get; set; }
+
+        [Column("colore")]
+        public string? Colore { get; set; }
     }
 }

@@ -1,7 +1,10 @@
-﻿using System;
+﻿using Microsoft.UI;
+using Microsoft.UI.Xaml.Media;
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using Windows.UI;
 
 namespace ClientIT.Models
 {
@@ -15,7 +18,7 @@ namespace ClientIT.Models
         // Campi privati per la gestione del binding (ComboBox)
         private int _statoId;
         private int? _assegnatoaId;
-
+        private string? _tipologiaColore;
         private int _urgenzaId;
         private int _tipologiaId;
 
@@ -53,7 +56,62 @@ namespace ClientIT.Models
                 }
             }
         }
+        public string? TipologiaColore
+        {
+            get => _tipologiaColore;
+            set
+            {
+                if (_tipologiaColore != value)
+                {
+                    _tipologiaColore = value;
+                    OnPropertyChanged();
+                    // Notifica che anche il Brush è cambiato
+                    OnPropertyChanged(nameof(TipologiaBrush));
+                }
+            }
+        }
 
+        // Proprietà per il Binding nello XAML (Converte Hex -> Brush)
+        public SolidColorBrush TipologiaBrush
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(TipologiaColore))
+                {
+                    // Colore di default (es. Blu sistema o Grigio)
+                    return new SolidColorBrush(Color.FromArgb(255, 0, 120, 215));
+                }
+                try
+                {
+                    return new SolidColorBrush(GetColorFromHex(TipologiaColore));
+                }
+                catch
+                {
+                    return new SolidColorBrush(Colors.Gray);
+                }
+            }
+        }
+
+        // Helper per convertire stringa Hex in Color
+        private Color GetColorFromHex(string hex)
+        {
+            hex = hex.Replace("#", "");
+            byte a = 255;
+            byte r = 255, g = 255, b = 255;
+            int start = 0;
+
+            if (hex.Length == 8) // C'è il canale Alpha
+            {
+                a = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                start = 2;
+            }
+
+            r = byte.Parse(hex.Substring(start, 2), System.Globalization.NumberStyles.HexNumber);
+            g = byte.Parse(hex.Substring(start + 2, 2), System.Globalization.NumberStyles.HexNumber);
+            b = byte.Parse(hex.Substring(start + 4, 2), System.Globalization.NumberStyles.HexNumber);
+
+            return Color.FromArgb(a, r, g, b);
+        }
         public int? AssegnatoaId
         {
             // TRUCCO: Se è null, restituisci 0 (così seleziona "Non Assegnato" nel ComboBox)

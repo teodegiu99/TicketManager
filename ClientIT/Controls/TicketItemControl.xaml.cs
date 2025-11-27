@@ -45,8 +45,6 @@ namespace ClientIT.Controls
             set => SetValue(AssigneeOptionsProperty, value);
         }
 
-        // CORREZIONE: Deve essere IList<Tipologia>, NON IList<object>
-        // Controlla attentamente il "typeof(IList<Tipologia>)" nel Register qui sotto
         public static readonly DependencyProperty TipologiaOptionsProperty =
             DependencyProperty.Register(nameof(TipologiaOptions), typeof(IList<Tipologia>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
@@ -56,7 +54,6 @@ namespace ClientIT.Controls
             set => SetValue(TipologiaOptionsProperty, value);
         }
 
-        // CORREZIONE: Deve essere IList<Urgenza>, NON IList<object>
         public static readonly DependencyProperty UrgenzaOptionsProperty =
             DependencyProperty.Register(nameof(UrgenzaOptions), typeof(IList<Urgenza>), typeof(TicketItemControl),
                 new PropertyMetadata(null, OnDataChanged));
@@ -125,6 +122,17 @@ namespace ClientIT.Controls
             if (newVal != ViewModel.TipologiaId)
             {
                 ViewModel.TipologiaId = newVal;
+
+                // =========================================================
+                // MODIFICA QUI: Recupera il colore dalla Tipologia selezionata
+                // =========================================================
+                if (cb.SelectedItem is Tipologia selectedTipologia)
+                {
+                    // Aggiorna la proprietà nel ViewModel, scatenando il cambio colore in UI
+                    ViewModel.TipologiaColore = selectedTipologia.Colore;
+                }
+                // =========================================================
+
                 TicketPropertyChanged?.Invoke(this, new TicketGenericChangedEventArgs(ViewModel.Nticket, "TipologiaId", newVal));
             }
         }
@@ -165,7 +173,7 @@ namespace ClientIT.Controls
         }
     }
 
-    // Classi eventi
+    // Classi eventi (Resta tutto uguale)
     public class TicketStateChangedEventArgs : EventArgs
     {
         public int Nticket { get; }

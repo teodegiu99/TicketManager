@@ -132,6 +132,7 @@ namespace TicketAPI.Controllers
                     UrgenzaNome = t.Urgenza != null ? t.Urgenza.Nome : "N/D",
                     SedeNome = t.Sede != null ? t.Sede.Nome : "N/D",
                     StatoNome = t.Stato != null ? t.Stato.Nome : "N/D",
+                    TipologiaColore = t.Tipologia != null ? t.Tipologia.Colore : null,
                     Username = t.Username,
                     Funzione = t.Funzione,
                     Macchina = t.Macchina,
@@ -151,7 +152,6 @@ namespace TicketAPI.Controllers
             return Ok(tickets);
         }
 
-        // --- UPDATE TICKET ---
         // --- UPDATE TICKET ---
         [HttpPut("{nticket}/update")]
         public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
@@ -282,7 +282,7 @@ namespace TicketAPI.Controllers
         {
             // CORREZIONE: Seleziona oggetto completo { Id, Nome }
             var data = await _context.Tipologie
-                .Select(t => new { t.Id, t.Nome })
+                .Select(t => new { t.Id, t.Nome, t.Colore })
                 .ToListAsync();
             return Ok(data);
         }

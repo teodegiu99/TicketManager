@@ -52,7 +52,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Border Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="6,2">
+                <Border Background="{x:Bind ViewModel.TipologiaBrush, Mode=OneWay}" 
+                        CornerRadius="4" Padding="6,2">
                     <TextBlock Text="{x:Bind ViewModel.Nticket, Mode=OneWay}" 
                                Foreground="White" 
                                FontWeight="Bold" 
@@ -68,6 +69,7 @@
 
             <!-- Riga 2: Titolo -->
             <TextBlock Text="{x:Bind ViewModel.Titolo, Mode=OneWay}" 
+                       Foreground="{x:Bind ViewModel.TipologiaBrush, Mode=OneWay}"
                        Style="{ThemeResource SubtitleTextBlockStyle}" 
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"/>
