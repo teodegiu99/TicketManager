@@ -67,7 +67,8 @@ namespace TicketAPI.Controllers
             [FromQuery] string? sede,
             [FromQuery] string? macchina,
             [FromQuery] string? username,
-            [FromQuery] int? nticket // <--- NUOVO PARAMETRO
+            [FromQuery] int? nticket,
+            [FromQuery] bool includeAll = false // <--- parametro per le stat
         )
         {
             var query = _context.Ticket
@@ -91,7 +92,7 @@ namespace TicketAPI.Controllers
             else
             {
                 // LOGICA DEFAULT: Se NON cerco, NON filtro stato e NON filtro ID ticket specifico...
-                if (!stato_id.HasValue && !nticket.HasValue)
+                if (!includeAll && !stato_id.HasValue && !nticket.HasValue)
                 {
                     // ...mostra solo quelli NON terminati
                     query = query.Where(t => t.StatoId != 3);
@@ -137,6 +138,7 @@ namespace TicketAPI.Controllers
                     TipologiaId = t.TipologiaId,
                     UrgenzaId = t.UrgenzaId,
                     Note = t.Note
+
                 })
                 .ToListAsync();
 

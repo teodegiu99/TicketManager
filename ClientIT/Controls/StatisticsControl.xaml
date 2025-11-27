@@ -4,22 +4,85 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:lvc="using:LiveChartsCore.SkiaSharpView.WinUI"
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="24">
-        <StackPanel Spacing="12">
-            <TextBlock Text="Statistiche Ticket" Style="{ThemeResource TitleTextBlockStyle}"/>
-            <TextBlock Text="Qui verranno visualizzati i grafici e i report." Opacity="0.6"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Border Height="200" 
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" 
-                    BorderThickness="1" 
-                    CornerRadius="8" 
-                    Background="{ThemeResource LayerFillColorAltBrush}">
-                <TextBlock Text="Area Grafici (In Sviluppo)" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center"/>
-            </Border>
+        <StackPanel Grid.Row="0" Margin="0,0,0,24">
+            <TextBlock Text="Dashboard Statistiche" Style="{ThemeResource TitleTextBlockStyle}"/>
+            <TextBlock Text="Panoramica in tempo reale (Ticket Attivi)" Opacity="0.6"/>
         </StackPanel>
+
+        <Grid Grid.Row="1" ColumnSpacing="16" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel>
+                    <TextBlock Text="Aperti" Opacity="0.6" FontWeight="SemiBold"/>
+                    <TextBlock Text="{x:Bind CountOpen, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel>
+                    <TextBlock Text="In Corso" Opacity="0.6" FontWeight="SemiBold"/>
+                    <TextBlock Text="{x:Bind CountInProgress, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="Orange"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <StackPanel>
+                    <TextBlock Text="Terminati" Opacity="0.6" FontWeight="SemiBold"/>
+                    <TextBlock Text="{x:Bind CountClosed, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="Gray"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnSpacing="16" MinHeight="300">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Grid RowDefinitions="Auto, *">
+                    <TextBlock Grid.Row="0" Text="Per Urgenza" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                    <lvc:PieChart Grid.Row="1" Series="{x:Bind UrgencySeries, Mode=OneWay}" 
+                                  LegendPosition="Bottom" 
+                                  TooltipPosition="Center"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Grid RowDefinitions="Auto, *">
+                    <TextBlock Grid.Row="0" Text="Per Tipologia" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                    <lvc:PieChart Grid.Row="1" Series="{x:Bind TypeSeries, Mode=OneWay}" 
+                                  LegendPosition="Bottom" 
+                                  TooltipPosition="Center"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Grid RowDefinitions="Auto, *">
+                    <TextBlock Grid.Row="0" Text="Stato SLA (Scadenze)" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                    <lvc:PieChart Grid.Row="1" Series="{x:Bind ColorSeries, Mode=OneWay}" 
+                                  LegendPosition="Bottom" 
+                                  TooltipPosition="Center"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <ProgressRing IsActive="{x:Bind IsLoading, Mode=OneWay}" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="60" Height="60"/>
     </Grid>
 </UserControl>
