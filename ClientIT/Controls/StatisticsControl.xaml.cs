@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Reflection; // Necessario per la Reflection dei colori
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.UI;
@@ -31,7 +32,10 @@ namespace ClientIT.Controls
 
         private ISeries[] _urgencySeries = Array.Empty<ISeries>();
         private ISeries[] _colorSeries = Array.Empty<ISeries>();
-        private ISeries[] _typeSeries = Array.Empty<ISeries>(); // NUOVO
+        private ISeries[] _typeSeries = Array.Empty<ISeries>();
+
+        // Proprietà per il colore del testo legenda
+        public SolidColorPaint LegendTextPaint { get; set; } = new SolidColorPaint(SKColors.White);
 
         public int CountOpen { get => _countOpen; set { _countOpen = value; OnPropertyChanged(); } }
         public int CountInProgress { get => _countInProgress; set { _countInProgress = value; OnPropertyChanged(); } }
@@ -40,7 +44,7 @@ namespace ClientIT.Controls
 
         public ISeries[] UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
         public ISeries[] ColorSeries { get => _colorSeries; set { _colorSeries = value; OnPropertyChanged(); } }
-        public ISeries[] TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } } // NUOVO
+        public ISeries[] TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
 
         public StatisticsControl()
         {
@@ -52,6 +56,11 @@ namespace ClientIT.Controls
         }
 
         private async void StatisticsControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadStats();
+        }
+
+        private async void BtnRefresh_Click(object sender, RoutedEventArgs e)
         {
             await LoadStats();
         }
@@ -75,7 +84,7 @@ namespace ClientIT.Controls
 
                     // 3. Genera i grafici
                     ProcessUrgencyChart(activeTickets);
-                    ProcessTypeChart(activeTickets); // NUOVO
+                    ProcessTypeChart(activeTickets);
                     ProcessColorChart(activeTickets);
                 }
             }
@@ -98,7 +107,6 @@ namespace ClientIT.Controls
 
         private void ProcessUrgencyChart(List<TicketViewModel> activeTickets)
         {
-            // Raggruppa i ticket ATTIVI per urgenza
             var grouped = activeTickets
                 .GroupBy(t => t.UrgenzaNome)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
@@ -114,7 +122,6 @@ namespace ClientIT.Controls
                     DataLabelsPaint = new SolidColorPaint(SKColors.White),
                     DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
                     DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
-                    // Imposta tooltip personalizzato
                     ToolTipLabelFormatter = point => $"{point.Context.Series.Name}: {point.Coordinate.PrimaryValue} ticket"
                 });
             }
@@ -123,19 +130,28 @@ namespace ClientIT.Controls
 
         private void ProcessTypeChart(List<TicketViewModel> activeTickets)
         {
-            // Raggruppa i ticket ATTIVI per tipologia
+            // MODIFICA QUI: Raggruppa per Nome E Colore
             var grouped = activeTickets
-                .GroupBy(t => t.TipologiaNome)
-                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .GroupBy(t => new { t.TipologiaNome, t.TipologiaColore })
+                .Select(g => new {
+                    Name = g.Key.TipologiaNome,
+                    ColorString = g.Key.TipologiaColore,
+                    Count = g.Count()
+                })
                 .ToList();
 
             var seriesList = new List<ISeries>();
             foreach (var item in grouped)
             {
+                // Converte la stringa (Hex o Nome) in un colore SkiaSharp
+                SKColor sliceColor = GetSkColorFromString(item.ColorString);
+
                 seriesList.Add(new PieSeries<int>
                 {
                     Values = new[] { item.Count },
                     Name = item.Name,
+                    Fill = new SolidColorPaint(sliceColor), // <--- Applica il colore specifico
+
                     DataLabelsPaint = new SolidColorPaint(SKColors.White),
                     DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
                     DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
@@ -153,16 +169,14 @@ namespace ClientIT.Controls
 
             foreach (var t in activeTickets)
             {
-                // Sfrutta la logica BusinessTimeCalculator presente nel ViewModel
                 var brush = t.StatusBorderBrush;
-                var color = brush.Color;
+                var c = brush.Color;
 
-                if (color == Colors.LimeGreen) green++;
-                else if (color == Colors.Orange) yellow++;
-                else if (color == Colors.Red) red++;
+                if (AreColorsEqual(c, Colors.LimeGreen)) green++;
+                else if (AreColorsEqual(c, Colors.Orange)) yellow++;
+                else if (AreColorsEqual(c, Colors.Red)) red++;
             }
 
-            // Mostra solo se > 0 per evitare fette vuote con etichette strane
             var seriesList = new List<ISeries>();
 
             if (green > 0)
@@ -175,6 +189,37 @@ namespace ClientIT.Controls
                 seriesList.Add(new PieSeries<int> { Values = new[] { red }, Name = "Scaduti", Fill = new SolidColorPaint(SKColors.Red) });
 
             ColorSeries = seriesList.ToArray();
+        }
+
+        // Helper per confrontare i colori Windows.UI.Color
+        private bool AreColorsEqual(Color c1, Color c2)
+        {
+            return c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
+        }
+
+        // Helper per convertire stringa (Hex o Nome) in SKColor (per i grafici)
+        private SKColor GetSkColorFromString(string? colorStr)
+        {
+            if (string.IsNullOrEmpty(colorStr)) return SKColors.Gray;
+
+            try
+            {
+                // Se è Hex
+                if (colorStr.StartsWith("#"))
+                {
+                    return SKColor.Parse(colorStr);
+                }
+
+                // Se è un nome (es. "Red"), cerca in SKColors tramite Reflection
+                var field = typeof(SKColors).GetField(colorStr, BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase);
+                if (field != null)
+                {
+                    return (SKColor)field.GetValue(null)!;
+                }
+            }
+            catch { }
+
+            return SKColors.Gray; // Fallback
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

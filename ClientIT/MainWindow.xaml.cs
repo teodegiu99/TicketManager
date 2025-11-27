@@ -345,7 +345,7 @@ namespace ClientIT
             await LoadTicketsAsync();
         }
 
-        private void StatsButton_Click(object sender, RoutedEventArgs e)
+        private async void StatsButton_Click(object sender, RoutedEventArgs e)
         {
             // 1. Resetta selezioni lista sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
@@ -355,8 +355,9 @@ namespace ClientIT
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Visible;
 
-            // Opzionale: Carica i dati delle statistiche qui
-            // StatsControl.LoadData(); 
+            // 3. AGGIORNAMENTO AUTOMATICO:
+            // Ricarica i dati ogni volta che apro la pagina per riflettere le ultime modifiche
+            await StatsControl.LoadStats();
         }
 
 

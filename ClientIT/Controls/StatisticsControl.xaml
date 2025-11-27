@@ -14,10 +14,24 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="Dashboard Statistiche" Style="{ThemeResource TitleTextBlockStyle}"/>
-            <TextBlock Text="Panoramica in tempo reale (Ticket Attivi)" Opacity="0.6"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Dashboard Statistiche" Style="{ThemeResource TitleTextBlockStyle}"/>
+                <TextBlock Text="Panoramica in tempo reale (Ticket Attivi)" Opacity="0.6"/>
+            </StackPanel>
+
+            <Button Grid.Column="1" VerticalAlignment="Top" Click="BtnRefresh_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE72C;"/>
+                    <TextBlock Text="Aggiorna"/>
+                </StackPanel>
+            </Button>
+        </Grid>
 
         <Grid Grid.Row="1" ColumnSpacing="16" Margin="0,0,0,24">
             <Grid.ColumnDefinitions>
@@ -48,7 +62,7 @@
             </Border>
         </Grid>
 
-        <Grid Grid.Row="2" ColumnSpacing="16" MinHeight="300">
+        <Grid Grid.Row="2" ColumnSpacing="16" MinHeight="220">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -60,7 +74,8 @@
                     <TextBlock Grid.Row="0" Text="Per Urgenza" FontWeight="SemiBold" Margin="0,0,0,16"/>
                     <lvc:PieChart Grid.Row="1" Series="{x:Bind UrgencySeries, Mode=OneWay}" 
                                   LegendPosition="Bottom" 
-                                  TooltipPosition="Center"/>
+                                  TooltipPosition="Center"
+                                  LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                 </Grid>
             </Border>
 
@@ -69,7 +84,8 @@
                     <TextBlock Grid.Row="0" Text="Per Tipologia" FontWeight="SemiBold" Margin="0,0,0,16"/>
                     <lvc:PieChart Grid.Row="1" Series="{x:Bind TypeSeries, Mode=OneWay}" 
                                   LegendPosition="Bottom" 
-                                  TooltipPosition="Center"/>
+                                  TooltipPosition="Center"
+                                  LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                 </Grid>
             </Border>
 
@@ -78,7 +94,8 @@
                     <TextBlock Grid.Row="0" Text="Stato SLA (Scadenze)" FontWeight="SemiBold" Margin="0,0,0,16"/>
                     <lvc:PieChart Grid.Row="1" Series="{x:Bind ColorSeries, Mode=OneWay}" 
                                   LegendPosition="Bottom" 
-                                  TooltipPosition="Center"/>
+                                  TooltipPosition="Center"
+                                  LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                 </Grid>
             </Border>
         </Grid>
