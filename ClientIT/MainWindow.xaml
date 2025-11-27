@@ -106,6 +106,7 @@
                                         <FontIcon Glyph="&#xE71C;"/>
                                         <TextBlock Text="Filtri Avanzati" Style="{ThemeResource SubtitleTextBlockStyle}"/>
                                     </StackPanel>
+                                    
                                     <StackPanel Grid.Row="1" Spacing="12">
                                         <ComboBox x:Name="FilterStato" Header="Stato" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllStati}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
                                         <ComboBox x:Name="FilterAssegnato" Header="Assegnato a" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllItUsers}" DisplayMemberPath="UsernameAd" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
@@ -120,8 +121,9 @@
                                         <ComboBox x:Name="FilterSede" Header="Sede" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllSedi}" PlaceholderText="Qualsiasi"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="2" Spacing="12">
-                                        <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="Es: PC-AMM-01"/>
-                                        <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Es: mrossi"/>
+                                        <TextBox x:Name="FilterNticket" Header="Numero Ticket" PlaceholderText="Es: 1234"/>
+                                        <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="WZBLB52"/>
+                                        <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Matteo De Giuseppe"/>
                                     </StackPanel>
                                     <Grid Grid.Row="3" Margin="0,8,0,0" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>

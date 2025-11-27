@@ -26,35 +26,27 @@ namespace TicketAPI.Controllers
             _env = env;
         }
 
-        // DTO per ricevere i dati dal form
+        // ... (Le classi TicketRequest e TicketUpdateRequest rimangono uguali) ...
         public class TicketRequest
         {
             [FromForm(Name = "ProblemType")]
             public string ProblemType { get; set; }
-
             [FromForm(Name = "Urgency")]
             public string Urgency { get; set; }
-
             [FromForm(Name = "Funzione")]
             public string? Funzione { get; set; }
-
             [FromForm(Name = "Macchina")]
             public string Macchina { get; set; }
-
             [FromForm(Name = "Sede")]
             public string Sede { get; set; }
-
             [FromForm(Name = "Title")]
             public string Title { get; set; }
-
             [FromForm(Name = "Message")]
             public string Message { get; set; }
-
             [FromForm(Name = "Screenshot")]
             public IFormFile? Screenshot { get; set; }
         }
 
-        // DTO per l'aggiornamento (PUT)
         public class TicketUpdateRequest
         {
             public int? StatoId { get; set; }
@@ -64,8 +56,7 @@ namespace TicketAPI.Controllers
             public string? Note { get; set; }
         }
 
-        // --- GET ALL OPEN TICKETS ---
-        // --- GET TICKETS CON FILTRI ---
+        // --- GET TICKETS CON NUOVO FILTRO NTICKET ---
         [HttpGet("all")]
         public async Task<IActionResult> GetTickets(
             [FromQuery] string? search,
@@ -75,7 +66,8 @@ namespace TicketAPI.Controllers
             [FromQuery] int? stato_id,
             [FromQuery] string? sede,
             [FromQuery] string? macchina,
-            [FromQuery] string? username
+            [FromQuery] string? username,
+            [FromQuery] int? nticket // <--- NUOVO PARAMETRO
         )
         {
             var query = _context.Ticket
@@ -90,35 +82,34 @@ namespace TicketAPI.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string s = search.ToLower();
-                query = query.Where(t =>
-                    t.Titolo.ToLower().Contains(s) ||
-                    t.Testo.ToLower().Contains(s) ||
+                query = query.Where(t => 
+                    t.Titolo.ToLower().Contains(s) || 
+                    t.Testo.ToLower().Contains(s) || 
                     (t.Note != null && t.Note.ToLower().Contains(s))
                 );
             }
             else
             {
-                // LOGICA DEFAULT: Se NON sto cercando e NON filtro per stato...
-                if (!stato_id.HasValue)
+                // LOGICA DEFAULT: Se NON cerco, NON filtro stato e NON filtro ID ticket specifico...
+                if (!stato_id.HasValue && !nticket.HasValue)
                 {
-                    // ...mostra solo quelli NON terminati (Aperti/In Lavorazione)
+                    // ...mostra solo quelli NON terminati
                     query = query.Where(t => t.StatoId != 3);
                 }
             }
 
             // 2. Filtri specifici
+            if (nticket.HasValue) query = query.Where(t => t.Nticket == nticket.Value); // <--- FILTRO ID
+            
             if (assegnatoa_id.HasValue) query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
             if (tipologia_id.HasValue) query = query.Where(t => t.TipologiaId == tipologia_id.Value);
             if (urgenza_id.HasValue) query = query.Where(t => t.UrgenzaId == urgenza_id.Value);
-
-            // Se specifico uno stato (es. "Terminato"), il filtro default sopra viene ignorato e uso questo
             if (stato_id.HasValue) query = query.Where(t => t.StatoId == stato_id.Value);
 
             if (!string.IsNullOrEmpty(sede)) query = query.Where(t => t.Sede != null && t.Sede.Nome == sede);
             if (!string.IsNullOrEmpty(macchina)) query = query.Where(t => t.Macchina != null && t.Macchina.ToLower().Contains(macchina.ToLower()));
             if (!string.IsNullOrEmpty(username)) query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
 
-            // Esecuzione query
             var tickets = await query
                 .OrderByDescending(t => t.UrgenzaId)
                 .ThenByDescending(t => t.DataCreazione)
@@ -129,17 +120,17 @@ namespace TicketAPI.Controllers
                     Titolo = t.Titolo,
                     Testo = t.Testo,
                     TipologiaNome = t.Tipologia != null ? t.Tipologia.Nome : "N/D",
+                    TipologiaColore = t.Tipologia != null ? t.Tipologia.Colore : null,
                     UrgenzaNome = t.Urgenza != null ? t.Urgenza.Nome : "N/D",
                     SedeNome = t.Sede != null ? t.Sede.Nome : "N/D",
                     StatoNome = t.Stato != null ? t.Stato.Nome : "N/D",
-                    TipologiaColore = t.Tipologia != null ? t.Tipologia.Colore : null,
                     Username = t.Username,
                     Funzione = t.Funzione,
                     Macchina = t.Macchina,
                     AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.UsernameAd : "Non assegnato",
                     DataCreazione = t.DataCreazione,
-                    // INCLUDI LA DATA CHIUSURA
                     DataChiusura = t.DataChiusura,
+                    UrgenzaCambiata = t.UrgenzaCambiata,
                     ScreenshotPath = t.ScreenshotPath,
                     StatoId = t.StatoId,
                     AssegnatoaId = t.AssegnatoaId,
@@ -152,7 +143,7 @@ namespace TicketAPI.Controllers
             return Ok(tickets);
         }
 
-        // --- UPDATE TICKET ---
+        // --- UPDATE TICKET CON DATA ITALIANA ---
         [HttpPut("{nticket}/update")]
         public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
         {
@@ -165,23 +156,26 @@ namespace TicketAPI.Controllers
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
                 ticket.StatoId = request.StatoId.Value;
-
+                
                 // 3 è l'ID per "Terminato"
-                if (ticket.StatoId == 3)
+                if (ticket.StatoId == 3) 
                 {
-                    // CORREZIONE: Usa UtcNow invece di Now per compatibilità con Postgres
-                    ticket.DataChiusura = DateTime.UtcNow;
+                    // CORREZIONE TIMEZONE:
+                    // 1. Prendiamo l'ora locale del server (che è in Italia)
+                    DateTime oraItaliana = DateTime.Now; 
+                    
+                    // 2. La marchiamo come UTC. Questo è un "trucco" per ingannare Npgsql 
+                    //    che altrimenti lancerebbe "Cannot write DateTime with Kind=Local".
+                    //    In questo modo salviamo "11:30" (ora italiana) dentro il DB come se fosse UTC.
+                    ticket.DataChiusura = DateTime.SpecifyKind(oraItaliana, DateTimeKind.Utc);
                 }
                 else
                 {
-                    // Se cambia in qualsiasi altro stato -> Null
                     ticket.DataChiusura = null;
                 }
 
                 modified = true;
             }
-
-            // ... (Il resto del metodo rimane uguale: controlli su Note, AssegnatoaId, ecc.)
 
             if (request.Note != null)
             {
@@ -205,10 +199,10 @@ namespace TicketAPI.Controllers
             if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
             {
                 ticket.UrgenzaId = request.UrgenzaId.Value;
-                ticket.UrgenzaCambiata = true;
-
+                ticket.UrgenzaCambiata = true; 
                 modified = true;
             }
+
             if (request.TipologiaId.HasValue && ticket.TipologiaId != request.TipologiaId.Value)
             {
                 ticket.TipologiaId = request.TipologiaId.Value;
@@ -220,22 +214,13 @@ namespace TicketAPI.Controllers
             return Ok();
         }
 
-        // --- CREATE TICKET ---
+        // ... (Metodi Create e Dropdown rimangono uguali) ...
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromForm] TicketRequest request)
         {
             string adUsername = User.Identity.Name;
             string? userDisplayName = adUsername;
-
-            try
-            {
-                using (var context = new PrincipalContext(ContextType.Domain))
-                {
-                    var userPrincipal = UserPrincipal.FindByIdentity(context, adUsername);
-                    if (userPrincipal != null) userDisplayName = userPrincipal.DisplayName ?? adUsername;
-                }
-            }
-            catch (Exception) { }
+            try { using (var context = new PrincipalContext(ContextType.Domain)) { var userPrincipal = UserPrincipal.FindByIdentity(context, adUsername); if (userPrincipal != null) userDisplayName = userPrincipal.DisplayName ?? adUsername; } } catch { }
 
             var urgenza = await _context.Urgenza.FirstOrDefaultAsync(u => u.Nome == request.Urgency);
             var tipologia = await _context.Tipologie.FirstOrDefaultAsync(t => t.Nome == request.ProblemType);
@@ -249,10 +234,7 @@ namespace TicketAPI.Controllers
                 var fileName = $"{Guid.NewGuid()}_{request.Screenshot.FileName}";
                 var filePath = Path.Combine(_env.ContentRootPath, "Uploads", fileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await request.Screenshot.CopyToAsync(stream);
-                }
+                using (var stream = new FileStream(filePath, FileMode.Create)) { await request.Screenshot.CopyToAsync(stream); }
                 screenshotDbPath = Path.Combine("Uploads", fileName);
             }
 
@@ -272,47 +254,19 @@ namespace TicketAPI.Controllers
 
             _context.Ticket.Add(newTicket);
             await _context.SaveChangesAsync();
-
             return Ok(newTicket);
         }
 
-        // --- DROPDOWNS ---
-
         [HttpGet("tipologie")]
-        public async Task<IActionResult> GetTipologie()
-        {
-            // CORREZIONE: Seleziona oggetto completo { Id, Nome }
-            var data = await _context.Tipologie
-                .Select(t => new { t.Id, t.Nome, t.Colore })
-                .ToListAsync();
-            return Ok(data);
-        }
+        public async Task<IActionResult> GetTipologie() { var data = await _context.Tipologie.Select(t => new { t.Id, t.Nome, t.Colore }).ToListAsync(); return Ok(data); }
 
         [HttpGet("urgenze")]
-        public async Task<IActionResult> GetUrgenze()
-        {
-            // CORREZIONE: Seleziona oggetto completo { Id, Nome }
-            var data = await _context.Urgenza
-                .Select(u => new { u.Id, u.Nome })
-                .ToListAsync();
-            return Ok(data);
-        }
+        public async Task<IActionResult> GetUrgenze() { var data = await _context.Urgenza.Select(u => new { u.Id, u.Nome }).ToListAsync(); return Ok(data); }
 
         [HttpGet("sedi")]
-        public async Task<IActionResult> GetSedi()
-        {
-            var data = await _context.Sedi.Select(s => s.Nome).ToListAsync();
-            return Ok(data);
-        }
+        public async Task<IActionResult> GetSedi() { var data = await _context.Sedi.Select(s => s.Nome).ToListAsync(); return Ok(data); }
 
         [HttpGet("stati")]
-        public async Task<IActionResult> GetAllStati()
-        {
-            var stati = await _context.Stati
-                .OrderBy(s => s.Id)
-                .Select(s => new { s.Id, s.Nome })
-                .ToListAsync();
-            return Ok(stati);
-        }
+        public async Task<IActionResult> GetAllStati() { var stati = await _context.Stati.OrderBy(s => s.Id).Select(s => new { s.Id, s.Nome }).ToListAsync(); return Ok(stati); }
     }
 }

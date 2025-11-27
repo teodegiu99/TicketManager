@@ -199,6 +199,14 @@ namespace ClientIT
                 if (FilterUsername != null && !string.IsNullOrWhiteSpace(FilterUsername.Text))
                     queryParams.Add($"username={Uri.EscapeDataString(FilterUsername.Text)}");
 
+                if (FilterNticket != null && !string.IsNullOrWhiteSpace(FilterNticket.Text))
+                {
+                    if (int.TryParse(FilterNticket.Text, out int nTicketVal))
+                    {
+                        queryParams.Add($"nticket={nTicketVal}");
+                    }
+                }
+
                 // Costruiamo l'URL finale
                 string url = $"{_apiBaseUrl}/api/tickets/all";
                 if (queryParams.Any())
@@ -283,6 +291,7 @@ namespace ClientIT
         private void ResetFiltersVisuals()
         {
             if (SearchBox != null) SearchBox.Text = "";
+            if (FilterNticket != null) FilterNticket.Text = "";
             if (FilterStato != null) FilterStato.SelectedIndex = -1;
             if (FilterAssegnato != null) FilterAssegnato.SelectedIndex = -1;
             if (FilterTipologia != null) FilterTipologia.SelectedIndex = -1;
