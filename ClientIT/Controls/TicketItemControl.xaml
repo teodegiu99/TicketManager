@@ -27,8 +27,8 @@
     <!-- Card Principale -->
     <Grid Background="{ThemeResource LayerFillColorDefaultBrush}" 
             CornerRadius="8" 
-            BorderThickness="1" 
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="4,1,1,1" 
+            BorderBrush="{x:Bind ViewModel.StatusBorderBrush, Mode=OneWay}"
             Margin="0,0,0,12"
             Padding="0">
 

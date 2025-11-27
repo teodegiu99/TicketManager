@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using Windows.UI;
+using ClientIT.Helpers;
+
 
 namespace ClientIT.Models
 {
@@ -42,7 +44,58 @@ namespace ClientIT.Models
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
 
-        // --- PROPRIETÀ COLLEGATE AI COMBOBOX (MODIFICABILI) ---
+        public SolidColorBrush StatusBorderBrush
+        {
+            get
+            {
+                // Se il ticket è chiuso (StatoId 3 = Terminato), potremmo volerlo grigio o verde fisso.
+                // Assumiamo che la logica di urgenza valga per i ticket aperti.
+                // Se chiuso, usiamo la DataChiusura come fine, altrimenti Adesso.
+                DateTime fineCalcolo = (StatoId == 3 && DataChiusura.HasValue) ? DataChiusura.Value : DateTime.Now;
+
+                // Calcola ore lavorative trascorse
+                double hoursElapsed = BusinessTimeCalculator.GetBusinessHoursElapsed(DataCreazione, fineCalcolo);
+
+                // Ore lavorative in un giorno (8:30 -> 17:30 = 9 ore)
+                const double hoursPerDay = 9.0;
+
+                // Logica Colori
+                // Verde: Colors.LimeGreen
+                // Giallo: Colors.Orange (o Gold) per visibilità su sfondo bianco
+                // Rosso: Colors.Red
+
+                if (string.IsNullOrEmpty(UrgenzaNome)) return new SolidColorBrush(Colors.Transparent);
+
+                switch (UrgenzaNome.ToLower())
+                {
+                    case "bassa":
+                        // 7 gg tempo. Verde < 4gg, Giallo 4-7gg, Rosso > 7gg
+                        if (hoursElapsed <= 4 * hoursPerDay) return new SolidColorBrush(Colors.LimeGreen);
+                        if (hoursElapsed <= 7 * hoursPerDay) return new SolidColorBrush(Colors.Orange);
+                        return new SolidColorBrush(Colors.Red);
+
+                    case "media":
+                        // 4 gg tempo. Verde < 2gg, Giallo 2-4gg, Rosso > 4gg
+                        if (hoursElapsed <= 2 * hoursPerDay) return new SolidColorBrush(Colors.LimeGreen);
+                        if (hoursElapsed <= 4 * hoursPerDay) return new SolidColorBrush(Colors.Orange);
+                        return new SolidColorBrush(Colors.Red);
+
+                    case "alta":
+                        // 2 gg tempo. Verde < 1gg, Giallo 1-2gg, Rosso > 2gg
+                        if (hoursElapsed <= 1 * hoursPerDay) return new SolidColorBrush(Colors.LimeGreen);
+                        if (hoursElapsed <= 2 * hoursPerDay) return new SolidColorBrush(Colors.Orange);
+                        return new SolidColorBrush(Colors.Red);
+
+                    case "critica":
+                        // 8 ore tempo. Giallo < 8h, Rosso > 8h
+                        if (hoursElapsed <= 8) return new SolidColorBrush(Colors.Orange);
+                        return new SolidColorBrush(Colors.Red);
+
+                    default:
+                        return new SolidColorBrush(Colors.Gray);
+                }
+            }
+        }
 
         public int StatoId
         {
