@@ -11,7 +11,7 @@
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
-		<!-- Default: l'inclusione automatica è attiva, quindi non serve specificarla o disattivarla -->
+
 	</PropertyGroup>
 
 	<!-- Asset e Manifest -->

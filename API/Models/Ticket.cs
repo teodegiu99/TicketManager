@@ -58,6 +58,9 @@ namespace TicketAPI.Models
         [Column("note")]
         public string? Note { get; set; }
 
+        [Column("urgenzacambiata")]
+        public bool UrgenzaCambiata { get; set; } = false; // Default false
+
         // --- Proprietà di Navigazione (queste sono corrette) ---
         [ForeignKey("TipologiaId")]
         public virtual Tipologia? Tipologia { get; set; }

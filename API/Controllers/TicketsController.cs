@@ -205,9 +205,10 @@ namespace TicketAPI.Controllers
             if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
             {
                 ticket.UrgenzaId = request.UrgenzaId.Value;
+                ticket.UrgenzaCambiata = true;
+
                 modified = true;
             }
-
             if (request.TipologiaId.HasValue && ticket.TipologiaId != request.TipologiaId.Value)
             {
                 ticket.TipologiaId = request.TipologiaId.Value;
