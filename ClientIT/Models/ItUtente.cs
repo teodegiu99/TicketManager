@@ -11,6 +11,8 @@ namespace ClientIT.Models
         public int Id { get; set; }
         public string UsernameAd { get; set; }
         public string Permesso { get; set; }
+
+        public string Nome { get; set; } = string.Empty;
         public List<int>? TipologieAbilitate { get; set; }
 
         // Aggiungi questa proprietà statica per "Non assegnato"
@@ -18,7 +20,8 @@ namespace ClientIT.Models
         {
             Id = 0,
             UsernameAd = "Non assegnato",
-            Permesso = "Nessuno"
+            Permesso = "Nessuno",
+            Nome = "Non assegnato"
         };
     }
 }

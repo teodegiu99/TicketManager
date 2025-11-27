@@ -361,6 +361,13 @@ namespace ClientIT
             await SaveFullTicketStateAsync(e.Nticket);
         }
 
+        // --- REFRESH ---
+        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Ricarica solo i ticket, mantenendo i filtri attivi (ricerca, utente selezionato, ecc.)
+            await LoadTicketsAsync();
+        }
+
         private async Task SaveFullTicketStateAsync(int nticket)
         {
             // Trova il ViewModel aggiornato nella lista

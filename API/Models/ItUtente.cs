@@ -15,5 +15,9 @@ namespace TicketAPI.Models
 
         [Column("tipologie_abilitate")]
         public List<int>? TipologieAbilitate { get; set; }
+
+        [Column("nome")]
+        public string? Nome { get; set; }
+        
     }
 }

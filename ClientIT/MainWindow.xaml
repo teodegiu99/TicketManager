@@ -59,11 +59,11 @@
                         <DataTemplate x:DataType="models:ItUtente">
                             <Grid Padding="8" ColumnDefinitions="Auto, *">
                                 <PersonPicture Width="32" 
-                                               Initials="{x:Bind UsernameAd.Substring(0,1), Mode=OneWay}" 
+                                               Initials="{x:Bind Nome.Substring(0,1), Mode=OneWay}" 
                                                Margin="0,0,12,0"/>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind UsernameAd}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{x:Bind Permesso}" FontSize="11" Opacity="0.6"/>
+                                    <TextBlock Text="{x:Bind Nome}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                               
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>
@@ -80,8 +80,15 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="0,0,0,16" ColumnDefinitions="*, Auto">
+                <Grid Grid.Row="0" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
                     <AutoSuggestBox x:Name="SearchBox" 
+                                    Grid.Column="0"
                                     QueryIcon="Find"
                                     PlaceholderText="Cerca per oggetto, testo o note..."
                                     HorizontalAlignment="Stretch"
@@ -106,10 +113,11 @@
                                         <FontIcon Glyph="&#xE71C;"/>
                                         <TextBlock Text="Filtri Avanzati" Style="{ThemeResource SubtitleTextBlockStyle}"/>
                                     </StackPanel>
-                                    
                                     <StackPanel Grid.Row="1" Spacing="12">
+                                        <TextBox x:Name="FilterNticket" Header="Numero Ticket" PlaceholderText="Es: 1234"/>
+
                                         <ComboBox x:Name="FilterStato" Header="Stato" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllStati}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
-                                        <ComboBox x:Name="FilterAssegnato" Header="Assegnato a" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllItUsers}" DisplayMemberPath="UsernameAd" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
+                                        <ComboBox x:Name="FilterAssegnato" Header="Assegnato a" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllItUsers}" DisplayMemberPath="Nome" SelectedValuePath="Id" PlaceholderText="Qualsiasi"/>
                                         <Grid ColumnSpacing="12">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -121,9 +129,8 @@
                                         <ComboBox x:Name="FilterSede" Header="Sede" HorizontalAlignment="Stretch" ItemsSource="{x:Bind AllSedi}" PlaceholderText="Qualsiasi"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="2" Spacing="12">
-                                        <TextBox x:Name="FilterNticket" Header="Numero Ticket" PlaceholderText="Es: 1234"/>
-                                        <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="WZBLB52"/>
-                                        <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Matteo De Giuseppe"/>
+                                        <TextBox x:Name="FilterMacchina" Header="Nome PC / Macchina" PlaceholderText="Es: PC-AMM-01"/>
+                                        <TextBox x:Name="FilterUsername" Header="Richiedente (Username)" PlaceholderText="Es: mrossi"/>
                                     </StackPanel>
                                     <Grid Grid.Row="3" Margin="0,8,0,0" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
@@ -136,6 +143,12 @@
                                 </Grid>
                             </Flyout>
                         </Button.Flyout>
+                    </Button>
+
+                    <Button Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" 
+                            Click="RefreshButton_Click" 
+                            ToolTipService.ToolTip="Aggiorna lista">
+                        <FontIcon Glyph="&#xE72C;"/>
                     </Button>
                 </Grid>
 
