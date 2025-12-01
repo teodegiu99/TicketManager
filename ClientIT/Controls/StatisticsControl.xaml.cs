@@ -154,13 +154,18 @@ namespace ClientIT.Controls
             // Include SOLO i ticket che sono TERMINATI (StatoId == 3)
             // e che sono stati creati nel range di date selezionato
             var filtered = allTickets
-                .Where(t => {
-                    var localDate = t.DataCreazione.ToLocalTime();
-                    return localDate >= start &&
-                           localDate <= end &&
-                           t.StatoId == 3; // <--- FILTRO FONDAMENTALE
-                })
-                .ToList();
+                  .Where(t => {
+                      // Deve essere terminato
+                      if (t.StatoId != 3) return false;
+
+                      // Deve avere una data di chiusura valida
+                      if (!t.DataChiusura.HasValue) return false;
+
+                      // La data di chiusura deve rientrare nel range
+                      var closeDate = t.DataChiusura.Value.ToLocalTime();
+                      return closeDate >= start && closeDate <= end;
+                  })
+                  .ToList();
 
             // Grafici a Torta (Report)
             ReportUrgencySeries = CreatePieSeries(filtered.GroupBy(t => t.UrgenzaNome));

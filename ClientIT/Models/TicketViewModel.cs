@@ -44,6 +44,7 @@ namespace ClientIT.Models
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
 
+        public bool UrgenzaCambiata { get; set; }
         public SolidColorBrush StatusBorderBrush
         {
             get
