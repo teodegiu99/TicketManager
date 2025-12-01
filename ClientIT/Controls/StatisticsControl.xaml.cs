@@ -1,8 +1,8 @@
-using ClientIT.Models;
+ï»¿using ClientIT.Models;
 using LiveChartsCore;
+using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SkiaSharp;
@@ -12,10 +12,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Reflection; // Necessario per la Reflection dei colori
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Windows.UI;
 
 namespace ClientIT.Controls
 {
@@ -23,74 +22,113 @@ namespace ClientIT.Controls
     {
         private HttpClient _apiClient;
         private string _apiBaseUrl = "http://localhost:5210";
+        private List<TicketViewModel> _cachedAllTickets = new();
 
-        // Properties
+        // --- PROPERTIES REAL TIME ---
         private int _countOpen;
         private int _countInProgress;
         private int _countClosed;
         private bool _isLoading;
 
         private ISeries[] _urgencySeries = Array.Empty<ISeries>();
-        private ISeries[] _colorSeries = Array.Empty<ISeries>();
         private ISeries[] _typeSeries = Array.Empty<ISeries>();
+        private ISeries[] _statusSeries = Array.Empty<ISeries>();
 
-        // Proprietà per il colore del testo legenda
-        public SolidColorPaint LegendTextPaint { get; set; } = new SolidColorPaint(SKColors.White);
+        // --- PROPERTIES REPORT ---
+        private string _avgCloseTime = "N/D";
+        private string _assignmentRate = "0%";
 
+        private ISeries[] _reportUrgencySeries = Array.Empty<ISeries>();
+        private ISeries[] _reportSedeSeries = Array.Empty<ISeries>();
+        private ISeries[] _reportTypeSeries = Array.Empty<ISeries>();
+        private ISeries[] _reportUserSeries = Array.Empty<ISeries>();
+
+        private ICartesianAxis[] _userXAxes = Array.Empty<ICartesianAxis>();
+        private ICartesianAxis[] _userYAxes = Array.Empty<ICartesianAxis>();
+
+        // --- BINDING PROPERTIES ---
         public int CountOpen { get => _countOpen; set { _countOpen = value; OnPropertyChanged(); } }
         public int CountInProgress { get => _countInProgress; set { _countInProgress = value; OnPropertyChanged(); } }
         public int CountClosed { get => _countClosed; set { _countClosed = value; OnPropertyChanged(); } }
         public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
 
         public ISeries[] UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
-        public ISeries[] ColorSeries { get => _colorSeries; set { _colorSeries = value; OnPropertyChanged(); } }
         public ISeries[] TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
+        public ISeries[] StatusSeries { get => _statusSeries; set { _statusSeries = value; OnPropertyChanged(); } }
+
+        public string AvgCloseTime { get => _avgCloseTime; set { _avgCloseTime = value; OnPropertyChanged(); } }
+        public string AssignmentRate { get => _assignmentRate; set { _assignmentRate = value; OnPropertyChanged(); } }
+
+        public ISeries[] ReportUrgencySeries { get => _reportUrgencySeries; set { _reportUrgencySeries = value; OnPropertyChanged(); } }
+        public ISeries[] ReportSedeSeries { get => _reportSedeSeries; set { _reportSedeSeries = value; OnPropertyChanged(); } }
+        public ISeries[] ReportTypeSeries { get => _reportTypeSeries; set { _reportTypeSeries = value; OnPropertyChanged(); } }
+        public ISeries[] ReportUserSeries { get => _reportUserSeries; set { _reportUserSeries = value; OnPropertyChanged(); } }
+
+        public ICartesianAxis[] UserXAxes { get => _userXAxes; set { _userXAxes = value; OnPropertyChanged(); } }
+        public ICartesianAxis[] UserYAxes { get => _userYAxes; set { _userYAxes = value; OnPropertyChanged(); } }
+
+        public SolidColorPaint LegendTextPaint { get; set; } = new SolidColorPaint(SKColors.Gray);
 
         public StatisticsControl()
         {
             this.InitializeComponent();
+
             var handler = new HttpClientHandler { UseDefaultCredentials = true, ServerCertificateCustomValidationCallback = (s, c, ch, e) => true };
             _apiClient = new HttpClient(handler);
+
+            UserXAxes = new ICartesianAxis[] { new Axis { LabelsPaint = new SolidColorPaint(SKColors.Gray) } };
+            UserYAxes = new ICartesianAxis[] { new Axis { LabelsPaint = new SolidColorPaint(SKColors.Gray) } };
 
             this.Loaded += StatisticsControl_Loaded;
         }
 
         private async void StatisticsControl_Loaded(object sender, RoutedEventArgs e)
         {
+            // Imposta un range di default ampio (1 Anno) per vedere subito i dati storici
+            if (DateStart.Date == null) DateStart.Date = DateTimeOffset.Now.AddYears(-1);
+            if (DateEnd.Date == null) DateEnd.Date = DateTimeOffset.Now;
+
             await LoadStats();
         }
 
-        private async void BtnRefresh_Click(object sender, RoutedEventArgs e)
-        {
-            await LoadStats();
-        }
+        private async void BtnRefresh_Click(object sender, RoutedEventArgs e) => await LoadStats();
+
+        private void BtnFilter_Click(object sender, RoutedEventArgs e) => ProcessReportData(_cachedAllTickets);
 
         public async Task LoadStats()
         {
             IsLoading = true;
             try
             {
-                // Richiediamo TUTTI i ticket per i contatori totali
-                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true";
-                var allTickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url);
+                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
+                var response = await _apiClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                string json = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var allTickets = JsonSerializer.Deserialize<List<TicketViewModel>>(json, options);
 
                 if (allTickets != null)
                 {
-                    // 1. Aggiorna i contatori (usando tutti i ticket)
-                    ProcessCounters(allTickets);
+                    _cachedAllTickets = allTickets;
 
-                    // 2. Filtra SOLO i ticket NON terminati per i grafici
+                    // 1. REAL TIME (Tutti TRANNE i Terminati)
+                    // ID 3 = Terminato
                     var activeTickets = allTickets.Where(t => t.StatoId != 3).ToList();
 
-                    // 3. Genera i grafici
-                    ProcessUrgencyChart(activeTickets);
-                    ProcessTypeChart(activeTickets);
-                    ProcessColorChart(activeTickets);
+                    ProcessCounters(allTickets);
+
+                    UrgencySeries = CreatePieSeries(activeTickets.GroupBy(t => t.UrgenzaNome));
+                    TypeSeries = CreatePieSeries(activeTickets.GroupBy(t => t.TipologiaNome));
+                    StatusSeries = CreatePieSeries(activeTickets.GroupBy(t => t.StatoNome));
+
+                    // 2. REPORT STORICO (Solo i Terminati nel periodo)
+                    ProcessReportData(allTickets);
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Err Stats: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Errore Stats: {ex.Message}");
             }
             finally
             {
@@ -105,121 +143,83 @@ namespace ClientIT.Controls
             CountClosed = tickets.Count(t => t.StatoId == 3);
         }
 
-        private void ProcessUrgencyChart(List<TicketViewModel> activeTickets)
+        private void ProcessReportData(List<TicketViewModel> allTickets)
         {
-            var grouped = activeTickets
-                .GroupBy(t => t.UrgenzaNome)
-                .Select(g => new { Name = g.Key, Count = g.Count() })
-                .ToList();
+            if (DateStart.Date == null || DateEnd.Date == null) return;
 
-            var seriesList = new List<ISeries>();
-            foreach (var item in grouped)
-            {
-                seriesList.Add(new PieSeries<int>
-                {
-                    Values = new[] { item.Count },
-                    Name = item.Name,
-                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
-                    ToolTipLabelFormatter = point => $"{point.Context.Series.Name}: {point.Coordinate.PrimaryValue} ticket"
-                });
-            }
-            UrgencySeries = seriesList.ToArray();
-        }
+            DateTime start = DateStart.Date.Value.DateTime.Date;
+            DateTime end = DateEnd.Date.Value.DateTime.Date.AddDays(1).AddSeconds(-1);
 
-        private void ProcessTypeChart(List<TicketViewModel> activeTickets)
-        {
-            // MODIFICA QUI: Raggruppa per Nome E Colore
-            var grouped = activeTickets
-                .GroupBy(t => new { t.TipologiaNome, t.TipologiaColore })
-                .Select(g => new {
-                    Name = g.Key.TipologiaNome,
-                    ColorString = g.Key.TipologiaColore,
-                    Count = g.Count()
+            // --- FILTRO ---
+            // Include SOLO i ticket che sono TERMINATI (StatoId == 3)
+            // e che sono stati creati nel range di date selezionato
+            var filtered = allTickets
+                .Where(t => {
+                    var localDate = t.DataCreazione.ToLocalTime();
+                    return localDate >= start &&
+                           localDate <= end &&
+                           t.StatoId == 3; // <--- FILTRO FONDAMENTALE
                 })
                 .ToList();
 
-            var seriesList = new List<ISeries>();
-            foreach (var item in grouped)
+            // Grafici a Torta (Report)
+            ReportUrgencySeries = CreatePieSeries(filtered.GroupBy(t => t.UrgenzaNome));
+            ReportSedeSeries = CreatePieSeries(filtered.GroupBy(t => t.SedeNome));
+            ReportTypeSeries = CreatePieSeries(filtered.GroupBy(t => t.TipologiaNome));
+
+            // Grafico a Barre (Utenti)
+            // Conta chi ha chiuso i ticket
+            var userGroup = filtered
+                .Where(t => !string.IsNullOrEmpty(t.AssegnatoaNome) && t.AssegnatoaNome != "Non assegnato")
+                .GroupBy(t => t.AssegnatoaNome)
+                .OrderByDescending(g => g.Count())
+                .ToList();
+
+            ReportUserSeries = new ISeries[]
             {
-                // Converte la stringa (Hex o Nome) in un colore SkiaSharp
-                SKColor sliceColor = GetSkColorFromString(item.ColorString);
-
-                seriesList.Add(new PieSeries<int>
+                new ColumnSeries<int>
                 {
-                    Values = new[] { item.Count },
-                    Name = item.Name,
-                    Fill = new SolidColorPaint(sliceColor), // <--- Applica il colore specifico
+                    Name = "Ticket Chiusi",
+                    Values = userGroup.Select(g => g.Count()).ToArray(),
+                    Fill = new SolidColorPaint(SKColors.DodgerBlue),
+                    DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top
+                }
+            };
 
+            UserXAxes = new ICartesianAxis[]
+            {
+                new Axis
+                {
+                    Labels = userGroup.Select(g => g.Key).ToList(),
+                    LabelsRotation = 15,
+                    LabelsPaint = new SolidColorPaint(SKColors.Gray)
+                }
+            };
+
+            // KPI
+            // Calcola la % di ticket assegnati vs totali CHIUSI
+            int total = filtered.Count;
+            int assigned = filtered.Count(t => t.AssegnatoaId != null && t.AssegnatoaId != 0);
+            AssignmentRate = total > 0 ? $"{(double)assigned / total:P0}" : "0%";
+            AvgCloseTime = "N/D";
+        }
+
+        private ISeries[] CreatePieSeries(IEnumerable<IGrouping<string, TicketViewModel>> groups)
+        {
+            var list = new List<ISeries>();
+            foreach (var g in groups)
+            {
+                list.Add(new PieSeries<int>
+                {
+                    Values = new[] { g.Count() },
+                    Name = string.IsNullOrEmpty(g.Key) ? "N/D" : g.Key,
                     DataLabelsPaint = new SolidColorPaint(SKColors.White),
                     DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
-                    ToolTipLabelFormatter = point => $"{point.Context.Series.Name}: {point.Coordinate.PrimaryValue} ticket"
+                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
                 });
             }
-            TypeSeries = seriesList.ToArray();
-        }
-
-        private void ProcessColorChart(List<TicketViewModel> activeTickets)
-        {
-            int green = 0;
-            int yellow = 0;
-            int red = 0;
-
-            foreach (var t in activeTickets)
-            {
-                var brush = t.StatusBorderBrush;
-                var c = brush.Color;
-
-                if (AreColorsEqual(c, Colors.LimeGreen)) green++;
-                else if (AreColorsEqual(c, Colors.Orange)) yellow++;
-                else if (AreColorsEqual(c, Colors.Red)) red++;
-            }
-
-            var seriesList = new List<ISeries>();
-
-            if (green > 0)
-                seriesList.Add(new PieSeries<int> { Values = new[] { green }, Name = "Nei tempi", Fill = new SolidColorPaint(SKColors.LimeGreen) });
-
-            if (yellow > 0)
-                seriesList.Add(new PieSeries<int> { Values = new[] { yellow }, Name = "In scadenza", Fill = new SolidColorPaint(SKColors.Orange) });
-
-            if (red > 0)
-                seriesList.Add(new PieSeries<int> { Values = new[] { red }, Name = "Scaduti", Fill = new SolidColorPaint(SKColors.Red) });
-
-            ColorSeries = seriesList.ToArray();
-        }
-
-        // Helper per confrontare i colori Windows.UI.Color
-        private bool AreColorsEqual(Color c1, Color c2)
-        {
-            return c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
-        }
-
-        // Helper per convertire stringa (Hex o Nome) in SKColor (per i grafici)
-        private SKColor GetSkColorFromString(string? colorStr)
-        {
-            if (string.IsNullOrEmpty(colorStr)) return SKColors.Gray;
-
-            try
-            {
-                // Se è Hex
-                if (colorStr.StartsWith("#"))
-                {
-                    return SKColor.Parse(colorStr);
-                }
-
-                // Se è un nome (es. "Red"), cerca in SKColors tramite Reflection
-                var field = typeof(SKColors).GetField(colorStr, BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase);
-                if (field != null)
-                {
-                    return (SKColor)field.GetValue(null)!;
-                }
-            }
-            catch { }
-
-            return SKColors.Gray; // Fallback
+            return list.ToArray();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
