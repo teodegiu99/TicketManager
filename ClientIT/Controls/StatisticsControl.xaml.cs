@@ -1,8 +1,10 @@
-﻿using ClientIT.Models;
+﻿using ClientIT.Helpers;
+using ClientIT.Models;
 using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SkiaSharp;
@@ -12,9 +14,11 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Windows.UI;
 
 namespace ClientIT.Controls
 {
@@ -36,7 +40,7 @@ namespace ClientIT.Controls
 
         // --- PROPERTIES REPORT ---
         private string _avgCloseTime = "N/D";
-        private string _assignmentRate = "0%";
+        private string _urgencyChangedRate = "0%";
 
         private ISeries[] _reportUrgencySeries = Array.Empty<ISeries>();
         private ISeries[] _reportSedeSeries = Array.Empty<ISeries>();
@@ -54,10 +58,10 @@ namespace ClientIT.Controls
 
         public ISeries[] UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
         public ISeries[] TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
-        public ISeries[] StatusSeries { get => _statusSeries; set { _statusSeries = value; OnPropertyChanged(); } }
+        public ISeries[] ColorSeries { get => _statusSeries; set { _statusSeries = value; OnPropertyChanged(); } }
 
         public string AvgCloseTime { get => _avgCloseTime; set { _avgCloseTime = value; OnPropertyChanged(); } }
-        public string AssignmentRate { get => _assignmentRate; set { _assignmentRate = value; OnPropertyChanged(); } }
+        public string UrgencyChangedRate { get => _urgencyChangedRate; set { _urgencyChangedRate = value; OnPropertyChanged(); } }
 
         public ISeries[] ReportUrgencySeries { get => _reportUrgencySeries; set { _reportUrgencySeries = value; OnPropertyChanged(); } }
         public ISeries[] ReportSedeSeries { get => _reportSedeSeries; set { _reportSedeSeries = value; OnPropertyChanged(); } }
@@ -72,7 +76,6 @@ namespace ClientIT.Controls
         public StatisticsControl()
         {
             this.InitializeComponent();
-
             var handler = new HttpClientHandler { UseDefaultCredentials = true, ServerCertificateCustomValidationCallback = (s, c, ch, e) => true };
             _apiClient = new HttpClient(handler);
 
@@ -84,8 +87,7 @@ namespace ClientIT.Controls
 
         private async void StatisticsControl_Loaded(object sender, RoutedEventArgs e)
         {
-            // Imposta un range di default ampio (1 Anno) per vedere subito i dati storici
-            if (DateStart.Date == null) DateStart.Date = DateTimeOffset.Now.AddYears(-1);
+            if (DateStart.Date == null) DateStart.Date = DateTimeOffset.Now.AddYears(-10);
             if (DateEnd.Date == null) DateEnd.Date = DateTimeOffset.Now;
 
             await LoadStats();
@@ -100,47 +102,48 @@ namespace ClientIT.Controls
             IsLoading = true;
             try
             {
-                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
-                var response = await _apiClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-
-                string json = await response.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var allTickets = JsonSerializer.Deserialize<List<TicketViewModel>>(json, options);
+                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
+
+                var allTickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url, options);
 
                 if (allTickets != null)
                 {
                     _cachedAllTickets = allTickets;
 
-                    // 1. REAL TIME (Tutti TRANNE i Terminati)
-                    // ID 3 = Terminato
+                    // --- DEBUG FONDAMENTALE ---
+                    int totalTickets = allTickets.Count;
+                    int closedTickets = allTickets.Count(t => t.StatoId == 3);
+                    int nullStato = allTickets.Count(t => t.StatoId == 0);
+
+                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Totali: {totalTickets}");
+                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Terminati (Id=3): {closedTickets}");
+                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Stato 0 (Errore?): {nullStato}");
+
+                    if (closedTickets == 0 && totalTickets > 0)
+                    {
+                        // Se qui dice 0, il problema è che i ticket non hanno StatoId=3 nel JSON ricevuto
+                        System.Diagnostics.Debug.WriteLine("[STATS DEBUG] ATTENZIONE: Nessun ticket risulta chiuso nel Client!");
+                    }
+                    // 1. Real Time (Solo Attivi: stato != 3)
                     var activeTickets = allTickets.Where(t => t.StatoId != 3).ToList();
-
                     ProcessCounters(allTickets);
-
                     UrgencySeries = CreatePieSeries(activeTickets.GroupBy(t => t.UrgenzaNome));
-                    TypeSeries = CreatePieSeries(activeTickets.GroupBy(t => t.TipologiaNome));
-                    StatusSeries = CreatePieSeries(activeTickets.GroupBy(t => t.StatoNome));
+                    TypeSeries = CreateTypeSeries(activeTickets); // Usa metodo specifico con colori
+                    ColorSeries = CreateColorSeries(activeTickets);
 
-                    // 2. REPORT STORICO (Solo i Terminati nel periodo)
+                    // 2. Report (Storico - Solo Terminati)
                     ProcessReportData(allTickets);
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Errore Stats: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Err Stats: {ex.Message}");
             }
             finally
             {
                 IsLoading = false;
             }
-        }
-
-        private void ProcessCounters(List<TicketViewModel> tickets)
-        {
-            CountOpen = tickets.Count(t => t.StatoId == 1);
-            CountInProgress = tickets.Count(t => t.StatoId == 2);
-            CountClosed = tickets.Count(t => t.StatoId == 3);
         }
 
         private void ProcessReportData(List<TicketViewModel> allTickets)
@@ -150,33 +153,26 @@ namespace ClientIT.Controls
             DateTime start = DateStart.Date.Value.DateTime.Date;
             DateTime end = DateEnd.Date.Value.DateTime.Date.AddDays(1).AddSeconds(-1);
 
-            // --- FILTRO ---
-            // Include SOLO i ticket che sono TERMINATI (StatoId == 3)
-            // e che sono stati creati nel range di date selezionato
+            // FILTRO: Solo ticket TERMINATI che rientrano nel range di Data Chiusura
             var filtered = allTickets
-                  .Where(t => {
-                      // Deve essere terminato
-                      if (t.StatoId != 3) return false;
+                .Where(t => {
+                    if (t.StatoId != 3) return false;
+                    // Fallback su DataCreazione se DataChiusura è null (per vecchi ticket)
+                    DateTime refDate = t.DataChiusura.HasValue ? t.DataChiusura.Value.ToLocalTime() : t.DataCreazione.ToLocalTime();
+                    return refDate >= start && refDate <= end;
+                })
+                .ToList();
 
-                      // Deve avere una data di chiusura valida
-                      if (!t.DataChiusura.HasValue) return false;
-
-                      // La data di chiusura deve rientrare nel range
-                      var closeDate = t.DataChiusura.Value.ToLocalTime();
-                      return closeDate >= start && closeDate <= end;
-                  })
-                  .ToList();
-
-            // Grafici a Torta (Report)
+            // --- 1. Grafici Torta Semplici ---
             ReportUrgencySeries = CreatePieSeries(filtered.GroupBy(t => t.UrgenzaNome));
             ReportSedeSeries = CreatePieSeries(filtered.GroupBy(t => t.SedeNome));
-            ReportTypeSeries = CreatePieSeries(filtered.GroupBy(t => t.TipologiaNome));
 
-            // Grafico a Barre (Utenti)
-            // Conta chi ha chiuso i ticket
+            // --- 2. Grafico Tipologia (CORRETTO: Usa CreateTypeSeries per i colori) ---
+            ReportTypeSeries = CreateTypeSeries(filtered);
+
+            // --- 3. Grafico Utenti (CORRETTO: Include anche 'Non assegnato') ---
             var userGroup = filtered
-                .Where(t => !string.IsNullOrEmpty(t.AssegnatoaNome) && t.AssegnatoaNome != "Non assegnato")
-                .GroupBy(t => t.AssegnatoaNome)
+                .GroupBy(t => string.IsNullOrEmpty(t.AssegnatoaNome) ? "Non assegnato" : t.AssegnatoaNome)
                 .OrderByDescending(g => g.Count())
                 .ToList();
 
@@ -194,21 +190,27 @@ namespace ClientIT.Controls
 
             UserXAxes = new ICartesianAxis[]
             {
-                new Axis
-                {
-                    Labels = userGroup.Select(g => g.Key).ToList(),
-                    LabelsRotation = 15,
-                    LabelsPaint = new SolidColorPaint(SKColors.Gray)
-                }
+                new Axis { Labels = userGroup.Select(g => g.Key).ToList(), LabelsPaint = new SolidColorPaint(SKColors.Gray), LabelsRotation = 15 }
             };
 
-            // KPI
-            // Calcola la % di ticket assegnati vs totali CHIUSI
+            // --- KPI ---
             int total = filtered.Count;
-            int assigned = filtered.Count(t => t.AssegnatoaId != null && t.AssegnatoaId != 0);
-            AssignmentRate = total > 0 ? $"{(double)assigned / total:P0}" : "0%";
-            AvgCloseTime = "N/D";
+            int changed = filtered.Count(t => t.UrgenzaCambiata);
+            UrgencyChangedRate = total > 0 ? $"{(double)changed / total:P0}" : "0%";
+
+            var closedWithDate = filtered.Where(t => t.DataChiusura.HasValue).ToList();
+            if (closedWithDate.Any())
+            {
+                double totalHours = closedWithDate.Sum(t => BusinessTimeCalculator.GetBusinessHoursElapsed(t.DataCreazione, t.DataChiusura.Value));
+                AvgCloseTime = $"{totalHours / closedWithDate.Count:F1} h";
+            }
+            else
+            {
+                AvgCloseTime = "N/D";
+            }
         }
+
+        // --- HELPERS ---
 
         private ISeries[] CreatePieSeries(IEnumerable<IGrouping<string, TicketViewModel>> groups)
         {
@@ -226,6 +228,61 @@ namespace ClientIT.Controls
             }
             return list.ToArray();
         }
+
+        // Helper specifico per Tipologia che gestisce i COLORI PERSONALIZZATI
+        private ISeries[] CreateTypeSeries(List<TicketViewModel> tickets)
+        {
+            var grouped = tickets.GroupBy(t => new { t.TipologiaNome, t.TipologiaColore });
+            var list = new List<ISeries>();
+            foreach (var g in grouped)
+            {
+                list.Add(new PieSeries<int>
+                {
+                    Values = new[] { g.Count() },
+                    Name = g.Key.TipologiaNome,
+                    Fill = new SolidColorPaint(GetSkColor(g.Key.TipologiaColore)),
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = p => $"{p.Coordinate.PrimaryValue}"
+                });
+            }
+            return list.ToArray();
+        }
+
+        private ISeries[] CreateColorSeries(List<TicketViewModel> tickets)
+        {
+            int g = 0, y = 0, r = 0;
+            foreach (var t in tickets) { var c = t.StatusBorderBrush.Color; if (IsCol(c, Colors.LimeGreen)) g++; else if (IsCol(c, Colors.Orange)) y++; else if (IsCol(c, Colors.Red)) r++; }
+            var list = new List<ISeries>();
+            if (g > 0) list.Add(new PieSeries<int> { Values = new[] { g }, Name = "Nei tempi", Fill = new SolidColorPaint(SKColors.LimeGreen) });
+            if (y > 0) list.Add(new PieSeries<int> { Values = new[] { y }, Name = "In scadenza", Fill = new SolidColorPaint(SKColors.Orange) });
+            if (r > 0) list.Add(new PieSeries<int> { Values = new[] { r }, Name = "Scaduti", Fill = new SolidColorPaint(SKColors.Red) });
+            return list.ToArray();
+        }
+
+        private void ProcessCounters(List<TicketViewModel> t)
+        {
+            CountOpen = t.Count(x => x.StatoId == 1);
+            CountInProgress = t.Count(x => x.StatoId == 2);
+            CountClosed = t.Count(x => x.StatoId == 3);
+        }
+
+        private SKColor GetSkColor(string? s)
+        {
+            if (string.IsNullOrEmpty(s)) return SKColors.Gray;
+            try
+            {
+                if (s.StartsWith("#")) return SKColor.Parse(s);
+                var f = typeof(SKColors).GetField(s, BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase);
+                return f != null ? (SKColor)f.GetValue(null)! : SKColors.Gray;
+            }
+            catch { return SKColors.Gray; }
+        }
+
+        private bool IsCol(Color c1, Color c2) => c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
+
+        // Metodo helper aggiunto per compatibilità
+        private bool IsRed(Color c) => c.R == 255 && c.G == 0 && c.B == 0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string name = null) =>

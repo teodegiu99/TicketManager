@@ -9,8 +9,6 @@
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource LayerFillColorDefaultBrush}">
-
-        <!-- Loading Overlay -->
         <ProgressRing IsActive="{x:Bind IsLoading, Mode=OneWay}" 
                       HorizontalAlignment="Center" VerticalAlignment="Center" 
                       Width="60" Height="60" Canvas.ZIndex="999"/>
@@ -18,12 +16,7 @@
         <ScrollViewer Padding="24">
             <StackPanel Spacing="32">
 
-                <!-- ========================== -->
-                <!-- SEZIONE 1: REAL-TIME STATS -->
-                <!-- ========================== -->
                 <StackPanel Spacing="16">
-
-                    <!-- Header Sezione -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -41,31 +34,24 @@
                         </Button>
                     </Grid>
 
-                    <!-- 3 Card KPI (Aperti, In Corso, Chiusi) -->
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Card 1 -->
                         <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <StackPanel>
                                 <TextBlock Text="Aperti" Opacity="0.6" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind CountOpen, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Card 2 -->
                         <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <StackPanel>
                                 <TextBlock Text="In Corso" Opacity="0.6" FontWeight="SemiBold"/>
                                 <TextBlock Text="{x:Bind CountInProgress, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="Orange"/>
                             </StackPanel>
                         </Border>
-
-                        <!-- Card 3 -->
                         <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <StackPanel>
                                 <TextBlock Text="Terminati (Totali)" Opacity="0.6" FontWeight="SemiBold"/>
@@ -74,49 +60,36 @@
                         </Border>
                     </Grid>
 
-                    <!-- Grafici Real-Time (Torte) -->
                     <Grid ColumnSpacing="16" MinHeight="250">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Urgenza -->
                         <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
                                 <TextBlock Grid.Row="0" Text="Urgenza (Attivi)" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <lvc:PieChart Grid.Row="1" Series="{x:Bind UrgencySeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
-
-                        <!-- Tipologia -->
                         <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
                                 <TextBlock Grid.Row="0" Text="Tipologia (Attivi)" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <lvc:PieChart Grid.Row="1" Series="{x:Bind TypeSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
-
-                        <!-- Stati (SLA) -->
                         <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
-                                <TextBlock Grid.Row="0" Text="Stato Attuale" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:PieChart Grid.Row="1" Series="{x:Bind StatusSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
+                                <TextBlock Grid.Row="0" Text="SLA Attuali" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:PieChart Grid.Row="1" Series="{x:Bind ColorSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
                     </Grid>
                 </StackPanel>
 
-                <!-- Separatore -->
-                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}"/>
+                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.5"/>
 
-                <!-- ========================== -->
-                <!-- SEZIONE 2: REPORT STORICO  -->
-                <!-- ========================== -->
                 <StackPanel Spacing="16">
-
-                    <!-- Header Report -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -124,7 +97,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Reportistica Storica" Style="{ThemeResource TitleTextBlockStyle}"/>
-                            <TextBlock Text="Analisi su range di date (Data Creazione)" Opacity="0.6"/>
+                            <TextBlock Text="Analisi ticket terminati (per Data Chiusura)" Opacity="0.6"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Bottom">
                             <CalendarDatePicker x:Name="DateStart" Header="Dal" PlaceholderText="Data inizio"/>
@@ -133,14 +106,12 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- KPI Report -->
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Tempo Medio -->
                         <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <StackPanel>
                                 <TextBlock Text="Tempo Medio Chiusura" Opacity="0.6" FontWeight="SemiBold"/>
@@ -148,25 +119,23 @@
                                     <FontIcon Glyph="&#xE916;" FontSize="24" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
                                     <TextBlock Text="{x:Bind AvgCloseTime, Mode=OneWay}" FontSize="24" FontWeight="Bold"/>
                                 </StackPanel>
-                                <TextBlock Text="Ore stimate (da apertura a 'Terminato')" FontSize="11" Opacity="0.5"/>
+                                <TextBlock Text="Ore lavorative medie" FontSize="11" Opacity="0.5"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- SLA Breach -->
                         <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <StackPanel>
-                                <TextBlock Text="Ticket Assegnati / Totali" Opacity="0.6" FontWeight="SemiBold"/>
+                                <TextBlock Text="Urgenza Modificata" Opacity="0.6" FontWeight="SemiBold"/>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE77B;" FontSize="24" Foreground="Green"/>
-                                    <TextBlock Text="{x:Bind AssignmentRate, Mode=OneWay}" FontSize="24" FontWeight="Bold"/>
+                                    <FontIcon Glyph="&#xE814;" FontSize="24" Foreground="Orange"/>
+                                    <TextBlock Text="{x:Bind UrgencyChangedRate, Mode=OneWay}" FontSize="24" FontWeight="Bold"/>
                                 </StackPanel>
-                                <TextBlock Text="Percentuale ticket presi in carico nel periodo" FontSize="11" Opacity="0.5"/>
+                                <TextBlock Text="Percentuale ticket con cambio priorità" FontSize="11" Opacity="0.5"/>
                             </StackPanel>
                         </Border>
                     </Grid>
 
-                    <!-- Grafici Report (Griglia 2x2) -->
-                    <Grid RowSpacing="16" ColumnSpacing="16">
+                    <Grid RowSpacing="16" ColumnSpacing="16" MinHeight="650" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
@@ -176,39 +145,38 @@
                             <RowDefinition Height="300"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Urgenza Storica -->
                         <Border Grid.Row="0" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
-                                <TextBlock Grid.Row="0" Text="Urgenza (Nel Periodo)" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:PieChart Grid.Row="1" Series="{x:Bind ReportUrgencySeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
+                                <TextBlock Text="Urgenza (Solo Terminati)" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:PieChart Series="{x:Bind ReportUrgencySeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Sede Storica -->
                         <Border Grid.Row="0" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
-                                <TextBlock Grid.Row="0" Text="Distribuzione per Sede" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:PieChart Grid.Row="1" Series="{x:Bind ReportSedeSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
+                                <TextBlock Text="Distribuzione Sede" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:PieChart Series="{x:Bind ReportSedeSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Tipologia Storica -->
                         <Border Grid.Row="1" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
-                                <TextBlock Grid.Row="0" Text="Tipologie Più Frequenti" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:PieChart Grid.Row="1" Series="{x:Bind ReportTypeSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
+                                <TextBlock Text="Tipologia (Periodo)" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:PieChart Series="{x:Bind ReportTypeSeries, Mode=OneWay}" LegendPosition="Bottom" LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Utenti (Barre) -->
                         <Border Grid.Row="1" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
-                                <TextBlock Grid.Row="0" Text="Ticket Chiusi per Utente IT" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:CartesianChart Grid.Row="1" Series="{x:Bind ReportUserSeries, Mode=OneWay}" XAxes="{x:Bind UserXAxes, Mode=OneWay}" YAxes="{x:Bind UserYAxes, Mode=OneWay}"/>
+                                <TextBlock Text="Ticket Chiusi per Utente" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:CartesianChart Series="{x:Bind ReportUserSeries, Mode=OneWay}" 
+                                                    XAxes="{x:Bind UserXAxes, Mode=OneWay}" 
+                                                    YAxes="{x:Bind UserYAxes, Mode=OneWay}" 
+                                                    LegendPosition="Bottom" 
+                                                    LegendTextPaint="{x:Bind LegendTextPaint, Mode=OneWay}"/>
                             </Grid>
                         </Border>
                     </Grid>
-
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
