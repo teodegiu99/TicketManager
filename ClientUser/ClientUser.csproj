@@ -36,7 +36,7 @@
 	<!-- Pacchetto NuGet WinUI 3 -->
 	<ItemGroup>
 		<!-- Assicurati che la versione sia coerente con ClientIT, es: 1.5.240428000 -->
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240428000" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
 	</ItemGroup>
 
 	<!-- 3. DEFINIZIONE MANUALE DEI FILE (Ora è l'unica fonte) -->

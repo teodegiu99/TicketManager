@@ -4,7 +4,6 @@ using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SkiaSharp;
@@ -14,11 +13,9 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Windows.UI;
 
 namespace ClientIT.Controls
 {
@@ -28,50 +25,45 @@ namespace ClientIT.Controls
         private string _apiBaseUrl = "http://localhost:5210";
         private List<TicketViewModel> _cachedAllTickets = new();
 
-        // --- PROPERTIES REAL TIME ---
+        // --- CAMPI PRIVATI (Backing Fields) ---
+        private IEnumerable<ISeries> _urgencySeries;
+        private IEnumerable<ISeries> _typeSeries;
+        private IEnumerable<ISeries> _colorSeries;
+
+        private IEnumerable<ISeries> _reportUrgencySeries;
+        private IEnumerable<ISeries> _reportSedeSeries;
+        private IEnumerable<ISeries> _reportTypeSeries;
+        private IEnumerable<ISeries> _reportUserSeries;
+
+        private IEnumerable<ICartesianAxis> _userXAxes;
+        private IEnumerable<ICartesianAxis> _userYAxes;
+
         private int _countOpen;
         private int _countInProgress;
         private int _countClosed;
         private bool _isLoading;
-
-        private ISeries[] _urgencySeries = Array.Empty<ISeries>();
-        private ISeries[] _typeSeries = Array.Empty<ISeries>();
-        private ISeries[] _statusSeries = Array.Empty<ISeries>();
-
-        // --- PROPERTIES REPORT ---
         private string _avgCloseTime = "N/D";
         private string _urgencyChangedRate = "0%";
 
-        private ISeries[] _reportUrgencySeries = Array.Empty<ISeries>();
-        private ISeries[] _reportSedeSeries = Array.Empty<ISeries>();
-        private ISeries[] _reportTypeSeries = Array.Empty<ISeries>();
-        private ISeries[] _reportUserSeries = Array.Empty<ISeries>();
+        // --- PROPRIETÀ BINDING (Sostituzione diretta per forzare refresh) ---
+        public IEnumerable<ISeries> UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> ColorSeries { get => _colorSeries; set { _colorSeries = value; OnPropertyChanged(); } }
 
-        private ICartesianAxis[] _userXAxes = Array.Empty<ICartesianAxis>();
-        private ICartesianAxis[] _userYAxes = Array.Empty<ICartesianAxis>();
+        public IEnumerable<ISeries> ReportUrgencySeries { get => _reportUrgencySeries; set { _reportUrgencySeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> ReportSedeSeries { get => _reportSedeSeries; set { _reportSedeSeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> ReportTypeSeries { get => _reportTypeSeries; set { _reportTypeSeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> ReportUserSeries { get => _reportUserSeries; set { _reportUserSeries = value; OnPropertyChanged(); } }
 
-        // --- BINDING PROPERTIES ---
+        public IEnumerable<ICartesianAxis> UserXAxes { get => _userXAxes; set { _userXAxes = value; OnPropertyChanged(); } }
+        public IEnumerable<ICartesianAxis> UserYAxes { get => _userYAxes; set { _userYAxes = value; OnPropertyChanged(); } }
+
         public int CountOpen { get => _countOpen; set { _countOpen = value; OnPropertyChanged(); } }
         public int CountInProgress { get => _countInProgress; set { _countInProgress = value; OnPropertyChanged(); } }
         public int CountClosed { get => _countClosed; set { _countClosed = value; OnPropertyChanged(); } }
         public bool IsLoading { get => _isLoading; set { _isLoading = value; OnPropertyChanged(); } }
-
-        public ISeries[] UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
-        public ISeries[] TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
-        public ISeries[] ColorSeries { get => _statusSeries; set { _statusSeries = value; OnPropertyChanged(); } }
-
         public string AvgCloseTime { get => _avgCloseTime; set { _avgCloseTime = value; OnPropertyChanged(); } }
         public string UrgencyChangedRate { get => _urgencyChangedRate; set { _urgencyChangedRate = value; OnPropertyChanged(); } }
-
-        public ISeries[] ReportUrgencySeries { get => _reportUrgencySeries; set { _reportUrgencySeries = value; OnPropertyChanged(); } }
-        public ISeries[] ReportSedeSeries { get => _reportSedeSeries; set { _reportSedeSeries = value; OnPropertyChanged(); } }
-        public ISeries[] ReportTypeSeries { get => _reportTypeSeries; set { _reportTypeSeries = value; OnPropertyChanged(); } }
-        public ISeries[] ReportUserSeries { get => _reportUserSeries; set { _reportUserSeries = value; OnPropertyChanged(); } }
-
-        public ICartesianAxis[] UserXAxes { get => _userXAxes; set { _userXAxes = value; OnPropertyChanged(); } }
-        public ICartesianAxis[] UserYAxes { get => _userYAxes; set { _userYAxes = value; OnPropertyChanged(); } }
-
-        public SolidColorPaint LegendTextPaint { get; set; } = new SolidColorPaint(SKColors.Gray);
 
         public StatisticsControl()
         {
@@ -79,8 +71,9 @@ namespace ClientIT.Controls
             var handler = new HttpClientHandler { UseDefaultCredentials = true, ServerCertificateCustomValidationCallback = (s, c, ch, e) => true };
             _apiClient = new HttpClient(handler);
 
-            UserXAxes = new ICartesianAxis[] { new Axis { LabelsPaint = new SolidColorPaint(SKColors.Gray) } };
-            UserYAxes = new ICartesianAxis[] { new Axis { LabelsPaint = new SolidColorPaint(SKColors.Gray) } };
+            // Assi di default
+            UserXAxes = new List<Axis> { new Axis { LabelsRotation = 15 } };
+            UserYAxes = new List<Axis> { new Axis() };
 
             this.Loaded += StatisticsControl_Loaded;
         }
@@ -95,11 +88,17 @@ namespace ClientIT.Controls
 
         private async void BtnRefresh_Click(object sender, RoutedEventArgs e) => await LoadStats();
 
-        private void BtnFilter_Click(object sender, RoutedEventArgs e) => ProcessReportData(_cachedAllTickets);
+        private void BtnFilter_Click(object sender, RoutedEventArgs e)
+        {
+            if (_cachedAllTickets != null && _cachedAllTickets.Any())
+            {
+                ProcessReportData(_cachedAllTickets);
+            }
+        }
 
         public async Task LoadStats()
         {
-            IsLoading = true;
+            this.DispatcherQueue.TryEnqueue(() => IsLoading = true);
             try
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -109,31 +108,26 @@ namespace ClientIT.Controls
 
                 if (allTickets != null)
                 {
-                    _cachedAllTickets = allTickets;
-
-                    // --- DEBUG FONDAMENTALE ---
-                    int totalTickets = allTickets.Count;
-                    int closedTickets = allTickets.Count(t => t.StatoId == 3);
-                    int nullStato = allTickets.Count(t => t.StatoId == 0);
-
-                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Totali: {totalTickets}");
-                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Terminati (Id=3): {closedTickets}");
-                    System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Stato 0 (Errore?): {nullStato}");
-
-                    if (closedTickets == 0 && totalTickets > 0)
+                    this.DispatcherQueue.TryEnqueue(() =>
                     {
-                        // Se qui dice 0, il problema è che i ticket non hanno StatoId=3 nel JSON ricevuto
-                        System.Diagnostics.Debug.WriteLine("[STATS DEBUG] ATTENZIONE: Nessun ticket risulta chiuso nel Client!");
-                    }
-                    // 1. Real Time (Solo Attivi: stato != 3)
-                    var activeTickets = allTickets.Where(t => t.StatoId != 3).ToList();
-                    ProcessCounters(allTickets);
-                    UrgencySeries = CreatePieSeries(activeTickets.GroupBy(t => t.UrgenzaNome));
-                    TypeSeries = CreateTypeSeries(activeTickets); // Usa metodo specifico con colori
-                    ColorSeries = CreateColorSeries(activeTickets);
+                        _cachedAllTickets = allTickets;
 
-                    // 2. Report (Storico - Solo Terminati)
-                    ProcessReportData(allTickets);
+                        // Debug
+                        int closedTickets = allTickets.Count(t => t.StatoId == 3);
+                        System.Diagnostics.Debug.WriteLine($"[STATS DEBUG] Totali: {allTickets.Count}, Chiusi (Id=3): {closedTickets}");
+
+                        // 1. Real Time
+                        var activeTickets = allTickets.Where(t => t.StatoId != 3).ToList();
+                        ProcessCounters(allTickets);
+
+                        // Creazione NUOVE liste (Forza il ridisegno)
+                        UrgencySeries = CreatePieSeries(activeTickets.GroupBy(t => t.UrgenzaNome));
+                        TypeSeries = CreatePieSeries(activeTickets.GroupBy(t => t.TipologiaNome));
+                        ColorSeries = CreateColorSeries(activeTickets);
+
+                        // 2. Report Storico
+                        ProcessReportData(allTickets);
+                    });
                 }
             }
             catch (Exception ex)
@@ -142,7 +136,7 @@ namespace ClientIT.Controls
             }
             finally
             {
-                IsLoading = false;
+                this.DispatcherQueue.TryEnqueue(() => IsLoading = false);
             }
         }
 
@@ -151,49 +145,52 @@ namespace ClientIT.Controls
             if (DateStart.Date == null || DateEnd.Date == null) return;
 
             DateTime start = DateStart.Date.Value.DateTime.Date;
-            DateTime end = DateEnd.Date.Value.DateTime.Date.AddDays(1).AddSeconds(-1);
+            DateTime end = DateEnd.Date.Value.DateTime.Date.AddDays(2).AddSeconds(-1);
 
-            // FILTRO: Solo ticket TERMINATI che rientrano nel range di Data Chiusura
             var filtered = allTickets
                 .Where(t => {
                     if (t.StatoId != 3) return false;
-                    // Fallback su DataCreazione se DataChiusura è null (per vecchi ticket)
                     DateTime refDate = t.DataChiusura.HasValue ? t.DataChiusura.Value.ToLocalTime() : t.DataCreazione.ToLocalTime();
                     return refDate >= start && refDate <= end;
                 })
                 .ToList();
 
-            // --- 1. Grafici Torta Semplici ---
+            System.Diagnostics.Debug.WriteLine($"[FILTER DEBUG] Filtrati: {filtered.Count}");
+
+            // ASSEGNAZIONI DIRETTE (Reset Totale Grafici)
             ReportUrgencySeries = CreatePieSeries(filtered.GroupBy(t => t.UrgenzaNome));
             ReportSedeSeries = CreatePieSeries(filtered.GroupBy(t => t.SedeNome));
+            ReportTypeSeries = CreatePieSeries(filtered.GroupBy(t => t.TipologiaNome));
 
-            // --- 2. Grafico Tipologia (CORRETTO: Usa CreateTypeSeries per i colori) ---
-            ReportTypeSeries = CreateTypeSeries(filtered);
-
-            // --- 3. Grafico Utenti (CORRETTO: Include anche 'Non assegnato') ---
+            // Utenti (Bar Chart)
             var userGroup = filtered
                 .GroupBy(t => string.IsNullOrEmpty(t.AssegnatoaNome) ? "Non assegnato" : t.AssegnatoaNome)
                 .OrderByDescending(g => g.Count())
                 .ToList();
 
-            ReportUserSeries = new ISeries[]
+            // Aggiorna Assi (Creando nuova lista)
+            UserXAxes = new List<Axis>
             {
-                new ColumnSeries<int>
+                new Axis
+                {
+                    Labels = userGroup.Select(g => g.Key).ToList(),
+                    LabelsRotation = 15,
+                    LabelsPaint = new SolidColorPaint(SKColors.Gray)
+                }
+            };
+
+            // Aggiorna Serie Barre
+            ReportUserSeries = new List<ISeries>
+            {
+                new ColumnSeries<double> // Usa double per sicurezza
                 {
                     Name = "Ticket Chiusi",
-                    Values = userGroup.Select(g => g.Count()).ToArray(),
-                    Fill = new SolidColorPaint(SKColors.DodgerBlue),
-                    DataLabelsPaint = new SolidColorPaint(SKColors.Black),
+                    Values = userGroup.Select(g => (double)g.Count()).ToArray(),
                     DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Top
                 }
             };
 
-            UserXAxes = new ICartesianAxis[]
-            {
-                new Axis { Labels = userGroup.Select(g => g.Key).ToList(), LabelsPaint = new SolidColorPaint(SKColors.Gray), LabelsRotation = 15 }
-            };
-
-            // --- KPI ---
+            // KPI
             int total = filtered.Count;
             int changed = filtered.Count(t => t.UrgenzaCambiata);
             UrgencyChangedRate = total > 0 ? $"{(double)changed / total:P0}" : "0%";
@@ -210,54 +207,35 @@ namespace ClientIT.Controls
             }
         }
 
-        // --- HELPERS ---
+        // --- CREATORS ---
 
-        private ISeries[] CreatePieSeries(IEnumerable<IGrouping<string, TicketViewModel>> groups)
+        private IEnumerable<ISeries> CreatePieSeries(IEnumerable<IGrouping<string, TicketViewModel>> groups)
         {
-            var list = new List<ISeries>();
-            foreach (var g in groups)
+            return groups.Select(g => new PieSeries<double>
             {
-                list.Add(new PieSeries<int>
-                {
-                    Values = new[] { g.Count() },
-                    Name = string.IsNullOrEmpty(g.Key) ? "N/D" : g.Key,
-                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
-                });
-            }
-            return list.ToArray();
+                Values = new[] { (double)g.Count() },
+                Name = string.IsNullOrEmpty(g.Key) ? "N/D" : g.Key,
+                DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}"
+            }).ToArray();
         }
 
-        // Helper specifico per Tipologia che gestisce i COLORI PERSONALIZZATI
-        private ISeries[] CreateTypeSeries(List<TicketViewModel> tickets)
-        {
-            var grouped = tickets.GroupBy(t => new { t.TipologiaNome, t.TipologiaColore });
-            var list = new List<ISeries>();
-            foreach (var g in grouped)
-            {
-                list.Add(new PieSeries<int>
-                {
-                    Values = new[] { g.Count() },
-                    Name = g.Key.TipologiaNome,
-                    Fill = new SolidColorPaint(GetSkColor(g.Key.TipologiaColore)),
-                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
-                    DataLabelsFormatter = p => $"{p.Coordinate.PrimaryValue}"
-                });
-            }
-            return list.ToArray();
-        }
-
-        private ISeries[] CreateColorSeries(List<TicketViewModel> tickets)
+        private IEnumerable<ISeries> CreateColorSeries(List<TicketViewModel> tickets)
         {
             int g = 0, y = 0, r = 0;
-            foreach (var t in tickets) { var c = t.StatusBorderBrush.Color; if (IsCol(c, Colors.LimeGreen)) g++; else if (IsCol(c, Colors.Orange)) y++; else if (IsCol(c, Colors.Red)) r++; }
+            foreach (var t in tickets)
+            {
+                var c = t.StatusBorderBrush.Color;
+                if (IsCol(c, Microsoft.UI.Colors.LimeGreen)) g++;
+                else if (IsCol(c, Microsoft.UI.Colors.Orange)) y++;
+                else if (IsCol(c, Microsoft.UI.Colors.Red)) r++;
+            }
+
             var list = new List<ISeries>();
-            if (g > 0) list.Add(new PieSeries<int> { Values = new[] { g }, Name = "Nei tempi", Fill = new SolidColorPaint(SKColors.LimeGreen) });
-            if (y > 0) list.Add(new PieSeries<int> { Values = new[] { y }, Name = "In scadenza", Fill = new SolidColorPaint(SKColors.Orange) });
-            if (r > 0) list.Add(new PieSeries<int> { Values = new[] { r }, Name = "Scaduti", Fill = new SolidColorPaint(SKColors.Red) });
-            return list.ToArray();
+            if (g > 0) list.Add(new PieSeries<double> { Values = new[] { (double)g }, Name = "Nei tempi" });
+            if (y > 0) list.Add(new PieSeries<double> { Values = new[] { (double)y }, Name = "In scadenza" });
+            if (r > 0) list.Add(new PieSeries<double> { Values = new[] { (double)r }, Name = "Scaduti" });
+            return list;
         }
 
         private void ProcessCounters(List<TicketViewModel> t)
@@ -267,23 +245,12 @@ namespace ClientIT.Controls
             CountClosed = t.Count(x => x.StatoId == 3);
         }
 
-        private SKColor GetSkColor(string? s)
+        private bool IsCol(Windows.UI.Color c1, Windows.UI.Color c2)
         {
-            if (string.IsNullOrEmpty(s)) return SKColors.Gray;
-            try
-            {
-                if (s.StartsWith("#")) return SKColor.Parse(s);
-                var f = typeof(SKColors).GetField(s, BindingFlags.Static | BindingFlags.Public | BindingFlags.IgnoreCase);
-                return f != null ? (SKColor)f.GetValue(null)! : SKColors.Gray;
-            }
-            catch { return SKColors.Gray; }
+            return c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        private bool IsCol(Color c1, Color c2) => c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
-
-        // Metodo helper aggiunto per compatibilità
-        private bool IsRed(Color c) => c.R == 255 && c.G == 0 && c.B == 0;
-
+        // --- IMPLEMENTAZIONE INotifyPropertyChanged ---
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
