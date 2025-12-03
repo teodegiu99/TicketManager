@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:lvc="using:LiveChartsCore.SkiaSharpView.WinUI"
+    xmlns:models="using:ClientIT.Models"
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource LayerFillColorDefaultBrush}">
@@ -170,7 +171,7 @@
                         <Border Grid.Row="1" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                             <Grid RowDefinitions="Auto, *">
                                 <TextBlock Text="Ticket per Utente" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                <lvc:CartesianChart Grid.Row="1" 
+                                <lvc:CartesianChart Grid.Row="1"
                                                     Series="{x:Bind ReportUserSeries, Mode=OneWay}" 
                                                     XAxes="{x:Bind UserXAxes, Mode=OneWay}" 
                                                     YAxes="{x:Bind UserYAxes, Mode=OneWay}" 
@@ -180,6 +181,85 @@
                         </Border>
                     </Grid>
                 </StackPanel>
+
+                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Opacity="0.5"/>
+
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Analisi per Utente" Style="{ThemeResource TitleTextBlockStyle}"/>
+                    <TextBlock Text="Cerca per nome o username per vedere i dettagli" Opacity="0.6"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <AutoSuggestBox x:Name="UserSearchBox" PlaceholderText="Es: Matteo o m.rossi" QueryIcon="Find" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Cerca" Margin="8,0,0,0" Style="{ThemeResource AccentButtonStyle}" Click="SearchUser_Click"/>
+                    </Grid>
+
+                    <StackPanel x:Name="UserStatsPanel" Visibility="{x:Bind UserStatsVisible, Mode=OneWay}" Spacing="16">
+
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="Ticket Attuali Aperti" Opacity="0.6" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Bind UserOpenTicketsCount, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="Urgenza Cambiata" Opacity="0.6" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Bind UserUrgencyChangedCount, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="Orange"/>
+                                    <TextBlock Text="volte in totale" FontSize="11" Opacity="0.5"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Grid RowDefinitions="Auto, *">
+                                    <TextBlock Text="Tipologie Segnalate" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <lvc:PieChart Grid.Row="1" Height="150" Series="{x:Bind UserTypeSeries, Mode=OneWay}" LegendPosition="Right" Background="Transparent"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="Storico Ticket Creati" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0"/>
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <ListView ItemsSource="{x:Bind UserTicketList, Mode=OneWay}" MaxHeight="300">
+                                <ListView.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Grid Padding="12" ColumnDefinitions="80, 150, *, 120">
+                                            <TextBlock Grid.Column="0" Text="ID" FontWeight="Bold" Opacity="0.5"/>
+                                            <TextBlock Grid.Column="1" Text="Data" FontWeight="Bold" Opacity="0.5"/>
+                                            <TextBlock Grid.Column="2" Text="Oggetto" FontWeight="Bold" Opacity="0.5"/>
+                                            <TextBlock Grid.Column="3" Text="Stato" FontWeight="Bold" Opacity="0.5"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.HeaderTemplate>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:TicketViewModel">
+                                        <Grid Padding="12" ColumnDefinitions="80, 150, *, 120">
+                                            <TextBlock Grid.Column="0" Text="{x:Bind Nticket}" FontWeight="SemiBold"/>
+
+                                            <TextBlock Grid.Column="1" Text="{x:Bind local:StatisticsControl.FormatDate(DataCreazione)}" Opacity="0.8"/>
+
+                                            <TextBlock Grid.Column="2" Text="{x:Bind Titolo}" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="3" Text="{x:Bind StatoNome}" Opacity="0.8"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Border>
+
+                    </StackPanel>
+                </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>
