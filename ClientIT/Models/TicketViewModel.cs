@@ -1,11 +1,12 @@
-﻿using Microsoft.UI;
+﻿using ClientIT.Helpers;
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using Windows.UI;
-using ClientIT.Helpers;
 
 
 namespace ClientIT.Models
@@ -43,8 +44,12 @@ namespace ClientIT.Models
         public string Macchina { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
         public string ScreenshotPath { get; set; } = string.Empty;
-
+        public string? PerContoDi { get; set; }
         public bool UrgenzaCambiata { get; set; }
+
+        public Visibility PerContoDiVisibility =>
+            string.IsNullOrEmpty(PerContoDi) ? Visibility.Collapsed : Visibility.Visible;
+
         public SolidColorBrush StatusBorderBrush
         {
             get

@@ -137,12 +137,13 @@
                         </Border>
                     </Grid>
 
-                    <Grid RowSpacing="16" ColumnSpacing="16" MinHeight="650" VerticalAlignment="Top">
+                    <Grid RowSpacing="16" ColumnSpacing="16" MinHeight="950" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="300"/>
                             <RowDefinition Height="300"/>
                             <RowDefinition Height="300"/>
                         </Grid.RowDefinitions>
@@ -179,6 +180,14 @@
                                                     Background="Transparent"/>
                             </Grid>
                         </Border>
+
+                        <Border Grid.Row="2" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                            <Grid RowDefinitions="Auto, *">
+                                <TextBlock Text="Modalità Apertura" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <lvc:PieChart Grid.Row="1" Series="{x:Bind ReportCreatorSeries, Mode=OneWay}" LegendPosition="Bottom" Background="Transparent"/>
+                            </Grid>
+                        </Border>
+
                     </Grid>
                 </StackPanel>
 
@@ -246,9 +255,7 @@
                                     <DataTemplate x:DataType="models:TicketViewModel">
                                         <Grid Padding="12" ColumnDefinitions="80, 150, *, 120">
                                             <TextBlock Grid.Column="0" Text="{x:Bind Nticket}" FontWeight="SemiBold"/>
-
                                             <TextBlock Grid.Column="1" Text="{x:Bind local:StatisticsControl.FormatDate(DataCreazione)}" Opacity="0.8"/>
-
                                             <TextBlock Grid.Column="2" Text="{x:Bind Titolo}" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="3" Text="{x:Bind StatoNome}" Opacity="0.8"/>
                                         </Grid>

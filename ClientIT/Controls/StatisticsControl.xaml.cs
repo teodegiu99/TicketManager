@@ -25,6 +25,7 @@ namespace ClientIT.Controls
         private HttpClient _apiClient;
         private string _apiBaseUrl = "http://localhost:5210";
         private List<TicketViewModel> _cachedAllTickets = new();
+        private List<ItUtente> _cachedItUsers = new(); // Lista utenti IT per il confronto
         private readonly Random _random = new Random();
 
         // --- CAMPI PRIVATI ---
@@ -36,6 +37,7 @@ namespace ClientIT.Controls
         private IEnumerable<ISeries> _reportSedeSeries;
         private IEnumerable<ISeries> _reportTypeSeries;
         private IEnumerable<ISeries> _reportUserSeries;
+        private IEnumerable<ISeries> _reportCreatorSeries;
 
         private IEnumerable<ICartesianAxis> _userXAxes;
         private IEnumerable<ICartesianAxis> _userYAxes;
@@ -47,14 +49,14 @@ namespace ClientIT.Controls
         private string _avgCloseTime = "N/D";
         private string _urgencyChangedRate = "0%";
 
-        // --- NUOVI CAMPI PER ANALISI UTENTE ---
+        // --- CAMPI UTENTE ---
         private Visibility _userStatsVisible = Visibility.Collapsed;
         private int _userOpenTicketsCount;
         private int _userUrgencyChangedCount;
         private IEnumerable<ISeries> _userTypeSeries;
         private IEnumerable<TicketViewModel> _userTicketList;
 
-        // --- PROPRIETÀ BINDING GENERALI ---
+        // --- PROPRIETÀ BINDING ---
         public IEnumerable<ISeries> UrgencySeries { get => _urgencySeries; set { _urgencySeries = value; OnPropertyChanged(); } }
         public IEnumerable<ISeries> TypeSeries { get => _typeSeries; set { _typeSeries = value; OnPropertyChanged(); } }
         public IEnumerable<ISeries> ColorSeries { get => _colorSeries; set { _colorSeries = value; OnPropertyChanged(); } }
@@ -63,6 +65,7 @@ namespace ClientIT.Controls
         public IEnumerable<ISeries> ReportSedeSeries { get => _reportSedeSeries; set { _reportSedeSeries = value; OnPropertyChanged(); } }
         public IEnumerable<ISeries> ReportTypeSeries { get => _reportTypeSeries; set { _reportTypeSeries = value; OnPropertyChanged(); } }
         public IEnumerable<ISeries> ReportUserSeries { get => _reportUserSeries; set { _reportUserSeries = value; OnPropertyChanged(); } }
+        public IEnumerable<ISeries> ReportCreatorSeries { get => _reportCreatorSeries; set { _reportCreatorSeries = value; OnPropertyChanged(); } }
 
         public IEnumerable<ICartesianAxis> UserXAxes { get => _userXAxes; set { _userXAxes = value; OnPropertyChanged(); } }
         public IEnumerable<ICartesianAxis> UserYAxes { get => _userYAxes; set { _userYAxes = value; OnPropertyChanged(); } }
@@ -74,7 +77,6 @@ namespace ClientIT.Controls
         public string AvgCloseTime { get => _avgCloseTime; set { _avgCloseTime = value; OnPropertyChanged(); } }
         public string UrgencyChangedRate { get => _urgencyChangedRate; set { _urgencyChangedRate = value; OnPropertyChanged(); } }
 
-        // --- NUOVE PROPRIETÀ BINDING UTENTE ---
         public Visibility UserStatsVisible { get => _userStatsVisible; set { _userStatsVisible = value; OnPropertyChanged(); } }
         public int UserOpenTicketsCount { get => _userOpenTicketsCount; set { _userOpenTicketsCount = value; OnPropertyChanged(); } }
         public int UserUrgencyChangedCount { get => _userUrgencyChangedCount; set { _userUrgencyChangedCount = value; OnPropertyChanged(); } }
@@ -111,7 +113,6 @@ namespace ClientIT.Controls
             }
         }
 
-        // --- GESTIONE RICERCA UTENTE ---
         private void SearchUser_Click(object sender, RoutedEventArgs e)
         {
             string query = UserSearchBox.Text?.Trim();
@@ -146,8 +147,24 @@ namespace ClientIT.Controls
             try
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
 
+                // 1. Carica Utenti IT se non già caricati
+                if (_cachedItUsers.Count == 0)
+                {
+                    try
+                    {
+                        var itUsers = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
+                        if (itUsers != null) _cachedItUsers = itUsers;
+
+                        // Debug per vedere chi ha caricato
+                        foreach (var u in _cachedItUsers)
+                            System.Diagnostics.Debug.WriteLine($"[IT USER LOADED] ID: {u.Id}, User: {u.UsernameAd}, Nome: {u.Nome}");
+                    }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Err Loading IT Users: " + ex.Message); }
+                }
+
+                // 2. Carica Ticket
+                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
                 var allTickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url, options);
 
                 if (allTickets != null)
@@ -195,10 +212,49 @@ namespace ClientIT.Controls
                 })
                 .ToList();
 
+            // Aggiorna Grafici Standard
             ReportUrgencySeries = CreateRandomColorPieSeries(filtered.GroupBy(t => t.UrgenzaNome));
             ReportSedeSeries = CreateRandomColorPieSeries(filtered.GroupBy(t => t.SedeNome));
             ReportTypeSeries = CreateRandomColorPieSeries(filtered.GroupBy(t => t.TipologiaNome));
 
+            // --- LOGICA CED AVANZATA ---
+            int countCed = 0;
+            int countBehalf = 0;
+            int countOwn = 0;
+
+            System.Diagnostics.Debug.WriteLine("--- INIZIO ANALISI TICKET ---");
+
+            foreach (var t in filtered)
+            {
+                // Controlla se l'utente del ticket è un membro IT
+                bool isCed = IsItUser(t.Username);
+
+                if (isCed)
+                {
+                    countCed++;
+                    System.Diagnostics.Debug.WriteLine($"[CED CHECK] Ticket {t.Nticket} di '{t.Username}' -> RICONOSCIUTO COME CED");
+                }
+                else if (!string.IsNullOrEmpty(t.PerContoDi))
+                {
+                    countBehalf++;
+                    System.Diagnostics.Debug.WriteLine($"[CED CHECK] Ticket {t.Nticket} di '{t.Username}' -> PER CONTO DI ({t.PerContoDi})");
+                }
+                else
+                {
+                    countOwn++;
+                    System.Diagnostics.Debug.WriteLine($"[CED CHECK] Ticket {t.Nticket} di '{t.Username}' -> PROPRIO");
+                }
+            }
+            System.Diagnostics.Debug.WriteLine("--- FINE ANALISI ---");
+
+            var creatorList = new List<ISeries>();
+            if (countOwn > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countOwn }, Name = "Per conto proprio", Fill = new SolidColorPaint(GetRandomColor()) });
+            if (countBehalf > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countBehalf }, Name = "Per conto di terzi", Fill = new SolidColorPaint(GetRandomColor()) });
+            if (countCed > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countCed }, Name = "Aperti da CED", Fill = new SolidColorPaint(GetRandomColor()) });
+
+            ReportCreatorSeries = creatorList;
+
+            // Aggiorna Grafico Utenti
             var userGroup = filtered
                 .GroupBy(t => string.IsNullOrEmpty(t.AssegnatoaNome) ? "Non assegnato" : t.AssegnatoaNome)
                 .OrderByDescending(g => g.Count())
@@ -226,6 +282,7 @@ namespace ClientIT.Controls
                 }
             };
 
+            // KPI
             int total = filtered.Count;
             int changed = filtered.Count(t => t.UrgenzaCambiata);
             UrgencyChangedRate = total > 0 ? $"{(double)changed / total:P0}" : "0%";
@@ -241,6 +298,47 @@ namespace ClientIT.Controls
                 AvgCloseTime = "N/D";
             }
         }
+
+        // --- HELPER DI CONFRONTO AVANZATO ---
+        private bool IsItUser(string ticketUsername)
+        {
+            if (string.IsNullOrEmpty(ticketUsername)) return false;
+
+            // Pulisce il nome ticket da eventuali domini (es: "AZIENDA\mrossi" -> "mrossi")
+            string cleanTicketUser = CleanUsername(ticketUsername);
+
+            foreach (var itUser in _cachedItUsers)
+            {
+                // 1. Controllo su Username AD (es: "mrossi")
+                if (!string.IsNullOrEmpty(itUser.UsernameAd))
+                {
+                    string cleanItUser = CleanUsername(itUser.UsernameAd);
+                    if (cleanTicketUser.Equals(cleanItUser, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                // 2. Controllo su Nome Completo (es: "Mario Rossi")
+                // Utile se il ticket salva "Mario Rossi" invece dell'account
+                if (!string.IsNullOrEmpty(itUser.Nome))
+                {
+                    if (ticketUsername.Equals(itUser.Nome, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private string CleanUsername(string fullUsername)
+        {
+            if (string.IsNullOrEmpty(fullUsername)) return "";
+            // Prende solo la parte dopo lo slash (es. "DOMAIN\user" -> "user")
+            int slashIndex = fullUsername.LastIndexOf('\\');
+            if (slashIndex >= 0 && slashIndex < fullUsername.Length - 1)
+                return fullUsername.Substring(slashIndex + 1);
+            return fullUsername;
+        }
+
+        // --- CREATORI SERIE ---
 
         private IEnumerable<ISeries> CreateRandomColorPieSeries(IEnumerable<IGrouping<string, TicketViewModel>> groups)
         {
@@ -298,7 +396,6 @@ namespace ClientIT.Controls
             return c1.A == c2.A && c1.R == c2.R && c1.G == c2.G && c1.B == c2.B;
         }
 
-        // --- HELPER FORMATTAZIONE DATA (PER XAML) ---
         public static string FormatDate(DateTime d) => d.ToString("dd/MM/yyyy");
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -73,7 +73,18 @@
                        Style="{ThemeResource SubtitleTextBlockStyle}" 
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"/>
-
+            <StackPanel Orientation="Horizontal" Spacing="4" 
+                        Visibility="{x:Bind ViewModel.PerContoDiVisibility, Mode=OneWay}">
+                <FontIcon Glyph="&#xE77B;" FontSize="12" Foreground="OrangeRed"/>
+                <TextBlock Text="Ticket creato per conto di:" 
+                           FontSize="12" 
+                           Foreground="OrangeRed" 
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{x:Bind ViewModel.PerContoDi, Mode=OneWay}" 
+                           FontSize="12" 
+                           Foreground="OrangeRed" 
+                           FontWeight="Bold"/>
+            </StackPanel>
             <!-- Riga 3: Badge Info (Solo Sede e Utente ora, il resto è modificabile sotto) -->
             <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions>

@@ -43,7 +43,15 @@
                     <PersonPicture Width="24" Initials="{x:Bind ViewModel.Username.Substring(0,1), Mode=OneWay}"/>
                     <TextBlock Text="{x:Bind ViewModel.Username, Mode=OneWay}" Style="{StaticResource DetailValueStyle}" Margin="0" VerticalAlignment="Center"/>
                 </StackPanel>
+
                 <TextBlock Text="{x:Bind ViewModel.Funzione, Mode=OneWay}" FontSize="12" Opacity="0.5"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,4,0,0"
+                            Visibility="{x:Bind ViewModel.PerContoDiVisibility, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE77B;" FontSize="12" Foreground="OrangeRed"/>
+                    <TextBlock Text="Per conto di:" FontSize="12" Foreground="OrangeRed"/>
+                    <TextBlock Text="{x:Bind ViewModel.PerContoDi, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="OrangeRed"/>
+                </StackPanel>
             </StackPanel>
 
             <StackPanel Grid.Column="1">

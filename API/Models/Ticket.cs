@@ -76,5 +76,8 @@ namespace TicketAPI.Models
 
         [ForeignKey("AssegnatoaId")]
         public virtual ItUtente? Assegnatoa { get; set; }
+
+        [Column("percontodi")]
+        public string? PerContoDi { get; set; }
     }
 }

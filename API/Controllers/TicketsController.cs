@@ -137,7 +137,8 @@ namespace TicketAPI.Controllers
                     AssegnatoaId = t.AssegnatoaId,
                     TipologiaId = t.TipologiaId,
                     UrgenzaId = t.UrgenzaId,
-                    Note = t.Note
+                    Note = t.Note,
+                    PerContoDi = t.PerContoDi,
 
                 })
                 .ToListAsync();
