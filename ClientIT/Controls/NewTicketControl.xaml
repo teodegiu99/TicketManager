@@ -1,0 +1,72 @@
+<UserControl
+    x:Class="ClientIT.Controls.NewTicketControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:ClientIT.Models"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="8" Margin="0,0,0,24">
+            <TextBlock Text="Nuovo Ticket" Style="{ThemeResource TitleTextBlockStyle}"/>
+            <TextBlock Text="Compila i campi sottostanti per aprire una nuova richiesta." Opacity="0.6"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="20" HorizontalAlignment="Stretch">
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox x:Name="CmbTipologia" Grid.Column="0" Header="Tipologia Problema" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id"
+                              SelectionChanged="CmbTipologia_SelectionChanged"/>
+
+                    <ComboBox x:Name="CmbUrgenza" Grid.Column="1" Header="Livello Urgenza" HorizontalAlignment="Stretch"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+                </Grid>
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox x:Name="CmbSede" Grid.Column="0" Header="Sede" HorizontalAlignment="Stretch"/>
+
+                    <TextBox x:Name="TxtFunzione" Grid.Column="1" Header="Funzione Protex" 
+                             PlaceholderText="Codice in basso a destra" Visibility="Collapsed"/>
+                </Grid>
+
+                <TextBox x:Name="TxtOggetto" Header="Oggetto" PlaceholderText="Es: Stampante bloccata" HorizontalAlignment="Stretch"/>
+
+                <TextBox x:Name="TxtMessaggio" Header="Descrizione Dettagliata" 
+                         PlaceholderText="Descrivi il problema..." 
+                         Height="150" AcceptsReturn="True" TextWrapping="Wrap" HorizontalAlignment="Stretch"/>
+
+                <TextBox x:Name="TxtPerContoDi" Header="Aperto per conto di (Opzionale)" 
+                         PlaceholderText="Nome utente o persona che ha il problema (se diverso da te)" HorizontalAlignment="Stretch"/>
+
+                <Button x:Name="BtnInvia" Click="BtnInvia_Click" Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Margin="0,12,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE724;"/>
+                        <TextBlock Text="Invia Ticket"/>
+                    </StackPanel>
+                </Button>
+
+                <ProgressBar x:Name="LoadingBar" IsIndeterminate="True" Visibility="Collapsed"/>
+                <TextBlock x:Name="TxtError" Foreground="Red" Visibility="Collapsed" TextWrapping="Wrap"/>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -41,6 +41,11 @@ namespace ClientIT
             _apiClient = new HttpClient(handler);
 
             this.Activated += MainWindow_Activated;
+
+            NewTicketControl.TicketCreated += async (s, args) =>
+            {
+                await ShowTicketListAndRefresh();
+            };
         }
 
         private bool _isFirstActivation = true;
@@ -52,6 +57,29 @@ namespace ClientIT
                 _isFirstActivation = false;
                 _ = LoadDataAsync();
             }
+        }
+
+        private void NewTicketButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Resetta selezioni lista sinistra
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            // 2. Mostra la vista Nuovo Ticket, nascondi le altre
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Visible;
+
+            // 3. Passa i dati aggiornati ai dropdown del controllo
+            // (Assumiamo che AllTipologie, AllUrgenze, AllSedi siano già popolate da LoadDataAsync)
+            NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi);
+        }
+
+        private async Task ShowTicketListAndRefresh()
+        {
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            ListViewArea.Visibility = Visibility.Visible;
+            await LoadTicketsAsync();
         }
 
         // --- CARICAMENTO DATI ---
@@ -237,7 +265,7 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Visible;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-
+            NewTicketViewArea.Visibility = Visibility.Collapsed; 
             await LoadTicketsAsync();
         }
 
@@ -252,6 +280,7 @@ namespace ClientIT
                 ListViewArea.Visibility = Visibility.Visible;
                 DetailViewArea.Visibility = Visibility.Collapsed;
                 StatisticsViewArea.Visibility = Visibility.Collapsed;
+                NewTicketViewArea.Visibility = Visibility.Collapsed;
 
                 await LoadTicketsAsync();
             }
@@ -341,7 +370,7 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Visible;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-
+            NewTicketViewArea.Visibility = Visibility.Collapsed; 
             await LoadTicketsAsync();
         }
 
@@ -354,7 +383,7 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Visible;
-
+            NewTicketViewArea.Visibility = Visibility.Collapsed; 
             // 3. AGGIORNAMENTO AUTOMATICO:
             // Ricarica i dati ogni volta che apro la pagina per riflettere le ultime modifiche
             await StatsControl.LoadStats();
