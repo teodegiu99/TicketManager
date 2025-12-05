@@ -18,6 +18,9 @@ namespace TicketAPI.Models
 
         [Column("nome")]
         public string? Nome { get; set; }
-        
+
+
+        [Column("nomecompleto")] // Assicurati che il nome tra virgolette sia uguale a quello sul DB
+        public string? NomeCompleto { get; set; }
     }
 }
