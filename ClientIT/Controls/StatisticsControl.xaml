@@ -208,39 +208,137 @@
 
                     <StackPanel x:Name="UserStatsPanel" Visibility="{x:Bind UserStatsVisible, Mode=OneWay}" Spacing="16">
 
+                        <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE77B;" FontSize="16" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                <TextBlock Text="Utente trovato" FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <Rectangle Width="1" Height="16" Fill="{ThemeResource CardStrokeColorDefaultBrush}"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE7F4;" FontSize="16" Opacity="0.6"/>
+                                <TextBlock Text="Ultima Postazione:" Opacity="0.6"/>
+                                <TextBlock Text="{x:Bind UserMachineName, Mode=OneWay}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </StackPanel>
+
                         <Grid ColumnSpacing="16">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                <StackPanel>
-                                    <TextBlock Text="Ticket Attuali Aperti" Opacity="0.6" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Bind UserOpenTicketsCount, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                <StackPanel Spacing="12">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE8D4;" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        <TextBlock Text="Ticket Propri" FontWeight="Bold" FontSize="16"/>
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Aperti / In Corso" FontSize="12" Opacity="0.6"/>
+                                            <TextBlock Text="{x:Bind UserOwnOpenCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                        </StackPanel>
+
+                                        <Rectangle Grid.Column="1" Width="1" Fill="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,4"/>
+
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                            <TextBlock Text="Terminati" FontSize="12" Opacity="0.6" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{x:Bind UserOwnClosedCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="Gray" HorizontalAlignment="Right"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                <StackPanel>
-                                    <TextBlock Text="Urgenza Cambiata" Opacity="0.6" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Bind UserUrgencyChangedCount, Mode=OneWay}" FontSize="32" FontWeight="Bold" Foreground="Orange"/>
-                                    <TextBlock Text="volte in totale" FontSize="11" Opacity="0.5"/>
+                                <StackPanel Spacing="12">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE716;" Foreground="Orange"/>
+                                        <TextBlock Text="Per Conto Di Terzi" FontWeight="Bold" FontSize="16"/>
+                                    </StackPanel>
+
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Aperti / In Corso" FontSize="12" Opacity="0.6"/>
+                                            <TextBlock Text="{x:Bind UserBehalfOpenCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="Orange"/>
+                                        </StackPanel>
+
+                                        <Rectangle Grid.Column="1" Width="1" Fill="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,4"/>
+
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                            <TextBlock Text="Terminati" FontSize="12" Opacity="0.6" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{x:Bind UserBehalfClosedCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="Gray" HorizontalAlignment="Right"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
+                        </Grid>
 
-                            <Border Grid.Column="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                        <Grid ColumnSpacing="16" RowSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Aperti da altri per te" Opacity="0.6" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Ticket ricevuti dal CED o colleghi" FontSize="11" Opacity="0.5"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind UserTicketsReceivedCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="Teal" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="0" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <StackPanel>
+                                        <TextBlock Text="Urgenza Modificata" Opacity="0.6" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Interventi su priorità errata" FontSize="11" Opacity="0.5"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind UserUrgencyChangedCount, Mode=OneWay}" FontSize="28" FontWeight="Bold" Foreground="OrangeRed" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="1" Grid.Column="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                                 <Grid RowDefinitions="Auto, *">
                                     <TextBlock Text="Tipologie Segnalate" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                    <lvc:PieChart Grid.Row="1" Height="150" Series="{x:Bind UserTypeSeries, Mode=OneWay}" LegendPosition="Right" Background="Transparent"/>
+                                    <lvc:PieChart Grid.Row="1" Height="200" Series="{x:Bind UserTypeSeries, Mode=OneWay}" LegendPosition="Right" Background="Transparent"/>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="1" Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Grid RowDefinitions="Auto, *">
+                                    <TextBlock Text="Distribuzione Urgenza" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <lvc:PieChart Grid.Row="1" Height="200" Series="{x:Bind UserUrgencySeries, Mode=OneWay}" LegendPosition="Right" Background="Transparent"/>
                                 </Grid>
                             </Border>
                         </Grid>
 
-                        <TextBlock Text="Storico Ticket Creati" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,16,0,0"/>
+                        <TextBlock Text="Storico Ticket Creati" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,8,0,0"/>
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                            <ListView ItemsSource="{x:Bind UserTicketList, Mode=OneWay}" MaxHeight="300">
+                            <ListView ItemsSource="{x:Bind UserTicketList, Mode=OneWay}" 
+                                      MaxHeight="300"
+                                      IsItemClickEnabled="True"
+                                      ItemClick="UserTicketListView_ItemClick">
                                 <ListView.HeaderTemplate>
                                     <DataTemplate>
                                         <Grid Padding="12" ColumnDefinitions="80, 150, *, 120">
@@ -256,7 +354,12 @@
                                         <Grid Padding="12" ColumnDefinitions="80, 150, *, 120">
                                             <TextBlock Grid.Column="0" Text="{x:Bind Nticket}" FontWeight="SemiBold"/>
                                             <TextBlock Grid.Column="1" Text="{x:Bind local:StatisticsControl.FormatDate(DataCreazione)}" Opacity="0.8"/>
-                                            <TextBlock Grid.Column="2" Text="{x:Bind Titolo}" TextTrimming="CharacterEllipsis"/>
+
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind Titolo}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{x:Bind PerContoDi}" FontSize="10" Foreground="Orange" Visibility="{x:Bind PerContoDiVisibility}"/>
+                                            </StackPanel>
+
                                             <TextBlock Grid.Column="3" Text="{x:Bind StatoNome}" Opacity="0.8"/>
                                         </Grid>
                                     </DataTemplate>
