@@ -304,12 +304,12 @@ namespace ClientIT.Controls
         {
             if (string.IsNullOrEmpty(ticketUsername)) return false;
 
-            // Pulisce il nome ticket da eventuali domini (es: "AZIENDA\mrossi" -> "mrossi")
+            // 1. Pulizia: Se il ticket ha "DOMAIN\user", proviamo a prendere solo "user"
             string cleanTicketUser = CleanUsername(ticketUsername);
 
             foreach (var itUser in _cachedItUsers)
             {
-                // 1. Controllo su Username AD (es: "mrossi")
+                // CONTROLLO A: Match su Username AD (es. "mrossi" == "mrossi")
                 if (!string.IsNullOrEmpty(itUser.UsernameAd))
                 {
                     string cleanItUser = CleanUsername(itUser.UsernameAd);
@@ -317,8 +317,15 @@ namespace ClientIT.Controls
                         return true;
                 }
 
-                // 2. Controllo su Nome Completo (es: "Mario Rossi")
-                // Utile se il ticket salva "Mario Rossi" invece dell'account
+                // CONTROLLO B: Match su Nome Completo (RICHIESTO)
+                // Se il ticket è stato salvato come "Mario Rossi", lo confrontiamo con it_utenti.NomeCompleto
+                if (!string.IsNullOrEmpty(itUser.NomeCompleto))
+                {
+                    if (ticketUsername.Equals(itUser.NomeCompleto, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                // CONTROLLO C: Match su Nome Breve (Fallback esistente)
                 if (!string.IsNullOrEmpty(itUser.Nome))
                 {
                     if (ticketUsername.Equals(itUser.Nome, StringComparison.OrdinalIgnoreCase))

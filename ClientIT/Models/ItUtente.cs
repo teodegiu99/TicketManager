@@ -15,6 +15,8 @@ namespace ClientIT.Models
         public string Nome { get; set; } = string.Empty;
         public List<int>? TipologieAbilitate { get; set; }
 
+        public string? NomeCompleto { get; set; }
+
         // Aggiungi questa proprietà statica per "Non assegnato"
         public static ItUtente NonAssegnato { get; } = new ItUtente
         {

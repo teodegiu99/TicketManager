@@ -66,6 +66,7 @@ namespace TicketAPI.Controllers
                     u.Id, 
                     u.UsernameAd, 
                     u.Permesso,
+                    u.NomeCompleto,
                     Nome = !string.IsNullOrEmpty(u.Nome) ? u.Nome : u.UsernameAd
                     // Non inviamo le tipologie abilitate per ora
                 }) 
