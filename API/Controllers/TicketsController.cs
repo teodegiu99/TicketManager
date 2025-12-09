@@ -26,23 +26,34 @@ namespace TicketAPI.Controllers
             _env = env;
         }
 
-        // ... (Le classi TicketRequest e TicketUpdateRequest rimangono uguali) ...
+        // --- 1. AGGIUNTO IL CAMPO 'PerContoDi' AL MODELLO DI RICHIESTA ---
         public class TicketRequest
         {
             [FromForm(Name = "ProblemType")]
             public string ProblemType { get; set; }
+
             [FromForm(Name = "Urgency")]
             public string Urgency { get; set; }
+
             [FromForm(Name = "Funzione")]
             public string? Funzione { get; set; }
+
             [FromForm(Name = "Macchina")]
             public string Macchina { get; set; }
+
             [FromForm(Name = "Sede")]
             public string Sede { get; set; }
+
             [FromForm(Name = "Title")]
             public string Title { get; set; }
+
             [FromForm(Name = "Message")]
             public string Message { get; set; }
+
+            // NUOVO CAMPO
+            [FromForm(Name = "PerContoDi")]
+            public string? PerContoDi { get; set; }
+
             [FromForm(Name = "Screenshot")]
             public IFormFile? Screenshot { get; set; }
         }
@@ -56,7 +67,6 @@ namespace TicketAPI.Controllers
             public string? Note { get; set; }
         }
 
-        // --- GET TICKETS CON NUOVO FILTRO NTICKET ---
         [HttpGet("all")]
         public async Task<IActionResult> GetTickets(
             [FromQuery] string? search,
@@ -68,7 +78,7 @@ namespace TicketAPI.Controllers
             [FromQuery] string? macchina,
             [FromQuery] string? username,
             [FromQuery] int? nticket,
-            [FromQuery] bool includeAll = false // <--- parametro per le stat
+            [FromQuery] bool includeAll = false
         )
         {
             var query = _context.Ticket
@@ -79,29 +89,24 @@ namespace TicketAPI.Controllers
                 .Include(t => t.Assegnatoa)
                 .AsQueryable();
 
-            // 1. Ricerca Testuale
             if (!string.IsNullOrWhiteSpace(search))
             {
                 string s = search.ToLower();
-                query = query.Where(t => 
-                    t.Titolo.ToLower().Contains(s) || 
-                    t.Testo.ToLower().Contains(s) || 
+                query = query.Where(t =>
+                    t.Titolo.ToLower().Contains(s) ||
+                    t.Testo.ToLower().Contains(s) ||
                     (t.Note != null && t.Note.ToLower().Contains(s))
                 );
             }
             else
             {
-                // LOGICA DEFAULT: Se NON cerco, NON filtro stato e NON filtro ID ticket specifico...
                 if (!includeAll && !stato_id.HasValue && !nticket.HasValue)
                 {
-                    // ...mostra solo quelli NON terminati
                     query = query.Where(t => t.StatoId != 3);
                 }
             }
 
-            // 2. Filtri specifici
-            if (nticket.HasValue) query = query.Where(t => t.Nticket == nticket.Value); // <--- FILTRO ID
-            
+            if (nticket.HasValue) query = query.Where(t => t.Nticket == nticket.Value);
             if (assegnatoa_id.HasValue) query = query.Where(t => t.AssegnatoaId == assegnatoa_id.Value);
             if (tipologia_id.HasValue) query = query.Where(t => t.TipologiaId == tipologia_id.Value);
             if (urgenza_id.HasValue) query = query.Where(t => t.UrgenzaId == urgenza_id.Value);
@@ -139,14 +144,12 @@ namespace TicketAPI.Controllers
                     UrgenzaId = t.UrgenzaId,
                     Note = t.Note,
                     PerContoDi = t.PerContoDi,
-
                 })
                 .ToListAsync();
 
             return Ok(tickets);
         }
 
-        // --- UPDATE TICKET CON DATA ITALIANA ---
         [HttpPut("{nticket}/update")]
         public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
         {
@@ -155,28 +158,19 @@ namespace TicketAPI.Controllers
 
             bool modified = false;
 
-            // --- LOGICA CAMBIO STATO E DATA CHIUSURA ---
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
                 ticket.StatoId = request.StatoId.Value;
-                
-                // 3 è l'ID per "Terminato"
-                if (ticket.StatoId == 3) 
+
+                if (ticket.StatoId == 3)
                 {
-                    // CORREZIONE TIMEZONE:
-                    // 1. Prendiamo l'ora locale del server (che è in Italia)
-                    DateTime oraItaliana = DateTime.Now; 
-                    
-                    // 2. La marchiamo come UTC. Questo è un "trucco" per ingannare Npgsql 
-                    //    che altrimenti lancerebbe "Cannot write DateTime with Kind=Local".
-                    //    In questo modo salviamo "11:30" (ora italiana) dentro il DB come se fosse UTC.
+                    DateTime oraItaliana = DateTime.Now;
                     ticket.DataChiusura = DateTime.SpecifyKind(oraItaliana, DateTimeKind.Utc);
                 }
                 else
                 {
                     ticket.DataChiusura = null;
                 }
-
                 modified = true;
             }
 
@@ -202,7 +196,7 @@ namespace TicketAPI.Controllers
             if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
             {
                 ticket.UrgenzaId = request.UrgenzaId.Value;
-                ticket.UrgenzaCambiata = true; 
+                ticket.UrgenzaCambiata = true;
                 modified = true;
             }
 
@@ -217,7 +211,6 @@ namespace TicketAPI.Controllers
             return Ok();
         }
 
-        // ... (Metodi Create e Dropdown rimangono uguali) ...
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromForm] TicketRequest request)
         {
@@ -241,6 +234,7 @@ namespace TicketAPI.Controllers
                 screenshotDbPath = Path.Combine("Uploads", fileName);
             }
 
+            // --- 2. ASSEGNAZIONE DEL CAMPO DURANTE LA CREAZIONE ---
             var newTicket = new Ticket
             {
                 Username = userDisplayName ?? "Sconosciuto",
@@ -252,7 +246,8 @@ namespace TicketAPI.Controllers
                 Macchina = request.Macchina,
                 TipologiaId = tipologia.Id,
                 UrgenzaId = urgenza.Id,
-                SedeId = sede.Id
+                SedeId = sede.Id,
+                PerContoDi = request.PerContoDi // <-- Assegnazione mancante aggiunta qui
             };
 
             _context.Ticket.Add(newTicket);
