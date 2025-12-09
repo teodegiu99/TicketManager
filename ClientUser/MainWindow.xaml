@@ -11,9 +11,7 @@
         <MicaBackdrop/>
     </Window.SystemBackdrop>
 
-    <!-- Usa Window.Content per evitare l'errore "Content impostato più volte" -->
     <Window.Content>
-        <!-- L'evento 'Loaded' ora chiama 'RootPanel_Loaded' (corrisponde al C#) -->
         <StackPanel x:Name="RootPanel" Orientation="Vertical" Margin="24" Spacing="16"
                     Loaded="RootPanel_Loaded">
 
@@ -55,6 +53,14 @@
                           HorizontalAlignment="Stretch" />
             </Grid>
 
+            <AutoSuggestBox x:Name="asbPerContoDi"
+                            Header="Aperto per conto di (Opzionale)"
+                            PlaceholderText="Inizia a scrivere il nome del collega..."
+                            HorizontalAlignment="Stretch"
+                            TextChanged="asbPerContoDi_TextChanged"
+                            SuggestionChosen="asbPerContoDi_SuggestionChosen"
+                            GotFocus="asbPerContoDi_GotFocus"/>
+
             <TextBox x:Name="txtOggetto" 
                      Header="Oggetto" 
                      PlaceholderText="Es: Impossibile accedere alla stampante"/>
@@ -67,16 +73,14 @@
                      TextWrapping="Wrap" />
 
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-
                 <Button x:Name="btnUpload" Click="btnUpload_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8E5;" />
+                        <FontIcon Glyph="&#xE8E5;"/>
                         <TextBlock Text="Carica Screenshot" />
                     </StackPanel>
                 </Button>
 
                 <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" />
-
             </StackPanel>
 
             <Button x:Name="btnInvia" 
@@ -84,13 +88,12 @@
                     HorizontalAlignment="Stretch" 
                     Margin="0,20,0,0"
                     Style="{StaticResource AccentButtonStyle}">
-
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE724;" />
+                    <FontIcon Glyph="&#xE724;"/>
                     <TextBlock Text="Invia Ticket" />
                 </StackPanel>
             </Button>
+
         </StackPanel>
     </Window.Content>
-
 </Window>
