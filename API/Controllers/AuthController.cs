@@ -99,7 +99,6 @@ namespace TicketAPI.Controllers
                     {
                         if (result is UserPrincipal user)
                         {
-                            // Preferiamo il DisplayName (es: "Mario Rossi"), altrimenti Name (es: "m.rossi")
                             string displayName = !string.IsNullOrEmpty(user.DisplayName) ? user.DisplayName : user.Name;
 
                             if (!string.IsNullOrEmpty(displayName))

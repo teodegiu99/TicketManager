@@ -28,7 +28,7 @@ if (app.Environment.IsDevelopment())
     // Non usare HTTPS per ora, semplifica il debug
     // app.UseHttpsRedirection(); 
 }
-
+app.UseStaticFiles(); // Permette di accedere a /Uploads/immagine.png
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json; // Importante per GetFromJsonAsync
 using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -19,15 +20,36 @@ namespace ClientUser
         public string Nome { get; set; } = string.Empty;
     }
 
+    // DTO per visualizzare i ticket nella lista
+    // DTO esteso per visualizzare i dettagli completi
+    public class TicketDto
+    {
+        public int Nticket { get; set; }
+        public string Titolo { get; set; } = string.Empty;
+        public string Testo { get; set; } = string.Empty; // Descrizione completa
+        public DateTime DataCreazione { get; set; }
+
+        public string StatoNome { get; set; } = string.Empty;
+        public string UrgenzaNome { get; set; } = string.Empty;
+        public string TipologiaNome { get; set; } = string.Empty;
+        public string SedeNome { get; set; } = string.Empty;
+
+        public string Username { get; set; } = string.Empty;
+        public string? PerContoDi { get; set; }
+
+        public string? Note { get; set; } // Note dell'admin (es. soluzione)
+        public string? ScreenshotPath { get; set; } // Percorso immagine
+        public string? Macchina { get; set; }
+        public string? Funzione { get; set; }
+
+        public string DataCreazioneFormatted => DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    }
+
     public sealed partial class MainWindow : Window
     {
         private StorageFile? fileScreenshot = null;
         private HttpClient _apiClient;
-
-        // Assicurati che la porta corrisponda a quella definita in API/Properties/launchSettings.json
         private string _apiBaseUrl = "http://localhost:5210";
-
-        // Cache per la lista completa degli utenti AD
         private List<string> _allAdUsers = new();
 
         public MainWindow()
@@ -48,11 +70,11 @@ namespace ClientUser
             btnInvia.IsEnabled = false;
             try
             {
-                // Carica le liste per i ComboBox (Tipologia, Urgenza, Sede)
                 await PopolaComboBoxAsync();
-
-                // Carica la lista utenti AD per il campo "Per Conto Di"
                 await CaricaUtentiAdAsync();
+
+                // NUOVO: Carica i ticket personali
+                await LoadMyTickets();
             }
             finally
             {
@@ -60,32 +82,82 @@ namespace ClientUser
             }
         }
 
+        private async void MyTicketsList_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (e.ClickedItem is TicketDto ticket)
+            {
+                // Crea il contenuto del dialogo usando il nuovo UserControl
+                var detailContent = new TicketDetailDialog(ticket);
+
+                var dialog = new ContentDialog
+                {
+                    Title = "Dettaglio Ticket",
+                    Content = detailContent,
+                    CloseButtonText = "Chiudi",
+                    XamlRoot = this.Content.XamlRoot, // Importante per WinUI 3
+                    DefaultButton = ContentDialogButton.Close
+                };
+
+                await dialog.ShowAsync();
+            }
+        }
+        // --- GESTIONE LISTA TICKET PERSONALI ---
+
+        private async Task LoadMyTickets()
+        {
+            if (ListLoader != null)
+            {
+                ListLoader.Visibility = Visibility.Visible;
+                ListLoader.IsActive = true;
+            }
+
+            try
+            {
+                // Chiama l'API con il parametro mine=true
+                // L'API filtrerà per Utente corrente o PerContoDi=Utente corrente
+                string url = $"{_apiBaseUrl}/api/tickets/all?mine=true";
+
+                var tickets = await _apiClient.GetFromJsonAsync<List<TicketDto>>(url);
+
+                if (MyTicketsList != null)
+                {
+                    MyTicketsList.ItemsSource = tickets;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore caricamento ticket: {ex.Message}");
+            }
+            finally
+            {
+                if (ListLoader != null)
+                {
+                    ListLoader.IsActive = false;
+                    ListLoader.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        // Helper per formattare la data nello XAML con x:Bind
+        public string FormatDate(DateTime dt) => dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+
+
         // --- CARICAMENTO DATI ---
 
         private async Task CaricaUtentiAdAsync()
         {
             try
             {
-                // Chiama il nuovo endpoint creato nell'AuthController
                 var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/ad-users-list");
-
                 if (response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync();
                     var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                     var users = JsonSerializer.Deserialize<List<string>>(json, options);
-
-                    if (users != null)
-                    {
-                        _allAdUsers = users;
-                    }
+                    if (users != null) _allAdUsers = users;
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Impossibile caricare utenti AD: {ex.Message}");
-                // Non mostriamo errori bloccanti all'utente, il campo funzionerà semplicemente come testo libero
-            }
+            catch { }
         }
 
         private async Task PopolaComboBoxAsync()
@@ -98,8 +170,7 @@ namespace ClientUser
             }
             catch (Exception ex)
             {
-                await MostraDialogo("Errore di Caricamento",
-                    $"Impossibile caricare i dati dall'API.\nVerifica che l'API sia avviata.\n\nDettagli: {ex.Message}");
+                await MostraDialogo("Errore di Caricamento", $"Impossibile connettersi all'API: {ex.Message}");
             }
         }
 
@@ -111,16 +182,11 @@ namespace ClientUser
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
                 var items = JsonSerializer.Deserialize<List<ApiItem>>(json, options);
-
                 comboBox.Items.Clear();
                 if (items != null)
                 {
-                    foreach (var item in items)
-                    {
-                        comboBox.Items.Add(item.Nome);
-                    }
+                    foreach (var item in items) comboBox.Items.Add(item.Nome);
                     if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
                 }
             }
@@ -135,90 +201,57 @@ namespace ClientUser
                 response.EnsureSuccessStatusCode();
                 string json = await response.Content.ReadAsStringAsync();
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
                 var items = JsonSerializer.Deserialize<List<string>>(json, options);
-
                 comboBox.Items.Clear();
                 if (items != null)
                 {
-                    foreach (var item in items)
-                    {
-                        comboBox.Items.Add(item);
-                    }
+                    foreach (var item in items) comboBox.Items.Add(item);
                     if (comboBox.Items.Count > 0) comboBox.SelectedIndex = 0;
                 }
             }
             catch { }
         }
 
-        // --- GESTIONE AUTOSUGGESTBOX (PER CONTO DI) ---
+        // --- GESTIONE AUTOSUGGESTBOX ---
 
         private void asbPerContoDi_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
         {
-            // Filtra solo se è l'utente a digitare
             if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             {
                 var query = sender.Text.ToLower();
-
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    // Se vuoto, mostra l'intera lista
-                    sender.ItemsSource = _allAdUsers;
-                }
-                else
-                {
-                    // Filtra la lista in memoria
-                    var filtered = _allAdUsers
-                        .Where(u => u.ToLower().Contains(query))
-                        .ToList();
-
-                    sender.ItemsSource = filtered;
-                }
+                if (string.IsNullOrWhiteSpace(query)) sender.ItemsSource = _allAdUsers;
+                else sender.ItemsSource = _allAdUsers.Where(u => u.ToLower().Contains(query)).ToList();
             }
         }
 
         private void asbPerContoDi_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
         {
-            // Quando l'utente clicca un suggerimento, imposta il testo
-            if (args.SelectedItem != null)
-            {
-                sender.Text = args.SelectedItem.ToString();
-            }
+            if (args.SelectedItem != null) sender.Text = args.SelectedItem.ToString();
         }
 
         private void asbPerContoDi_GotFocus(object sender, RoutedEventArgs e)
         {
-            // FIX APPLICATO: Casting di sender a AutoSuggestBox
             if (sender is AutoSuggestBox box)
             {
-                // Quando clicco nella casella, se ho utenti caricati, mostro la lista
                 if (_allAdUsers != null && _allAdUsers.Any())
                 {
-                    // Resetta la sorgente alla lista completa se non c'è testo o per refreshare
                     box.ItemsSource = _allAdUsers;
                     box.IsSuggestionListOpen = true;
                 }
             }
         }
 
-        // --- GESTIONE INTERFACCIA E INVIO ---
+        // --- INVIO TICKET ---
 
         private async void btnUpload_Click(object sender, RoutedEventArgs e)
         {
             var filePicker = new FileOpenPicker();
             filePicker.FileTypeFilter.Add(".jpg");
             filePicker.FileTypeFilter.Add(".png");
-
-            // Necessario per WinUI 3 desktop
             var hwnd = WindowNative.GetWindowHandle(this);
             InitializeWithWindow.Initialize(filePicker, hwnd);
-
             fileScreenshot = await filePicker.PickSingleFileAsync();
-
-            if (fileScreenshot != null)
-            {
-                lblFileScelto.Text = $"File: {fileScreenshot.Name}";
-            }
+            if (fileScreenshot != null) lblFileScelto.Text = $"File: {fileScreenshot.Name}";
         }
 
         private async void btnInvia_Click(object sender, RoutedEventArgs e)
@@ -230,7 +263,6 @@ namespace ClientUser
             }
 
             var content = new MultipartFormDataContent();
-
             content.Add(new StringContent(cmbTipologia.SelectedItem?.ToString() ?? ""), "ProblemType");
             content.Add(new StringContent(cmbUrgenza.SelectedItem?.ToString() ?? ""), "Urgency");
             content.Add(new StringContent(txtFunzione.Text ?? ""), "Funzione");
@@ -238,8 +270,6 @@ namespace ClientUser
             content.Add(new StringContent(System.Environment.MachineName), "Macchina");
             content.Add(new StringContent(txtOggetto.Text ?? ""), "Title");
             content.Add(new StringContent(txtTesto.Text ?? ""), "Message");
-
-            // INVIO DEL CAMPO PER CONTO DI
             content.Add(new StringContent(asbPerContoDi.Text ?? ""), "PerContoDi");
 
             if (fileScreenshot != null)
@@ -258,6 +288,8 @@ namespace ClientUser
                 {
                     await MostraDialogo("Successo", "Ticket inviato con successo!");
                     PulisciCampi();
+                    // Aggiorna la lista dopo l'invio!
+                    await LoadMyTickets();
                 }
                 else
                 {
@@ -280,11 +312,9 @@ namespace ClientUser
             txtOggetto.Text = "";
             txtTesto.Text = "";
             txtFunzione.Text = "";
-            asbPerContoDi.Text = ""; // Pulisci anche il nuovo campo
-
+            asbPerContoDi.Text = "";
             fileScreenshot = null;
             lblFileScelto.Text = "";
-
             if (cmbTipologia.Items.Count > 0) cmbTipologia.SelectedIndex = 0;
             if (cmbUrgenza.Items.Count > 0) cmbUrgenza.SelectedIndex = 0;
             if (cmbSede.Items.Count > 0) cmbSede.SelectedIndex = 0;
@@ -293,7 +323,6 @@ namespace ClientUser
         private async Task MostraDialogo(string titolo, string contenuto)
         {
             if (RootPanel.XamlRoot == null) return;
-
             ContentDialog dialog = new ContentDialog
             {
                 Title = titolo,
@@ -307,10 +336,8 @@ namespace ClientUser
         private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             if (txtFunzione == null || cmbTipologia == null) return;
-
             if (cmbTipologia.SelectedItem is string selezione)
             {
-                // Se contiene "protex" (case-insensitive), mostra il campo
                 if (selezione.Contains("protex", StringComparison.OrdinalIgnoreCase))
                 {
                     txtFunzione.Visibility = Visibility.Visible;

@@ -11,49 +11,108 @@
         <MicaBackdrop/>
     </Window.SystemBackdrop>
 
-    <Window.Content>
-        <StackPanel x:Name="RootPanel" Orientation="Vertical" Margin="24" Spacing="16"
-                    Loaded="RootPanel_Loaded">
+    <Grid x:Name="MainGrid" Margin="24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Crea un nuovo ticket di assistenza" Style="{StaticResource TitleTextBlockStyle}" />
+        <Grid Grid.Column="0" Margin="0,0,24,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-            <Grid ColumnSpacing="16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
+                <TextBlock Text="I miei Ticket" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                <TextBlock Text="Richieste aperte o in corso" Opacity="0.6" FontSize="12"/>
+            </StackPanel>
 
-                <ComboBox x:Name="cmbTipologia" 
+            <Border Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <ListView x:Name="MyTicketsList" SelectionMode="None" IsItemClickEnabled="True"
+                          ItemClick="MyTicketsList_ItemClick">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:TicketDto">
+                            <Grid Padding="12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="4" Padding="4,0">
+                                        <TextBlock Text="{x:Bind Nticket}" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    </Border>
+
+                                    <TextBlock Grid.Column="2" Text="{x:Bind DataCreazioneFormatted}" FontSize="10" Opacity="0.5" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="1" Text="{x:Bind Titolo}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"/>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                                    <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="6,2">
+                                        <TextBlock Text="{x:Bind StatoNome}" FontSize="10"/>
+                                    </Border>
+                                    <TextBlock Text="{x:Bind UrgenzaNome}" FontSize="10" Foreground="OrangeRed" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <ProgressRing x:Name="ListLoader" Grid.Row="1" IsActive="False" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
+
+        <ScrollViewer Grid.Column="1">
+            <StackPanel x:Name="RootPanel" Orientation="Vertical" Spacing="16" Loaded="RootPanel_Loaded">
+
+                <TextBlock Text="Crea un nuovo ticket di assistenza" Style="{StaticResource TitleTextBlockStyle}" />
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox x:Name="cmbTipologia" 
                           Grid.Column="0"
                           Header="Tipologia Problema"
                           HorizontalAlignment="Stretch" 
                           SelectionChanged="cmbTipologia_SelectedIndexChanged" />
 
-                <ComboBox x:Name="cmbUrgenza" 
+                    <ComboBox x:Name="cmbUrgenza" 
                           Grid.Column="1"
                           Header="Livello Urgenza"
                           HorizontalAlignment="Stretch" />
-            </Grid>
+                </Grid>
 
-            <Grid ColumnSpacing="16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <TextBox x:Name="txtFunzione" 
+                    <TextBox x:Name="txtFunzione" 
                          Grid.Column="0"
                          Header="Funzione protex" 
                          PlaceholderText="Codice in basso a destra in protex"
                          Visibility="Collapsed"/>
 
-                <ComboBox x:Name="cmbSede"
+                    <ComboBox x:Name="cmbSede"
                           Grid.Column="1"
                           Header="Sede"
                           HorizontalAlignment="Stretch" />
-            </Grid>
+                </Grid>
 
-            <AutoSuggestBox x:Name="asbPerContoDi"
+                <AutoSuggestBox x:Name="asbPerContoDi"
                             Header="Aperto per conto di (Opzionale)"
                             PlaceholderText="Inizia a scrivere il nome del collega..."
                             HorizontalAlignment="Stretch"
@@ -61,39 +120,40 @@
                             SuggestionChosen="asbPerContoDi_SuggestionChosen"
                             GotFocus="asbPerContoDi_GotFocus"/>
 
-            <TextBox x:Name="txtOggetto" 
+                <TextBox x:Name="txtOggetto" 
                      Header="Oggetto" 
                      PlaceholderText="Es: Impossibile accedere alla stampante"/>
 
-            <TextBox x:Name="txtTesto" 
+                <TextBox x:Name="txtTesto" 
                      Header="Testo Messaggio"
                      PlaceholderText="Descrivi il tuo problema in dettaglio..."
                      Height="150" 
                      AcceptsReturn="True" 
                      TextWrapping="Wrap" />
 
-            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                <Button x:Name="btnUpload" Click="btnUpload_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8E5;"/>
-                        <TextBlock Text="Carica Screenshot" />
-                    </StackPanel>
-                </Button>
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button x:Name="btnUpload" Click="btnUpload_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE8E5;"/>
+                            <TextBlock Text="Carica Screenshot" />
+                        </StackPanel>
+                    </Button>
 
-                <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" />
-            </StackPanel>
+                    <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
 
-            <Button x:Name="btnInvia" 
+                <Button x:Name="btnInvia" 
                     Click="btnInvia_Click" 
                     HorizontalAlignment="Stretch" 
                     Margin="0,20,0,0"
                     Style="{StaticResource AccentButtonStyle}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE724;"/>
-                    <TextBlock Text="Invia Ticket" />
-                </StackPanel>
-            </Button>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE724;"/>
+                        <TextBlock Text="Invia Ticket" />
+                    </StackPanel>
+                </Button>
 
-        </StackPanel>
-    </Window.Content>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Window>

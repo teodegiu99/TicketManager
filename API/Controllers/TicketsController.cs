@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace TicketAPI.Controllers
 {
@@ -26,7 +27,6 @@ namespace TicketAPI.Controllers
             _env = env;
         }
 
-        // --- 1. AGGIUNTO IL CAMPO 'PerContoDi' AL MODELLO DI RICHIESTA ---
         public class TicketRequest
         {
             [FromForm(Name = "ProblemType")]
@@ -50,7 +50,6 @@ namespace TicketAPI.Controllers
             [FromForm(Name = "Message")]
             public string Message { get; set; }
 
-            // NUOVO CAMPO
             [FromForm(Name = "PerContoDi")]
             public string? PerContoDi { get; set; }
 
@@ -78,7 +77,8 @@ namespace TicketAPI.Controllers
             [FromQuery] string? macchina,
             [FromQuery] string? username,
             [FromQuery] int? nticket,
-            [FromQuery] bool includeAll = false
+            [FromQuery] bool includeAll = false,
+            [FromQuery] bool mine = false // <--- NUOVO PARAMETRO
         )
         {
             var query = _context.Ticket
@@ -88,6 +88,44 @@ namespace TicketAPI.Controllers
                 .Include(t => t.Stato)
                 .Include(t => t.Assegnatoa)
                 .AsQueryable();
+
+            // --- LOGICA "I MIEI TICKET" ---
+            if (mine)
+            {
+                // Recupera l'utente corrente AD
+                string adUsername = User.Identity.Name;
+                string userDisplayName = adUsername; // Fallback
+
+                try
+                {
+                    using (var context = new PrincipalContext(ContextType.Domain))
+                    {
+                        // Tenta di pulire lo username se arriva come DOMINIO\user
+                        string cleanUser = adUsername.Contains("\\") ? adUsername.Split('\\')[1] : adUsername;
+
+                        var userPrincipal = UserPrincipal.FindByIdentity(context, cleanUser);
+                        if (userPrincipal != null)
+                        {
+                            // Usa il DisplayName perché è quello che salviamo nel DB come "Username"
+                            userDisplayName = !string.IsNullOrEmpty(userPrincipal.DisplayName)
+                                ? userPrincipal.DisplayName
+                                : userPrincipal.Name;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Errore AD in GetTickets: {ex.Message}");
+                }
+
+                // Filtra: Ticket creati da me (Username) O creati per me (PerContoDi)
+                // Case insensitive per sicurezza
+                string searchName = userDisplayName.ToLower();
+                query = query.Where(t =>
+                    t.Username.ToLower() == searchName ||
+                    (t.PerContoDi != null && t.PerContoDi.ToLower() == searchName)
+                );
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -100,6 +138,8 @@ namespace TicketAPI.Controllers
             }
             else
             {
+                // Se non chiedo esplicitamente "includeAll", nascondo i terminati (StatoId = 3)
+                // Questo vale anche per la vista "mine", così vedo solo Aperti/In Corso nella lista laterale
                 if (!includeAll && !stato_id.HasValue && !nticket.HasValue)
                 {
                     query = query.Where(t => t.StatoId != 3);
@@ -114,7 +154,9 @@ namespace TicketAPI.Controllers
 
             if (!string.IsNullOrEmpty(sede)) query = query.Where(t => t.Sede != null && t.Sede.Nome == sede);
             if (!string.IsNullOrEmpty(macchina)) query = query.Where(t => t.Macchina != null && t.Macchina.ToLower().Contains(macchina.ToLower()));
-            if (!string.IsNullOrEmpty(username)) query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
+
+            // Filtro username classico (se non usiamo 'mine')
+            if (!string.IsNullOrEmpty(username) && !mine) query = query.Where(t => t.Username.ToLower().Contains(username.ToLower()));
 
             var tickets = await query
                 .OrderByDescending(t => t.UrgenzaId)
@@ -150,6 +192,7 @@ namespace TicketAPI.Controllers
             return Ok(tickets);
         }
 
+        // ... Resto dei metodi (UpdateTicket, CreateTicket, GetTipologie, etc.) rimangono uguali ...
         [HttpPut("{nticket}/update")]
         public async Task<IActionResult> UpdateTicket(int nticket, [FromBody] TicketUpdateRequest request)
         {
@@ -161,7 +204,6 @@ namespace TicketAPI.Controllers
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
                 ticket.StatoId = request.StatoId.Value;
-
                 if (ticket.StatoId == 3)
                 {
                     DateTime oraItaliana = DateTime.Now;
@@ -176,21 +218,13 @@ namespace TicketAPI.Controllers
 
             if (request.Note != null)
             {
-                if (ticket.Note != request.Note)
-                {
-                    ticket.Note = request.Note;
-                    modified = true;
-                }
+                if (ticket.Note != request.Note) { ticket.Note = request.Note; modified = true; }
             }
 
             if (request.AssegnatoaId.HasValue || request.AssegnatoaId == null)
             {
                 int? idDaSalvare = request.AssegnatoaId == 0 ? null : request.AssegnatoaId;
-                if (ticket.AssegnatoaId != idDaSalvare)
-                {
-                    ticket.AssegnatoaId = idDaSalvare;
-                    modified = true;
-                }
+                if (ticket.AssegnatoaId != idDaSalvare) { ticket.AssegnatoaId = idDaSalvare; modified = true; }
             }
 
             if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
@@ -207,7 +241,6 @@ namespace TicketAPI.Controllers
             }
 
             if (modified) await _context.SaveChangesAsync();
-
             return Ok();
         }
 
@@ -234,7 +267,6 @@ namespace TicketAPI.Controllers
                 screenshotDbPath = Path.Combine("Uploads", fileName);
             }
 
-            // --- 2. ASSEGNAZIONE DEL CAMPO DURANTE LA CREAZIONE ---
             var newTicket = new Ticket
             {
                 Username = userDisplayName ?? "Sconosciuto",
@@ -247,7 +279,7 @@ namespace TicketAPI.Controllers
                 TipologiaId = tipologia.Id,
                 UrgenzaId = urgenza.Id,
                 SedeId = sede.Id,
-                PerContoDi = request.PerContoDi // <-- Assegnazione mancante aggiunta qui
+                PerContoDi = request.PerContoDi
             };
 
             _context.Ticket.Add(newTicket);
