@@ -346,6 +346,7 @@ namespace ClientUser
             await dialog.ShowAsync();
         }
 
+
         private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             if (txtFunzione == null || cmbTipologia == null) return;

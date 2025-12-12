@@ -7,6 +7,9 @@ namespace ClientIT.Controls
 {
     public sealed partial class PhaseDetailDialog : UserControl
     {
+        // Definiamo l'oggetto speciale per l'utente esterno
+        private readonly ItUtente _utenteEsterno = new ItUtente { Id = -999, Nome = "Utente Esterno", UsernameAd = "EXTERNAL" };
+
         public PhaseDetailDialog()
         {
             this.InitializeComponent();
@@ -14,25 +17,56 @@ namespace ClientIT.Controls
 
         public void Setup(List<ItUtente> users, List<Stato> stati, PhaseViewModel? existingPhase = null)
         {
-            CmbAssegnato.ItemsSource = users;
+            // 1. Prepara la lista combinata per AssegnatoA
+            var comboUsers = new List<ItUtente>();
+
+            // Aggiungi opzione "Non assegnato" (Id 0 o null) se non c'è già
+            var nonAssegnato = users.FirstOrDefault(u => u.Id == 0);
+            if (nonAssegnato != null) comboUsers.Add(nonAssegnato);
+
+            // Aggiungi l'opzione speciale "Utente Esterno"
+            comboUsers.Add(_utenteEsterno);
+
+            // Aggiungi gli altri utenti IT (escluso "Non assegnato" se già aggiunto)
+            comboUsers.AddRange(users.Where(u => u.Id != 0));
+
+            CmbAssegnato.ItemsSource = comboUsers;
             CmbStato.ItemsSource = stati;
 
-            // Seleziona default se nuovi
+            // Default selections
             if (CmbStato.Items.Count > 0) CmbStato.SelectedIndex = 0;
-            if (CmbAssegnato.Items.Count > 0) CmbAssegnato.SelectedIndex = 0; // "Non assegnato" solitamente è il primo
+            if (CmbAssegnato.Items.Count > 0) CmbAssegnato.SelectedIndex = 0;
 
+            // 2. Carica dati esistenti (se in modifica)
             if (existingPhase != null)
             {
                 TxtTitolo.Text = existingPhase.Titolo;
                 TxtDescrizione.Text = existingPhase.Descrizione;
-                DateInizio.Date = existingPhase.DataInizio;
-                DateFine.Date = existingPhase.DataPrevFine;
+                if (existingPhase.DataInizio.HasValue)
+                    DateInizio.Date = existingPhase.DataInizio.Value;
 
+                if (existingPhase.DataPrevFine.HasValue)
+                    DateFine.Date = existingPhase.DataPrevFine.Value;
+
+                // Selezione Stato
                 if (existingPhase.Stato != null)
                     CmbStato.SelectedItem = stati.FirstOrDefault(s => s.Id == existingPhase.Stato.Id);
 
+                // Selezione Assegnato
                 if (existingPhase.AssegnatoA != null)
-                    CmbAssegnato.SelectedItem = users.FirstOrDefault(u => u.Id == existingPhase.AssegnatoA.Id);
+                {
+                    // Se è l'utente esterno
+                    if (existingPhase.AssegnatoA.Id == -999 || existingPhase.AssegnatoA.Nome == "Utente Esterno")
+                    {
+                        CmbAssegnato.SelectedItem = _utenteEsterno;
+                    }
+                    else
+                    {
+                        // Cerca per ID
+                        var match = comboUsers.FirstOrDefault(u => u.Id == existingPhase.AssegnatoA.Id);
+                        CmbAssegnato.SelectedItem = match ?? nonAssegnato;
+                    }
+                }
             }
         }
 

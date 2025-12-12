@@ -10,10 +10,12 @@ namespace ClientIT.Models
         private string _descrizione = string.Empty;
         private DateTimeOffset? _dataInizio;
         private DateTimeOffset? _dataPrevFine;
+
+        // Usiamo ItUtente per il binding della ComboBox
         private ItUtente? _assegnatoA;
         private Stato? _stato;
 
-        public string TempId { get; } = Guid.NewGuid().ToString(); // ID temporaneo per la UI
+        public string TempId { get; } = Guid.NewGuid().ToString();
 
         public string Titolo { get => _titolo; set { _titolo = value; OnPropertyChanged(); } }
         public string Descrizione { get => _descrizione; set { _descrizione = value; OnPropertyChanged(); } }

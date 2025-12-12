@@ -76,7 +76,24 @@ namespace ClientIT
             // (Assumiamo che AllTipologie, AllUrgenze, AllSedi siano già popolate da LoadDataAsync)
             NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
         }
+        private void NewProjectButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Resetta selezioni lista sinistra
+            if (UserListView != null) UserListView.SelectedIndex = -1;
 
+            // 2. Mostra la vista Crea Progetto, nascondi le altre
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+
+            NewProjectViewArea.Visibility = Visibility.Visible;
+
+            // 3. (AGGIUNGI QUESTO) Passa i dati al controllo
+            // Usa .ToList() perché le ObservableCollection non sono direttamente compatibili con List<>
+            NewProjectControl.SetupReferenceData(AllItUsers.ToList(), AllStati.ToList());
+        }
         // --- NUOVO: GESTIONE BOTTONE SBLOCCA UTENTE ---
         private void UserAdminButton_Click(object sender, RoutedEventArgs e)
         {
@@ -420,20 +437,7 @@ namespace ClientIT
             await StatsControl.LoadStats();
         }
 
-        private void NewProjectButton_Click(object sender, RoutedEventArgs e)
-        {
-            // 1. Resetta selezioni lista sinistra
-            if (UserListView != null) UserListView.SelectedIndex = -1;
-
-            // 2. Mostra la vista Crea Progetto, nascondi le altre
-            ListViewArea.Visibility = Visibility.Collapsed;
-            DetailViewArea.Visibility = Visibility.Collapsed;
-            StatisticsViewArea.Visibility = Visibility.Collapsed;
-            NewTicketViewArea.Visibility = Visibility.Collapsed;
-            UserAdminViewArea.Visibility = Visibility.Collapsed;
-
-            NewProjectViewArea.Visibility = Visibility.Visible;
-        }
+      
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {

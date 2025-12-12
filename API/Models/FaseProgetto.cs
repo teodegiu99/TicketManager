@@ -27,23 +27,19 @@ namespace TicketAPI.Models
         [Column("datachiusura")]
         public DateTime? DataChiusura { get; set; }
 
-        // Uniformato ai Ticket: Usa ID numerico
-        [Column("assegnatoa_id")]
-        public int? AssegnatoAId { get; set; }
+        // Manteniamo stringa per poter salvare "Utente Esterno" o lo username
+        [Column("assegnatoa")]
+        public string? AssegnatoA { get; set; }
 
-        // Uniformato ai Ticket: Usa ID numerico (Default 1 = Aperto/Nuovo)
+        // Usiamo INT per uniformarci ai Ticket
         [Column("stato_id")]
         public int StatoId { get; set; } = 1;
 
-        // NUOVO: Per gestire l'ordine (Drag & Drop)
         [Column("ordine")]
         public int Ordine { get; set; } = 0;
 
-        // Navigazione (Opzionale, utile se usi Include)
+        // Navigazione solo per Stato (AssegnatoA è stringa libera/username)
         [ForeignKey("StatoId")]
         public virtual Stato? Stato { get; set; }
-
-        [ForeignKey("AssegnatoAId")]
-        public virtual ItUtente? AssegnatoA { get; set; }
     }
 }
