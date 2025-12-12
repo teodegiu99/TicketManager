@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json; // Importante per GetFromJsonAsync
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
@@ -20,13 +20,12 @@ namespace ClientUser
         public string Nome { get; set; } = string.Empty;
     }
 
-    // DTO per visualizzare i ticket nella lista
-    // DTO esteso per visualizzare i dettagli completi
+    // DTO per visualizzare i ticket
     public class TicketDto
     {
         public int Nticket { get; set; }
         public string Titolo { get; set; } = string.Empty;
-        public string Testo { get; set; } = string.Empty; // Descrizione completa
+        public string Testo { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
 
         public string StatoNome { get; set; } = string.Empty;
@@ -37,8 +36,8 @@ namespace ClientUser
         public string Username { get; set; } = string.Empty;
         public string? PerContoDi { get; set; }
 
-        public string? Note { get; set; } // Note dell'admin (es. soluzione)
-        public string? ScreenshotPath { get; set; } // Percorso immagine
+        public string? Note { get; set; }
+        public string? ScreenshotPath { get; set; }
         public string? Macchina { get; set; }
         public string? Funzione { get; set; }
 
@@ -52,6 +51,9 @@ namespace ClientUser
         private string _apiBaseUrl = "http://localhost:5210";
         private List<string> _allAdUsers = new();
 
+        // 1. Variabile per il Timer
+        private DispatcherTimer _autoRefreshTimer;
+
         public MainWindow()
         {
             this.InitializeComponent();
@@ -63,6 +65,25 @@ namespace ClientUser
                 ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
             };
             _apiClient = new HttpClient(handler);
+
+            // 2. Configurazione e Avvio del Timer (5 Minuti)
+            _autoRefreshTimer = new DispatcherTimer();
+            _autoRefreshTimer.Interval = TimeSpan.FromMinutes(5);
+            _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
+            _autoRefreshTimer.Start();
+        }
+
+        // 3. Evento che scatta ogni 5 minuti
+        private async void AutoRefreshTimer_Tick(object sender, object e)
+        {
+            // Ricarica la lista silenziosamente
+            await LoadMyTickets();
+        }
+
+        // 4. Metodo Pubblico per il Bottone Refresh (da collegare con x:Bind)
+        public async void RefreshTickets()
+        {
+            await LoadMyTickets();
         }
 
         private async void RootPanel_Loaded(object sender, RoutedEventArgs e)
@@ -72,8 +93,6 @@ namespace ClientUser
             {
                 await PopolaComboBoxAsync();
                 await CaricaUtentiAdAsync();
-
-                // NUOVO: Carica i ticket personali
                 await LoadMyTickets();
             }
             finally
@@ -86,7 +105,6 @@ namespace ClientUser
         {
             if (e.ClickedItem is TicketDto ticket)
             {
-                // Crea il contenuto del dialogo usando il nuovo UserControl
                 var detailContent = new TicketDetailDialog(ticket);
 
                 var dialog = new ContentDialog
@@ -94,13 +112,14 @@ namespace ClientUser
                     Title = "Dettaglio Ticket",
                     Content = detailContent,
                     CloseButtonText = "Chiudi",
-                    XamlRoot = this.Content.XamlRoot, // Importante per WinUI 3
+                    XamlRoot = this.Content.XamlRoot,
                     DefaultButton = ContentDialogButton.Close
                 };
 
                 await dialog.ShowAsync();
             }
         }
+
         // --- GESTIONE LISTA TICKET PERSONALI ---
 
         private async Task LoadMyTickets()
@@ -113,10 +132,7 @@ namespace ClientUser
 
             try
             {
-                // Chiama l'API con il parametro mine=true
-                // L'API filtrerà per Utente corrente o PerContoDi=Utente corrente
                 string url = $"{_apiBaseUrl}/api/tickets/all?mine=true";
-
                 var tickets = await _apiClient.GetFromJsonAsync<List<TicketDto>>(url);
 
                 if (MyTicketsList != null)
@@ -138,9 +154,7 @@ namespace ClientUser
             }
         }
 
-        // Helper per formattare la data nello XAML con x:Bind
         public string FormatDate(DateTime dt) => dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
-
 
         // --- CARICAMENTO DATI ---
 
@@ -288,7 +302,6 @@ namespace ClientUser
                 {
                     await MostraDialogo("Successo", "Ticket inviato con successo!");
                     PulisciCampi();
-                    // Aggiorna la lista dopo l'invio!
                     await LoadMyTickets();
                 }
                 else

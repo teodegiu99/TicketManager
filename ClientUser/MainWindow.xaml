@@ -23,10 +23,27 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,16">
-                <TextBlock Text="I miei Ticket" Style="{ThemeResource SubtitleTextBlockStyle}"/>
-                <TextBlock Text="Richieste aperte o in corso" Opacity="0.6" FontSize="12"/>
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="I miei Ticket" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                    <TextBlock Text="Richieste aperte o in corso" Opacity="0.6" FontSize="12"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" 
+                        Click="{x:Bind RefreshTickets}" 
+                        ToolTipService.ToolTip="Aggiorna lista" 
+                        Background="Transparent" 
+                        BorderThickness="0" 
+                        Padding="8"
+                        VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE72C;" FontSize="16"/>
+                </Button>
+            </Grid>
 
             <Border Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                 <ListView x:Name="MyTicketsList" SelectionMode="None" IsItemClickEnabled="True"
@@ -101,10 +118,10 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBox x:Name="txtFunzione" 
-                         Grid.Column="0"
-                         Header="Funzione protex" 
-                         PlaceholderText="Codice in basso a destra in protex"
-                         Visibility="Collapsed"/>
+                          Grid.Column="0"
+                          Header="Funzione protex" 
+                          PlaceholderText="Codice in basso a destra in protex"
+                          Visibility="Collapsed"/>
 
                     <ComboBox x:Name="cmbSede"
                           Grid.Column="1"
@@ -121,15 +138,15 @@
                             GotFocus="asbPerContoDi_GotFocus"/>
 
                 <TextBox x:Name="txtOggetto" 
-                     Header="Oggetto" 
-                     PlaceholderText="Es: Impossibile accedere alla stampante"/>
+                      Header="Oggetto" 
+                      PlaceholderText="Es: Impossibile accedere alla stampante"/>
 
                 <TextBox x:Name="txtTesto" 
-                     Header="Testo Messaggio"
-                     PlaceholderText="Descrivi il tuo problema in dettaglio..."
-                     Height="150" 
-                     AcceptsReturn="True" 
-                     TextWrapping="Wrap" />
+                      Header="Testo Messaggio"
+                      PlaceholderText="Descrivi il tuo problema in dettaglio..."
+                      Height="150" 
+                      AcceptsReturn="True" 
+                      TextWrapping="Wrap" />
 
                 <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <Button x:Name="btnUpload" Click="btnUpload_Click">
