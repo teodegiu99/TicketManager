@@ -30,6 +30,7 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,12">
@@ -58,29 +59,39 @@
                 </ListView>
             </Border>
 
-            <Button Grid.Row="2" Margin="0,12,0,0" HorizontalAlignment="Stretch" Click="NewTicketButton_Click">
+            <Button Grid.Row="2" Margin="0,12,0,0" HorizontalAlignment="Stretch" Click="UserAdminButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE779;"/>
+                    <TextBlock Text="Sblocca Utente"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewTicketButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE710;"/>
                     <TextBlock Text="Nuovo Ticket"/>
                 </StackPanel>
             </Button>
 
-            <Button Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="StatsButton_Click">
+            <Button Grid.Row="4" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="StatsButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE9D2;"/>
                     <TextBlock Text="Statistiche"/>
                 </StackPanel>
             </Button>
         </Grid>
-        <Grid Grid.Column="1">
 
+        <Grid Grid.Column="1">
             <Grid x:Name="NewTicketViewArea" Visibility="Collapsed">
                 <controls:NewTicketControl x:Name="NewTicketControl"/>
             </Grid>
 
+            <Grid x:Name="UserAdminViewArea" Visibility="Collapsed">
+                <controls:UserAdminControl x:Name="UserAdminControl"/>
+            </Grid>
         </Grid>
-        <Grid Grid.Column="1">
 
+        <Grid Grid.Column="1">
             <Grid x:Name="ListViewArea" Visibility="Visible">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

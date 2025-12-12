@@ -68,6 +68,7 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             NewTicketViewArea.Visibility = Visibility.Visible;
 
             // 3. Passa i dati aggiornati ai dropdown del controllo
@@ -75,9 +76,24 @@ namespace ClientIT
             NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
         }
 
+        // --- NUOVO: GESTIONE BOTTONE SBLOCCA UTENTE ---
+        private void UserAdminButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Resetta selezioni lista sinistra
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            // 2. Mostra la vista Admin, nascondi le altre
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Visible;
+        }
+
         private async Task ShowTicketListAndRefresh()
         {
             NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             ListViewArea.Visibility = Visibility.Visible;
             await LoadTicketsAsync();
         }
@@ -173,6 +189,7 @@ namespace ClientIT
             }
             catch { }
 
+            // 6. Utenti AD
             try
             {
                 var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/ad-users-list");
@@ -185,7 +202,7 @@ namespace ClientIT
             }
             catch { }
         }
-        
+
 
         // --- CARICAMENTO TICKET (NUOVO SISTEMA DI FILTRAGGIO) ---
 
@@ -278,7 +295,8 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Visible;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-            NewTicketViewArea.Visibility = Visibility.Collapsed; 
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             await LoadTicketsAsync();
         }
 
@@ -294,6 +312,7 @@ namespace ClientIT
                 DetailViewArea.Visibility = Visibility.Collapsed;
                 StatisticsViewArea.Visibility = Visibility.Collapsed;
                 NewTicketViewArea.Visibility = Visibility.Collapsed;
+                UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
 
                 await LoadTicketsAsync();
             }
@@ -311,14 +330,6 @@ namespace ClientIT
         // 4. Click su "Applica" nel Flyout
         private async void ApplyFilters_Click(object sender, RoutedEventArgs e)
         {
-            // Chiude il Flyout (il pulsante "Filtri" è il genitore del Flyout)
-            // In WinUI 3 l'accesso al Flyout parent è meno diretto, ma il click nasconde il flyout di default
-            // se non impostato diversamente. Se rimane aperto, useremo:
-            if (sender is Button btn && btn.XamlRoot != null)
-            {
-                // Codice per chiudere flyout se necessario, solitamente automatico su Button Click
-            }
-
             // Resetta selezione sinistra per dare priorità ai filtri avanzati
             if (UserListView != null) UserListView.SelectedIndex = -1;
 
@@ -364,16 +375,16 @@ namespace ClientIT
                 DetailControl.TipologiaOptions = AllTipologie;
                 DetailControl.UrgenzaOptions = AllUrgenze;
 
-                // Nota: Gli eventi (TicketStateChanged, ecc.) sono già collegati nello XAML 
-                // ai metodi OnTicketStateChanged, ecc., quindi funzioneranno automaticamente.
-
                 // 3. Switch della vista
                 ListViewArea.Visibility = Visibility.Collapsed;
                 DetailViewArea.Visibility = Visibility.Visible;
+                // Nascondiamo gli altri
+                StatisticsViewArea.Visibility = Visibility.Collapsed;
+                NewTicketViewArea.Visibility = Visibility.Collapsed;
+                UserAdminViewArea.Visibility = Visibility.Collapsed;
             }
         }
 
-        // Quando clicco "Torna alla lista"
         // Quando clicco "Torna alla lista"
         private async void BackToList_Click(object sender, RoutedEventArgs e)
         {
@@ -383,7 +394,8 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Visible;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-            NewTicketViewArea.Visibility = Visibility.Collapsed; 
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             await LoadTicketsAsync();
         }
 
@@ -396,9 +408,9 @@ namespace ClientIT
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Visible;
-            NewTicketViewArea.Visibility = Visibility.Collapsed; 
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             // 3. AGGIORNAMENTO AUTOMATICO:
-            // Ricarica i dati ogni volta che apro la pagina per riflettere le ultime modifiche
             await StatsControl.LoadStats();
         }
 
@@ -421,20 +433,18 @@ namespace ClientIT
         // --- REFRESH ---
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            // Ricarica solo i ticket, mantenendo i filtri attivi (ricerca, utente selezionato, ecc.)
+            // Ricarica solo i ticket
             await LoadTicketsAsync();
         }
 
         private async Task SaveFullTicketStateAsync(int nticket)
         {
-            // Trova il ViewModel aggiornato nella lista
             var tickets = TicketListView?.ItemsSource as List<TicketViewModel>;
             var ticket = tickets?.FirstOrDefault(t => t.Nticket == nticket);
 
             if (ticket == null) return;
 
             if (RootGrid != null) RootGrid.IsHitTestVisible = false;
-            // Evitiamo di mostrare il loading pieno per salvataggi veloci, blocchiamo solo input
 
             try
             {
@@ -455,7 +465,6 @@ namespace ClientIT
             catch (Exception ex)
             {
                 await ShowErrorDialog($"Errore salvataggio: {ex.Message}");
-                // Ricarica per ripristinare i dati corretti in caso di errore
                 await LoadTicketsAsync();
             }
             finally
