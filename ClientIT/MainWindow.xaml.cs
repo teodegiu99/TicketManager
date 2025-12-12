@@ -69,6 +69,7 @@ namespace ClientIT
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             NewTicketViewArea.Visibility = Visibility.Visible;
 
             // 3. Passa i dati aggiornati ai dropdown del controllo
@@ -95,6 +96,7 @@ namespace ClientIT
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
             ListViewArea.Visibility = Visibility.Visible;
+            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             await LoadTicketsAsync();
         }
 
@@ -297,6 +299,7 @@ namespace ClientIT
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             await LoadTicketsAsync();
         }
 
@@ -313,6 +316,7 @@ namespace ClientIT
                 StatisticsViewArea.Visibility = Visibility.Collapsed;
                 NewTicketViewArea.Visibility = Visibility.Collapsed;
                 UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+                NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
 
                 await LoadTicketsAsync();
             }
@@ -396,6 +400,7 @@ namespace ClientIT
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             await LoadTicketsAsync();
         }
 
@@ -410,10 +415,25 @@ namespace ClientIT
             StatisticsViewArea.Visibility = Visibility.Visible;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             // 3. AGGIORNAMENTO AUTOMATICO:
             await StatsControl.LoadStats();
         }
 
+        private void NewProjectButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Resetta selezioni lista sinistra
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            // 2. Mostra la vista Crea Progetto, nascondi le altre
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+
+            NewProjectViewArea.Visibility = Visibility.Visible;
+        }
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {

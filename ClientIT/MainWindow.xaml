@@ -31,6 +31,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Spacing="12" Margin="0,0,0,12">
@@ -66,14 +67,21 @@
                 </StackPanel>
             </Button>
 
-            <Button Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewTicketButton_Click">
+            <Button Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewProjectButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8F1;"/>
+                    <TextBlock Text="Crea Progetto"/>
+                </StackPanel>
+            </Button>
+
+            <Button Grid.Row="4" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewTicketButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE710;"/>
                     <TextBlock Text="Nuovo Ticket"/>
                 </StackPanel>
             </Button>
 
-            <Button Grid.Row="4" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="StatsButton_Click">
+            <Button Grid.Row="5" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="StatsButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="&#xE9D2;"/>
                     <TextBlock Text="Statistiche"/>
@@ -88,6 +96,10 @@
 
             <Grid x:Name="UserAdminViewArea" Visibility="Collapsed">
                 <controls:UserAdminControl x:Name="UserAdminControl"/>
+            </Grid>
+
+            <Grid x:Name="NewProjectViewArea" Visibility="Collapsed">
+                <controls:NewProjectControl x:Name="NewProjectControl"/>
             </Grid>
         </Grid>
 

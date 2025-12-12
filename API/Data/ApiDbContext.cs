@@ -18,6 +18,8 @@ namespace TicketAPI.Data
         public DbSet<Sede> Sedi { get; set; }
         public DbSet<Stato> Stati { get; set; }
         public DbSet<ItUtente> ItUtenti { get; set; }
+        public DbSet<Progetto> Progetti { get; set; }
+        public DbSet<FaseProgetto> FasiProgetto { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +31,8 @@ namespace TicketAPI.Data
             modelBuilder.Entity<Sede>().ToTable("sedi");
             modelBuilder.Entity<ItUtente>().ToTable("it_utenti");
             modelBuilder.Entity<Stato>().ToTable("stato");
+            modelBuilder.Entity<Progetto>().ToTable("progetti");
+            modelBuilder.Entity<FaseProgetto>().ToTable("fasiprogetto");
         }
     }
 }

@@ -1,0 +1,42 @@
+<UserControl
+    x:Class="ClientIT.Controls.PhaseDetailDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" MinWidth="400">
+            <InfoBar x:Name="ErrorBar" Severity="Error" IsOpen="False" />
+
+            <TextBox x:Name="TxtTitolo" Header="Titolo Fase" PlaceholderText="Es: Analisi Requisiti" HorizontalAlignment="Stretch"/>
+
+            <TextBox x:Name="TxtDescrizione" Header="Descrizione" 
+                     PlaceholderText="Dettagli operativi..." 
+                     AcceptsReturn="True" TextWrapping="Wrap" Height="80" HorizontalAlignment="Stretch"/>
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <CalendarDatePicker x:Name="DateInizio" Header="Data Inizio" HorizontalAlignment="Stretch"/>
+                <CalendarDatePicker x:Name="DateFine" Grid.Column="1" Header="Data Prevista Fine" HorizontalAlignment="Stretch"/>
+            </Grid>
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <ComboBox x:Name="CmbAssegnato" Header="Assegna a" HorizontalAlignment="Stretch"
+                          DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+
+                <ComboBox x:Name="CmbStato" Grid.Column="1" Header="Stato" HorizontalAlignment="Stretch"
+                          DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
