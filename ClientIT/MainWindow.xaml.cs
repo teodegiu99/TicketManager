@@ -24,7 +24,7 @@ namespace ClientIT
         public ObservableCollection<ItUtente> AllItUsers { get; } = new();
         public ObservableCollection<Tipologia> AllTipologie { get; } = new();
         public ObservableCollection<Urgenza> AllUrgenze { get; } = new();
-
+        private List<string> _allAdUsers = new();
         // NUOVA LISTA: SEDI
         public ObservableCollection<string> AllSedi { get; } = new();
 
@@ -72,7 +72,7 @@ namespace ClientIT
 
             // 3. Passa i dati aggiornati ai dropdown del controllo
             // (Assumiamo che AllTipologie, AllUrgenze, AllSedi siano già popolate da LoadDataAsync)
-            NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi);
+            NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
         }
 
         private async Task ShowTicketListAndRefresh()
@@ -172,7 +172,20 @@ namespace ClientIT
                 if (sedi != null) foreach (var s in sedi) AllSedi.Add(s);
             }
             catch { }
+
+            try
+            {
+                var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/ad-users-list");
+                if (response.IsSuccessStatusCode)
+                {
+                    string json = await response.Content.ReadAsStringAsync();
+                    var users = JsonSerializer.Deserialize<List<string>>(json, options);
+                    if (users != null) _allAdUsers = users;
+                }
+            }
+            catch { }
         }
+        
 
         // --- CARICAMENTO TICKET (NUOVO SISTEMA DI FILTRAGGIO) ---
 

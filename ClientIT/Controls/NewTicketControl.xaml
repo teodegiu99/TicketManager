@@ -53,8 +53,14 @@
                          PlaceholderText="Descrivi il problema..." 
                          Height="150" AcceptsReturn="True" TextWrapping="Wrap" HorizontalAlignment="Stretch"/>
 
-                <TextBox x:Name="TxtPerContoDi" Header="Aperto per conto di (Opzionale)" 
-                         PlaceholderText="Nome utente o persona che ha il problema (se diverso da te)" HorizontalAlignment="Stretch"/>
+                <AutoSuggestBox x:Name="AsbPerContoDi"
+                                Header="Aperto per conto di (Opzionale)"
+                                PlaceholderText="Inizia a scrivere il nome del collega..."
+                                HorizontalAlignment="Stretch"
+                                TextChanged="AsbPerContoDi_TextChanged"
+                                SuggestionChosen="AsbPerContoDi_SuggestionChosen"
+                                GotFocus="AsbPerContoDi_GotFocus"
+                                LostFocus="AsbPerContoDi_LostFocus"/>
 
                 <Button x:Name="BtnInvia" Click="BtnInvia_Click" Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Margin="0,12,0,0">
                     <StackPanel Orientation="Horizontal" Spacing="8">
