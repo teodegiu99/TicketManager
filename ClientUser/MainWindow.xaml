@@ -130,12 +130,13 @@
                 </Grid>
 
                 <AutoSuggestBox x:Name="asbPerContoDi"
-                            Header="Aperto per conto di (Opzionale)"
-                            PlaceholderText="Inizia a scrivere il nome del collega..."
-                            HorizontalAlignment="Stretch"
-                            TextChanged="asbPerContoDi_TextChanged"
-                            SuggestionChosen="asbPerContoDi_SuggestionChosen"
-                            GotFocus="asbPerContoDi_GotFocus"/>
+                Header="Aperto per conto di (Opzionale)"
+                PlaceholderText="Inizia a scrivere il nome del collega..."
+                HorizontalAlignment="Stretch"
+                TextChanged="asbPerContoDi_TextChanged"
+                SuggestionChosen="asbPerContoDi_SuggestionChosen"
+                GotFocus="asbPerContoDi_GotFocus"
+                LostFocus="asbPerContoDi_LostFocus"/>
 
                 <TextBox x:Name="txtOggetto" 
                       Header="Oggetto" 

@@ -366,5 +366,39 @@ namespace ClientUser
                 txtFunzione.Visibility = Visibility.Collapsed;
             }
         }
+        // ... altri metodi asbPerContoDi ...
+
+        private void asbPerContoDi_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var box = sender as AutoSuggestBox;
+            if (box == null) return;
+
+            string testoInserito = box.Text.Trim();
+
+            // 1. Se il campo è vuoto, va bene (è opzionale)
+            if (string.IsNullOrWhiteSpace(testoInserito))
+            {
+                return;
+            }
+
+            // 2. Controlla se il testo corrisponde esattamente (case-insensitive) a un utente nella lista
+            // _allAdUsers deve essere popolata. Se è vuota, consideriamo tutto non valido.
+            var utenteValido = _allAdUsers.FirstOrDefault(u => u.Equals(testoInserito, StringComparison.OrdinalIgnoreCase));
+
+            if (utenteValido != null)
+            {
+                // Se esiste ma il casing è diverso (es. "mario rossi" vs "Mario Rossi"), 
+                // lo correggiamo con quello della lista per pulizia
+                box.Text = utenteValido;
+            }
+            else
+            {
+                // 3. Se NON esiste, cancelliamo il testo per obbligare una selezione valida
+                box.Text = string.Empty;
+
+                // Opzionale: Se vuoi avvisare l'utente che ha sbagliato, puoi usare un TeachingTip o un piccolo dialogo,
+                // ma spesso cancellare il testo è il feedback standard per "input non valido".
+            }
+        }
     }
 }
