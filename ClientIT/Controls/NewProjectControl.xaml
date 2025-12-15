@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:lvc="using:LiveChartsCore.SkiaSharpView.WinUI"
     xmlns:models="using:ClientIT.Models"
     mc:Ignorable="d">
 
@@ -93,9 +94,19 @@
                         </ListView.ItemTemplate>
                     </ListView>
                 </StackPanel>
-
+                <StackPanel Spacing="8" Visibility="{x:Bind HasPhases, Mode=OneWay}">
+                    <TextBlock Text="Cronoprogramma (Anteprima Gantt)" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                    <Border Height="300" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Padding="16">
+                        <lvc:CartesianChart
+                            Series="{x:Bind GanttSeries, Mode=OneWay}"
+                            XAxes="{x:Bind GanttXAxes, Mode=OneWay}"
+                            YAxes="{x:Bind GanttYAxes, Mode=OneWay}"
+                            TooltipPosition="Top">
+                        </lvc:CartesianChart>
+                    </Border>
+                </StackPanel>
                 <Button x:Name="BtnSaveProject" Content="Salva Progetto" Style="{ThemeResource AccentButtonStyle}" HorizontalAlignment="Stretch" Margin="0,24,0,0" Click="BtnSaveProject_Click"/>
-
+                <ProgressRing x:Name="SavingRing" IsActive="False" Visibility="Collapsed" HorizontalAlignment="Center" Margin="0,8,0,0"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -41,5 +41,8 @@ namespace TicketAPI.Models
         // Navigazione solo per Stato (AssegnatoA è stringa libera/username)
         [ForeignKey("StatoId")]
         public virtual Stato? Stato { get; set; }
+
+        [Column("progetto_id")]
+        public int? ProgettoId { get; set; }
     }
 }
