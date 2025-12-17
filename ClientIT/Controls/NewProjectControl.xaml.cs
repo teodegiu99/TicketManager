@@ -288,11 +288,16 @@ namespace ClientIT.Controls
                     {
                         Titolo = p.Titolo,
                         Descrizione = p.Descrizione,
-                        DataInizio = p.DataInizio?.DateTime,
-                        DataPrevFine = p.DataPrevFine?.DateTime,
+
+                        // USARE .UtcDateTime INVECE DI .DateTime
+                        DataInizio = p.DataInizio?.UtcDateTime,
+                        DataPrevFine = p.DataPrevFine?.UtcDateTime,
+
                         StatoId = p.Stato?.Id ?? 1,
                         Ordine = i,
-                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0) ? (int?)p.AssegnatoA.Id : null
+                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0)
+                            ? (int?)p.AssegnatoA.Id
+                            : null
                     }).ToList()
                 };
 

@@ -18,7 +18,6 @@ namespace TicketAPI.Controllers
             _context = context;
         }
 
-        // DTO per ricevere i dati dal client
         public class CreateProjectRequest
         {
             public string Titolo { get; set; }
@@ -32,8 +31,8 @@ namespace TicketAPI.Controllers
             public string Descrizione { get; set; }
             public DateTime? DataInizio { get; set; }
             public DateTime? DataPrevFine { get; set; }
-            public int? AssegnatoAId { get; set; } // ID Utente o null
-            public string? AssegnatoAEsterno { get; set; } // Per gestire l'utente esterno
+            public int? AssegnatoAId { get; set; }
+            public string? AssegnatoAEsterno { get; set; }
             public int StatoId { get; set; }
             public int Ordine { get; set; }
         }
@@ -44,49 +43,64 @@ namespace TicketAPI.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                // CORREZIONE: Calcoliamo la data massima assicurandoci che sia UTC
+                DateTime? dataFineProgetto = null;
+
+                if (request.Fasi != null && request.Fasi.Any(f => f.DataPrevFine.HasValue))
+                {
+                    // 1. Trova la data massima grezza
+                    var maxDate = request.Fasi
+                        .Where(f => f.DataPrevFine.HasValue)
+                        .Max(f => f.DataPrevFine.Value);
+
+                    // 2. Specifica che è UTC (Postgres lo richiede)
+                    dataFineProgetto = DateTime.SpecifyKind(maxDate, DateTimeKind.Utc);
+                }
+
                 // 1. Crea il Progetto
                 var nuovoProgetto = new Progetto
                 {
                     Titolo = request.Titolo,
                     Descrizione = request.Descrizione,
-                    DataInizio = DateTime.UtcNow, // Data creazione progetto
-                    // Calcola la fine prevista come la max data fine delle fasi
-                    DataPrevFine = request.Fasi.Any(f => f.DataPrevFine.HasValue)
-                        ? request.Fasi.Max(f => f.DataPrevFine)
-                        : null
+                    DataInizio = DateTime.UtcNow,
+                    DataPrevFine = dataFineProgetto // Ora è UTC sicuro
                 };
 
                 _context.Progetti.Add(nuovoProgetto);
-                await _context.SaveChangesAsync(); // Qui otteniamo l'ID del progetto
+                await _context.SaveChangesAsync();
 
                 // 2. Crea le Fasi collegate
-                foreach (var faseDto in request.Fasi)
+                if (request.Fasi != null)
                 {
-                    var nuovaFase = new FaseProgetto
+                    foreach (var faseDto in request.Fasi)
                     {
-                        ProgettoId = nuovoProgetto.Id, // COLLEGAMENTO FONDAMENTALE
-                        Titolo = faseDto.Titolo,
-                        Descrizione = faseDto.Descrizione,
-                        DataInizio = faseDto.DataInizio.HasValue ? DateTime.SpecifyKind(faseDto.DataInizio.Value, DateTimeKind.Utc) : null,
-                        DataPrevFine = faseDto.DataPrevFine.HasValue ? DateTime.SpecifyKind(faseDto.DataPrevFine.Value, DateTimeKind.Utc) : null,
-                        StatoId = faseDto.StatoId,
-                        Ordine = faseDto.Ordine,
-                    };
+                        var nuovaFase = new FaseProgetto
+                        {
+                            ProgettoId = nuovoProgetto.Id,
+                            Titolo = faseDto.Titolo,
+                            Descrizione = faseDto.Descrizione,
+                            // Anche qui forziamo UTC per sicurezza
+                            DataInizio = faseDto.DataInizio.HasValue
+                                ? DateTime.SpecifyKind(faseDto.DataInizio.Value, DateTimeKind.Utc)
+                                : null,
+                            DataPrevFine = faseDto.DataPrevFine.HasValue
+                                ? DateTime.SpecifyKind(faseDto.DataPrevFine.Value, DateTimeKind.Utc)
+                                : null,
+                            StatoId = faseDto.StatoId,
+                            Ordine = faseDto.Ordine,
+                        };
 
-                    // Gestione AssegnatoA (campo stringa sul DB)
-                    if (faseDto.AssegnatoAId.HasValue)
-                    {
-                        // Se è un ID, cerchiamo lo username (opzionale, o salviamo l'ID se hai cambiato la colonna, 
-                        // ma per ora il DB ha 'assegnatoa' varchar, quindi salviamo lo string username o l'ID come stringa)
-                        // Assumiamo di salvare l'ID come stringa per coerenza con la logica precedente
-                        nuovaFase.AssegnatoA = faseDto.AssegnatoAId.ToString();
-                    }
-                    else if (!string.IsNullOrEmpty(faseDto.AssegnatoAEsterno))
-                    {
-                        nuovaFase.AssegnatoA = "Utente Esterno";
-                    }
+                        if (faseDto.AssegnatoAId.HasValue)
+                        {
+                            nuovaFase.AssegnatoA = faseDto.AssegnatoAId.ToString();
+                        }
+                        else if (!string.IsNullOrEmpty(faseDto.AssegnatoAEsterno))
+                        {
+                            nuovaFase.AssegnatoA = "Utente Esterno";
+                        }
 
-                    _context.FasiProgetto.Add(nuovaFase);
+                        _context.FasiProgetto.Add(nuovaFase);
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -97,6 +111,8 @@ namespace TicketAPI.Controllers
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                // Log dell'errore interno per debug
+                Console.WriteLine($"Errore CreateProject: {ex}");
                 return StatusCode(500, $"Errore salvataggio: {ex.Message}");
             }
         }
