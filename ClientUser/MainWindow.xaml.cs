@@ -367,7 +367,6 @@ namespace ClientUser
                 txtFunzione.Visibility = Visibility.Collapsed;
             }
         }
-        // ... altri metodi asbPerContoDi ...
 
         private void asbPerContoDi_LostFocus(object sender, RoutedEventArgs e)
         {

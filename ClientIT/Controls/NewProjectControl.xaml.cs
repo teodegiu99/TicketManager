@@ -1,6 +1,7 @@
 ﻿using ClientIT.Models;
 using LiveChartsCore;
-using LiveChartsCore.Defaults;
+using LiveChartsCore.Kernel;
+using LiveChartsCore.Measure;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using Microsoft.UI.Xaml;
@@ -9,6 +10,7 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -16,11 +18,13 @@ using System.Threading.Tasks;
 
 namespace ClientIT.Controls
 {
-    // ⭐ CLASSE GANTTPOINT PERSONALIZZATA
-    public class GanttPoint
+    // =========================
+    // MODELLO GANTT
+    // =========================
+    public sealed class GanttPoint
     {
-        public double Start { get; set; }
-        public double End { get; set; }
+        public double Start { get; }
+        public double End { get; }
 
         public GanttPoint(double start, double end)
         {
@@ -29,140 +33,326 @@ namespace ClientIT.Controls
         }
     }
 
-    public sealed partial class NewProjectControl : UserControl, System.ComponentModel.INotifyPropertyChanged
+    public sealed partial class NewProjectControl : UserControl, INotifyPropertyChanged
     {
+        // =========================
+        // DATI
+        // =========================
         public ObservableCollection<PhaseViewModel> Phases { get; } = new();
+
         private List<ItUtente> _allUsers = new();
         private List<Stato> _allStati = new();
-        private HttpClient _apiClient;
+        private readonly HttpClient _apiClient;
 
-        // Proprietà per il Gantt - ⭐ USA I TIPI CORRETTI PER IL BINDING
-        private ISeries[] _ganttSeries;
-        private IEnumerable<LiveChartsCore.Kernel.Sketches.ICartesianAxis> _ganttXAxes;
-        private IEnumerable<LiveChartsCore.Kernel.Sketches.ICartesianAxis> _ganttYAxes;
+        // =========================
+        // PROPRIETÀ GANTT (WINUI)
+        // =========================
+        private ISeries[] _ganttSeries = Array.Empty<ISeries>();
+        private Axis[] _ganttXAxes = Array.Empty<Axis>();
+        private Axis[] _ganttYAxes = Array.Empty<Axis>();
+
+        private double _chartWidth = 1200;
+        private double _chartHeight = 300;
         private bool _hasPhases;
 
-        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null) =>
-            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+        public ISeries[] GanttSeries
+        {
+            get => _ganttSeries;
+            set { _ganttSeries = value; OnPropertyChanged(); }
+        }
 
-        public ISeries[] GanttSeries { get => _ganttSeries; set { _ganttSeries = value; OnPropertyChanged(); } }
-        public IEnumerable<LiveChartsCore.Kernel.Sketches.ICartesianAxis> GanttXAxes { get => _ganttXAxes; set { _ganttXAxes = value; OnPropertyChanged(); } }
-        public IEnumerable<LiveChartsCore.Kernel.Sketches.ICartesianAxis> GanttYAxes { get => _ganttYAxes; set { _ganttYAxes = value; OnPropertyChanged(); } }
-        public bool HasPhases { get => _hasPhases; set { _hasPhases = value; OnPropertyChanged(); } }
+        public Axis[] GanttXAxes
+        {
+            get => _ganttXAxes;
+            set { _ganttXAxes = value; OnPropertyChanged(); }
+        }
 
+        public Axis[] GanttYAxes
+        {
+            get => _ganttYAxes;
+            set { _ganttYAxes = value; OnPropertyChanged(); }
+        }
+
+        public double ChartWidth
+        {
+            get => _chartWidth;
+            set { _chartWidth = value; OnPropertyChanged(); }
+        }
+
+        public double ChartHeight
+        {
+            get => _chartHeight;
+            set { _chartHeight = value; OnPropertyChanged(); }
+        }
+
+        public bool HasPhases
+        {
+            get => _hasPhases;
+            set { _hasPhases = value; OnPropertyChanged(); }
+        }
+
+        // =========================
+        // NOTIFY
+        // =========================
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+        // =========================
+        // COSTRUTTORE
+        // =========================
         public NewProjectControl()
         {
-            this.InitializeComponent();
+            InitializeComponent();
+
+            // 🔴 FONDAMENTALE per i binding
+            DataContext = this;
+
             PhasesListView.ItemsSource = Phases;
 
-            // Inizializza Client HTTP
-            var handler = new HttpClientHandler
+            _apiClient = new HttpClient(new HttpClientHandler
             {
                 UseDefaultCredentials = true,
-                ServerCertificateCustomValidationCallback = (s, c, ch, e) => true
-            };
-            _apiClient = new HttpClient(handler);
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            });
 
-            // Reagisci ai cambiamenti della lista per aggiornare il Gantt
-            Phases.CollectionChanged += (s, e) => UpdateGanttChart();
+            Phases.CollectionChanged += Phases_CollectionChanged;
         }
 
+        // =========================
+        // DATI ESTERNI
+        // =========================
         public void SetupReferenceData(List<ItUtente> users, List<Stato> stati)
         {
-            _allUsers = users;
-            _allStati = stati;
+            _allUsers = users ?? new();
+            _allStati = stati ?? new();
         }
 
-        // --- LOGICA GANTT ---
+        // =========================
+        // EVENTI PHASES
+        // =========================
+        private void Phases_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+                foreach (PhaseViewModel p in e.NewItems)
+                    p.PropertyChanged += Phase_PropertyChanged;
+
+            if (e.OldItems != null)
+                foreach (PhaseViewModel p in e.OldItems)
+                    p.PropertyChanged -= Phase_PropertyChanged;
+
+            UpdateGanttChart();
+        }
+
+        private void Phase_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            UpdateGanttChart();
+        }
+
+        // =========================
+        // CORE GANTT
+        // =========================
         private void UpdateGanttChart()
         {
-            HasPhases = Phases.Any();
-            if (!HasPhases)
+            if (!Phases.Any())
             {
                 GanttSeries = Array.Empty<ISeries>();
+                HasPhases = false;
                 return;
             }
 
-            // Filtra solo fasi con date valide
-            var validPhases = Phases.Where(p => p.DataInizio.HasValue && p.DataPrevFine.HasValue).ToList();
-            if (!validPhases.Any())
-            {
-                GanttSeries = Array.Empty<ISeries>();
-                return;
-            }
+            HasPhases = true;
 
-            // Configura Asse X (Tempo)
-            GanttXAxes = new Axis[]
+            // --- fasi con date valide
+            var valid = Phases
+                .Where(p => p.DataInizio.HasValue && p.DataPrevFine.HasValue)
+                .ToList();
+
+            // --- limiti temporali REALI
+            var min = valid.Any()
+                ? valid.Min(p => p.DataInizio!.Value.UtcDateTime)
+                : DateTime.UtcNow;
+
+            var max = valid.Any()
+                ? valid.Max(p => p.DataPrevFine!.Value.UtcDateTime)
+                : DateTime.UtcNow.AddDays(1);
+
+            var viewMin = min.AddDays(-2);
+            var viewMax = max.AddDays(5);
+            var totalDays = Math.Max(1, (viewMax - viewMin).TotalDays);
+
+            // --- dimensioni → scroll orizzontale
+            ChartWidth = Math.Max(1200, totalDays * 60);
+            ChartHeight = Math.Max(300, Phases.Count * 60);
+
+            // =========================
+            // ASSE X (GIORNI)
+            // =========================
+            GanttXAxes = new[]
             {
                 new Axis
                 {
-                    Labeler = value => new DateTime((long)value).ToString("dd/MM"),
-                    UnitWidth = TimeSpan.FromDays(1).Ticks,
-                    MinStep = TimeSpan.FromDays(1).Ticks
+                    MinLimit = 0,
+                    MaxLimit = totalDays,
+                    UnitWidth = 1,   // 1 = 1 giorno
+                    MinStep = 1,
+                    TextSize = 12,
+                    Labeler = v =>
+                    {
+                        if (v < 0 || v > totalDays) return "";
+                        return viewMin.AddDays(v).ToString("dd/MM");
+                    },
+                    SeparatorsPaint = new SolidColorPaint(new SKColor(210,210,210))
                 }
             };
 
-            // Configura Asse Y (Nomi Fasi)
-            GanttYAxes = new Axis[]
+            // =========================
+            // ASSE Y
+            // =========================
+            GanttYAxes = new[]
             {
                 new Axis
                 {
-                    Labels = validPhases.Select(p => p.Titolo).ToList(),
-                    LabelsRotation = 0,
+                    Labels = Phases.Select(p =>
+                        string.IsNullOrWhiteSpace(p.Titolo) ? "(senza nome)" : p.Titolo).ToList(),
+                    IsInverted = true,
+                    UnitWidth = 1,
+                    MinStep = 1,
+                    TextSize = 14
                 }
             };
 
-            // Crea la serie per il Gantt usando RowSeries
+            // =========================
+            // DATI GANTT
+            // =========================
             var values = new List<GanttPoint>();
-            for (int i = 0; i < validPhases.Count; i++)
+
+            foreach (var p in Phases)
             {
-                var p = validPhases[i];
-                values.Add(new GanttPoint(p.DataInizio.Value.Ticks, p.DataPrevFine.Value.Ticks));
+                if (p.DataInizio.HasValue && p.DataPrevFine.HasValue)
+                {
+                    var start = (p.DataInizio.Value.UtcDateTime - viewMin).TotalDays;
+                    var end = (p.DataPrevFine.Value.UtcDateTime - viewMin).TotalDays;
+                    if (end <= start) end = start + 1;
+                    values.Add(new GanttPoint(start, end));
+                }
+                else
+                {
+                    // riga senza barra
+                    values.Add(new GanttPoint(double.NaN, double.NaN));
+                }
             }
 
-            GanttSeries = new ISeries[]
+            // =========================
+            // SERIE (BARRE + OGGI)
+            // =========================
+            var series = new List<ISeries>
             {
+                // BARRE GANTT
                 new RowSeries<GanttPoint>
                 {
                     Values = values,
-                    Mapping = (point, index) => new LiveChartsCore.Kernel.Coordinate(index, point.Start, point.End - point.Start),
-                    DataLabelsFormatter = point =>
+                    MaxBarWidth = 40,
+                    Rx = 4,
+                    Ry = 4,
+                    Fill = new SolidColorPaint(SKColors.Orange),
+
+                    Mapping = (point, index) =>
                     {
-                        var gantt = point.Model as GanttPoint;
-                        if (gantt == null) return "";
-                        return $"{new DateTime((long)gantt.Start):dd/MM} - {new DateTime((long)gantt.End):dd/MM}";
+                        if (double.IsNaN(point.Start) || double.IsNaN(point.End))
+                            return new Coordinate(double.NaN, index);
+
+                        // X = fine, Secondary = inizio
+                        return new Coordinate(point.End, index, point.Start);
                     },
+
+                    DataLabelsPosition = DataLabelsPosition.Middle,
                     DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.Middle,
-                    Fill = new SolidColorPaint(SKColors.CornflowerBlue)
+                    DataLabelsFormatter = p =>
+                    {
+                        if (p.Model is not GanttPoint g ||
+                            double.IsNaN(g.Start) || double.IsNaN(g.End))
+                            return "";
+
+                        return $"{viewMin.AddDays(g.Start):dd/MM} - {viewMin.AddDays(g.End):dd/MM}";
+                    }
                 }
             };
+
+            // =========================
+            // LINEA VERTICALE "OGGI"
+            // =========================
+            var todayX = (DateTime.UtcNow - viewMin).TotalDays;
+
+            if (todayX >= 0 && todayX <= totalDays)
+            {
+                series.Add(new LineSeries<double>
+                {
+                    Values = new[] { todayX, todayX },
+                    GeometrySize = 0,
+                    Stroke = new SolidColorPaint(SKColors.Red) { StrokeThickness = 2 },
+                    LineSmoothness = 0
+                });
+            }
+
+            GanttSeries = series.ToArray();
         }
 
-        // --- GESTORI EVENTI UI ---
+        // =========================
+        // UI HANDLER
+        // =========================
         private void BtnAddPhase_Click(object sender, RoutedEventArgs e)
         {
-            var newPhase = new PhaseViewModel
+            Phases.Add(new PhaseViewModel
             {
-                Titolo = "Nuova Fase",
-                Descrizione = "",
-                DataInizio = DateTimeOffset.Now,
-                DataPrevFine = DateTimeOffset.Now.AddDays(7)
-            };
-            Phases.Add(newPhase);
+                Titolo = "Nuova fase"
+                // date vuote → nessuna barra
+            });
         }
 
-        private void PhasesListView_ItemClick(object sender, ItemClickEventArgs e)
+        private void BtnRemovePhase_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is PhaseViewModel p)
+                Phases.Remove(p);
+        }
+
+        private async void PhasesListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             if (e.ClickedItem is PhaseViewModel phase)
             {
-                // Logica per modificare/eliminare la fase
-                // Puoi aprire un dialog o navigare a un'altra view
+                var dialogControl = new PhaseDetailDialog();
+                dialogControl.Setup(_allUsers, _allStati, phase);
+
+                var dialog = new ContentDialog
+                {
+                    Title = "Dettaglio Fase",
+                    Content = dialogControl,
+                    PrimaryButtonText = "Salva",
+                    CloseButtonText = "Annulla",
+                    XamlRoot = XamlRoot
+                };
+
+                dialog.Closing += (s, args) =>
+                {
+                    if (args.Result == ContentDialogResult.Primary && !dialogControl.Validate())
+                        args.Cancel = true;
+                };
+
+                if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+                {
+                    var updated = dialogControl.GetPhase();
+                    phase.Titolo = updated.Titolo;
+                    phase.Descrizione = updated.Descrizione;
+                    phase.DataInizio = updated.DataInizio;
+                    phase.DataPrevFine = updated.DataPrevFine;
+                    phase.Stato = updated.Stato;
+                    phase.AssegnatoA = updated.AssegnatoA;
+
+                    UpdateGanttChart();
+                }
             }
         }
 
-        // --- LOGICA SALVATAGGIO ---
         private async void BtnSaveProject_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(TxtTitolo.Text))
@@ -177,40 +367,36 @@ namespace ClientIT.Controls
 
             try
             {
-                // Prepara il DTO
-                var projectDto = new
+                var dto = new
                 {
                     Titolo = TxtTitolo.Text,
                     Descrizione = TxtDescrizione.Text,
-                    Fasi = Phases.Select((p, index) => new
+                    Fasi = Phases.Select((p, i) => new
                     {
                         Titolo = p.Titolo,
                         Descrizione = p.Descrizione,
                         DataInizio = p.DataInizio?.DateTime,
                         DataPrevFine = p.DataPrevFine?.DateTime,
                         StatoId = p.Stato?.Id ?? 1,
-                        Ordine = index,
-                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0) ? (int?)p.AssegnatoA.Id : null,
-                        AssegnatoAEsterno = (p.AssegnatoA != null && p.AssegnatoA.Id == -999) ? "Utente Esterno" : null
+                        Ordine = i,
+                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0)
+                            ? (int?)p.AssegnatoA.Id
+                            : null
                     }).ToList()
                 };
 
-                // Chiamata API (⚠️ Modifica l'URL se necessario)
-                string url = "http://localhost:5210/api/progetti";
-                var response = await _apiClient.PostAsJsonAsync(url, projectDto);
+                var res = await _apiClient.PostAsJsonAsync("http://localhost:5210/api/progetti", dto);
 
-                if (response.IsSuccessStatusCode)
+                if (res.IsSuccessStatusCode)
                 {
                     await ShowDialog("Successo", "Progetto creato correttamente!");
-                    // Resetta il form
+                    Phases.Clear();
                     TxtTitolo.Text = "";
                     TxtDescrizione.Text = "";
-                    Phases.Clear();
                 }
                 else
                 {
-                    string err = await response.Content.ReadAsStringAsync();
-                    await ShowDialog("Errore API", $"Impossibile salvare: {err}");
+                    await ShowDialog("Errore API", await res.Content.ReadAsStringAsync());
                 }
             }
             catch (Exception ex)
@@ -227,15 +413,17 @@ namespace ClientIT.Controls
 
         private async Task ShowDialog(string title, string content)
         {
-            if (this.XamlRoot == null) return;
-            var d = new ContentDialog
+            if (XamlRoot == null) return;
+
+            var dialog = new ContentDialog
             {
                 Title = title,
                 Content = content,
                 CloseButtonText = "OK",
-                XamlRoot = this.XamlRoot
+                XamlRoot = XamlRoot
             };
-            await d.ShowAsync();
+
+            await dialog.ShowAsync();
         }
     }
 }
