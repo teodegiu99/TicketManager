@@ -34,5 +34,8 @@ namespace TicketAPI.Models
 
         [Column("assegnatoa")]
         public string? AssegnatoA { get; set; }
+
+        [Column("statoid")]
+        public int StatoId { get; set; }
     }
 }

@@ -22,6 +22,29 @@
                     <TextBox x:Name="TxtDescrizione" Header="Descrizione" 
                              PlaceholderText="Descrivi gli obiettivi del progetto..." 
                              AcceptsReturn="True" TextWrapping="Wrap" Height="80" HorizontalAlignment="Stretch"/>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ComboBox x:Name="CmbAssegnatoA" 
+                                  Header="Responsabile Progetto" 
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{x:Bind UsersOptions}"
+                                  DisplayMemberPath="Nome"
+                                  PlaceholderText="Seleziona un responsabile"/>
+
+                        <ComboBox x:Name="CmbStato" 
+                                  Grid.Column="1"
+                                  Header="Stato Iniziale" 
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{x:Bind StatusOptions}"
+                                  DisplayMemberPath="Nome"
+                                  PlaceholderText="Seleziona stato"
+                                  SelectedIndex="0"/>
+                    </Grid>
                 </StackPanel>
 
                 <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="0,8"/>

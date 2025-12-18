@@ -105,6 +105,7 @@ namespace ClientIT
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Visible;
         }
 
@@ -112,6 +113,7 @@ namespace ClientIT
         {
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
             ListViewArea.Visibility = Visibility.Visible;
             NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             await LoadTicketsAsync();

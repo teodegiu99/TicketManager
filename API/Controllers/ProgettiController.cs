@@ -22,6 +22,8 @@ namespace TicketAPI.Controllers
         {
             public string Titolo { get; set; }
             public string Descrizione { get; set; }
+            public int StatoId { get; set; }
+            public int? AssegnatoAId { get; set; }
             public List<CreatePhaseDto> Fasi { get; set; }
         }
 
@@ -63,7 +65,9 @@ namespace TicketAPI.Controllers
                     Titolo = request.Titolo,
                     Descrizione = request.Descrizione,
                     DataInizio = DateTime.UtcNow,
-                    DataPrevFine = dataFineProgetto // Ora è UTC sicuro
+                    DataPrevFine = dataFineProgetto, 
+                    StatoId = request.StatoId,
+                    AssegnatoA = request.AssegnatoAId.HasValue ? request.AssegnatoAId.ToString() : null
                 };
 
                 _context.Progetti.Add(nuovoProgetto);

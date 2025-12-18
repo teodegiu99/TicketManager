@@ -44,6 +44,8 @@ namespace ClientIT.Controls
         public ObservableCollection<PhaseViewModel> Phases { get; } = new();
         public ObservableCollection<RoadmapItem> RoadmapItems { get; } = new();
         public ObservableCollection<TimelineLabel> TimelineLabels { get; } = new();
+        public ObservableCollection<ItUtente> UsersOptions { get; } = new();
+        public ObservableCollection<Stato> StatusOptions { get; } = new();
 
         private List<ItUtente> _allUsers = new();
         private List<Stato> _allStati = new();
@@ -121,6 +123,13 @@ namespace ClientIT.Controls
         {
             _allUsers = users ?? new();
             _allStati = stati ?? new();
+
+            UsersOptions.Clear();
+            foreach (var u in _allUsers) UsersOptions.Add(u);
+
+            StatusOptions.Clear();
+            foreach (var s in _allStati) StatusOptions.Add(s);
+
         }
 
         // =========================
@@ -273,7 +282,8 @@ namespace ClientIT.Controls
                 await ShowDialog("Errore", "Il titolo del progetto è obbligatorio.");
                 return;
             }
-
+            var selectedStato = CmbStato.SelectedItem as Stato;
+            var selectedUser = CmbAssegnatoA.SelectedItem as ItUtente;
             BtnSaveProject.IsEnabled = false;
             SavingRing.Visibility = Visibility.Visible;
             SavingRing.IsActive = true;
@@ -284,20 +294,20 @@ namespace ClientIT.Controls
                 {
                     Titolo = TxtTitolo.Text,
                     Descrizione = TxtDescrizione.Text,
+
+                    // NUOVI CAMPI INVIATI AL SERVER
+                    StatoId = selectedStato?.Id ?? 1, // Default 1 se null
+                    AssegnatoAId = (selectedUser != null && selectedUser.Id > 0) ? (int?)selectedUser.Id : null,
+
                     Fasi = Phases.Select((p, i) => new
                     {
                         Titolo = p.Titolo,
                         Descrizione = p.Descrizione,
-
-                        // USARE .UtcDateTime INVECE DI .DateTime
-                        DataInizio = p.DataInizio?.UtcDateTime,
-                        DataPrevFine = p.DataPrevFine?.UtcDateTime,
-
+                        DataInizio = p.DataInizio?.UtcDateTime, // Importante: UTC
+                        DataPrevFine = p.DataPrevFine?.UtcDateTime, // Importante: UTC
                         StatoId = p.Stato?.Id ?? 1,
                         Ordine = i,
-                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0)
-                            ? (int?)p.AssegnatoA.Id
-                            : null
+                        AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0) ? (int?)p.AssegnatoA.Id : null
                     }).ToList()
                 };
 
@@ -307,8 +317,7 @@ namespace ClientIT.Controls
                 {
                     await ShowDialog("Successo", "Progetto creato correttamente!");
                     Phases.Clear(); // Pulisce lista -> Scatta CollectionChanged -> Pulisce Roadmap
-                    TxtTitolo.Text = "";
-                    TxtDescrizione.Text = "";
+                    ResetForm();
                 }
                 else
                 {
@@ -331,6 +340,18 @@ namespace ClientIT.Controls
         {
             if (XamlRoot == null) return;
             await new ContentDialog { Title = title, Content = content, CloseButtonText = "OK", XamlRoot = XamlRoot }.ShowAsync();
+        }
+
+        private void ResetForm()
+        {
+            TxtTitolo.Text = "";
+            TxtDescrizione.Text = "";
+
+            // Resetta le ComboBox
+            CmbStato.SelectedIndex = -1;
+            CmbAssegnatoA.SelectedIndex = -1;
+
+            Phases.Clear(); // Questo scatena anche la pulizia della Roadmap
         }
     }
 }
