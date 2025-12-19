@@ -20,7 +20,7 @@ namespace TicketAPI.Data
         public DbSet<ItUtente> ItUtenti { get; set; }
         public DbSet<Progetto> Progetti { get; set; }
         public DbSet<FaseProgetto> FasiProgetto { get; set; }
-
+        public DbSet<CommentoProgetto> CommentiProgetti { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Serve per dire a EF Core che i nomi delle tabelle

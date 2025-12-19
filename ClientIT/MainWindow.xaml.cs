@@ -46,6 +46,8 @@ namespace ClientIT
             {
                 await ShowTicketListAndRefresh();
             };
+
+            ProjectDetailControl.BackRequested += (s, args) => ShowProjectsButton_Click(null, null);
         }
 
         private bool _isFirstActivation = true;
@@ -59,53 +61,105 @@ namespace ClientIT
             }
         }
 
+        private async Task LoadProjectsAsync()
+        {
+            try
+            {
+                var projects = await _apiClient.GetFromJsonAsync<List<ProjectViewModel>>($"{_apiBaseUrl}/api/progetti/all");
+                ProjectListView.ItemsSource = projects;
+            }
+            catch { }
+        }
+
+        private async void ShowProjectsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Nascondi tutto il resto
+            ListViewArea.Visibility = Visibility.Collapsed; // Ticket List
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+            ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // Mostra Lista Progetti
+            ProjectListViewArea.Visibility = Visibility.Visible;
+
+            await LoadProjectsAsync();
+        }
+        private void ProjectListView_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (e.ClickedItem is ProjectViewModel project)
+            {
+                // Nascondi Lista
+                ProjectListViewArea.Visibility = Visibility.Collapsed;
+
+                // Mostra Dettaglio
+                ProjectDetailViewArea.Visibility = Visibility.Visible;
+
+                // Recupera l'utente corrente per i commenti (assumendo tu lo abbia salvato all'avvio o lo simuli)
+                // Se non hai un oggetto "CurrentUser" globale, puoi crearne uno temporaneo basato sulla selezione a sinistra
+                var currentUser = UserListView.SelectedItem as ItUtente ?? new ItUtente { Nome = "Me" };
+
+                ProjectDetailControl.Load(project, currentUser);
+            }
+        }
+
         private void NewTicketButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Resetta selezioni lista sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
 
-            // 2. Mostra la vista Nuovo Ticket, nascondi le altre
+            // NASCONDI TUTTO
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
-            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
+
+            // Nascondi aree progetti (NUOVO)
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // MOSTRA NUOVO TICKET
             NewTicketViewArea.Visibility = Visibility.Visible;
 
-            // 3. Passa i dati aggiornati ai dropdown del controllo
-            // (Assumiamo che AllTipologie, AllUrgenze, AllSedi siano già popolate da LoadDataAsync)
             NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
         }
         private void NewProjectButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Resetta selezioni lista sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
 
-            // 2. Mostra la vista Crea Progetto, nascondi le altre
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             UserAdminViewArea.Visibility = Visibility.Collapsed;
 
+            // Nascondi aree progetti (NUOVO)
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // MOSTRA CREA PROGETTO
             NewProjectViewArea.Visibility = Visibility.Visible;
 
-            // 3. (AGGIUNGI QUESTO) Passa i dati al controllo
-            // Usa .ToList() perché le ObservableCollection non sono direttamente compatibili con List<>
             NewProjectControl.SetupReferenceData(AllItUsers.ToList(), AllStati.ToList());
         }
         // --- NUOVO: GESTIONE BOTTONE SBLOCCA UTENTE ---
         private void UserAdminButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Resetta selezioni lista sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
 
-            // 2. Mostra la vista Admin, nascondi le altre
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
             NewProjectViewArea.Visibility = Visibility.Collapsed;
+
+            // Nascondi aree progetti (NUOVO)
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // MOSTRA ADMIN
             UserAdminViewArea.Visibility = Visibility.Visible;
         }
 
@@ -312,13 +366,17 @@ namespace ClientIT
             if (UserListView != null) UserListView.SelectedIndex = -1;
             ResetFiltersVisuals();
 
-            // Navigazione: Torna alla lista
-            ListViewArea.Visibility = Visibility.Visible;
+            // NASCONDI TUTTO IL RESTO
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
             StatisticsViewArea.Visibility = Visibility.Collapsed;
-            NewTicketViewArea.Visibility = Visibility.Collapsed;
-            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
-            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            ListViewArea.Visibility = Visibility.Visible;
+
             await LoadTicketsAsync();
         }
 
@@ -329,13 +387,17 @@ namespace ClientIT
             {
                 if (FilterAssegnato != null) FilterAssegnato.SelectedIndex = -1;
 
-                // Navigazione: Torna alla lista (se ero in Statistiche)
-                ListViewArea.Visibility = Visibility.Visible;
+                // Nascondi tutto tranne la lista ticket
                 DetailViewArea.Visibility = Visibility.Collapsed;
                 StatisticsViewArea.Visibility = Visibility.Collapsed;
                 NewTicketViewArea.Visibility = Visibility.Collapsed;
-                UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
-                NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
+                UserAdminViewArea.Visibility = Visibility.Collapsed;
+                NewProjectViewArea.Visibility = Visibility.Collapsed;
+
+                if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+                if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+                ListViewArea.Visibility = Visibility.Visible;
 
                 await LoadTicketsAsync();
             }
@@ -422,24 +484,27 @@ namespace ClientIT
             NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
             await LoadTicketsAsync();
         }
-
         private async void StatsButton_Click(object sender, RoutedEventArgs e)
         {
-            // 1. Resetta selezioni lista sinistra
             if (UserListView != null) UserListView.SelectedIndex = -1;
 
-            // 2. Mostra la vista Statistiche, nascondi le altre
             ListViewArea.Visibility = Visibility.Collapsed;
             DetailViewArea.Visibility = Visibility.Collapsed;
-            StatisticsViewArea.Visibility = Visibility.Visible;
             NewTicketViewArea.Visibility = Visibility.Collapsed;
-            UserAdminViewArea.Visibility = Visibility.Collapsed; // <--- Nascondi Admin
-            NewProjectViewArea.Visibility = Visibility.Collapsed; // <--- AGGIUNGI
-            // 3. AGGIORNAMENTO AUTOMATICO:
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
+
+            // Nascondi aree progetti (NUOVO)
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // MOSTRA STATISTICHE
+            StatisticsViewArea.Visibility = Visibility.Visible;
+
             await StatsControl.LoadStats();
         }
 
-      
+
 
         public async void OnTicketStateChanged(object sender, TicketStateChangedEventArgs e)
         {

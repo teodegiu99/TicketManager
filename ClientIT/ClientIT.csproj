@@ -17,6 +17,7 @@
 		<None Remove="Controls\NewProjectControl.xaml" />
 		<None Remove="Controls\NewTicketControl.xaml" />
 		<None Remove="Controls\PhaseDetailDialog.xaml" />
+		<None Remove="Controls\ProjectDetailControl.xaml" />
 		<None Remove="Controls\StatisticsControl.xaml" />
 	</ItemGroup>
 
@@ -43,6 +44,12 @@
 
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="Controls\ProjectDetailControl.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<ItemGroup>
