@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections.Generic; // <--- Importante per List<>
-using Microsoft.UI.Xaml; // Per HorizontalAlignment
-using Microsoft.UI.Xaml.Media; // Per SolidColorBrush
+using System.Collections.Generic;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+
 namespace ClientIT.Models
 {
     public class ProjectViewModel
@@ -10,14 +11,20 @@ namespace ClientIT.Models
         public string Titolo { get; set; }
         public string Descrizione { get; set; }
         public int StatoId { get; set; }
-        public int? AssegnatoAId { get; set; } // <--- AGGIUNTA FONDAMENTALE
+        public int? AssegnatoAId { get; set; }
         public string StatoNome { get; set; }
         public DateTime? DataInizio { get; set; }
         public DateTime? DataPrevFine { get; set; }
-        public Stato Stato { get; set; }            // Oggetto completo per il binding
-        public ItUtente AssegnatoA { get; set; }    // Oggetto completo per il binding
-        public List<PhaseViewModel> Fasi { get; set; } = new(); // Lista delle fasi
-        // Per il binding del colore stato nella lista
+
+        public Stato Stato { get; set; }
+        public ItUtente AssegnatoA { get; set; }
+
+        public List<PhaseViewModel> Fasi { get; set; } = new();
+
+        // --- FIX: Proprietà sicura per il binding nella lista ---
+        // Se AssegnatoA è null, restituisce "Non assegnato" invece di far crashare l'app
+        public string AssegnatoANome => AssegnatoA?.Nome ?? "Non assegnato";
+
         public string StatoColor => StatoId switch
         {
             1 => "#3498db", // Nuovo (Blu)
@@ -34,12 +41,9 @@ namespace ClientIT.Models
         public string Testo { get; set; }
         public DateTime DataCreazione { get; set; }
 
-        // Formattazione per la UI
         public string Initials => !string.IsNullOrEmpty(Username) ? Username.Substring(0, 1).ToUpper() : "?";
         public string DataFormat => DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
 
-        // Allineamento (se sono io è a destra, altri a sinistra)
-        // Lo gestiremo nel code-behind controllando l'utente loggato
         public Microsoft.UI.Xaml.HorizontalAlignment Allineamento { get; set; } = Microsoft.UI.Xaml.HorizontalAlignment.Left;
         public Microsoft.UI.Xaml.Media.SolidColorBrush Sfondo { get; set; }
     }

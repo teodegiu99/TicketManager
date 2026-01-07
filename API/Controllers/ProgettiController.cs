@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using TicketAPI.Data;
 using TicketAPI.Models;
 
-namespace TicketAPI.Controllers
+namespace API.Controllers
 {
-    [Authorize]
-    [ApiController]
     [Route("api/[controller]")]
+    [ApiController]
     public class ProgettiController : ControllerBase
     {
         private readonly ApiDbContext _context;
@@ -18,184 +21,12 @@ namespace TicketAPI.Controllers
             _context = context;
         }
 
-        public class CreateProjectRequest
-        {
-            public string Titolo { get; set; }
-            public string Descrizione { get; set; }
-            public int StatoId { get; set; }
-            public int? AssegnatoAId { get; set; }
-            public List<CreatePhaseDto> Fasi { get; set; }
-        }
-
-        public class CreatePhaseDto
-        {
-            public string Titolo { get; set; }
-            public string Descrizione { get; set; }
-            public DateTime? DataInizio { get; set; }
-            public DateTime? DataPrevFine { get; set; }
-            public int? AssegnatoAId { get; set; }
-            public string? AssegnatoAEsterno { get; set; }
-            public int StatoId { get; set; }
-            public int Ordine { get; set; }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateProject([FromBody] CreateProjectRequest request)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                // CORREZIONE: Calcoliamo la data massima assicurandoci che sia UTC
-                DateTime? dataFineProgetto = null;
-
-                if (request.Fasi != null && request.Fasi.Any(f => f.DataPrevFine.HasValue))
-                {
-                    // 1. Trova la data massima grezza
-                    var maxDate = request.Fasi
-                        .Where(f => f.DataPrevFine.HasValue)
-                        .Max(f => f.DataPrevFine.Value);
-
-                    // 2. Specifica che è UTC (Postgres lo richiede)
-                    dataFineProgetto = DateTime.SpecifyKind(maxDate, DateTimeKind.Utc);
-                }
-
-                // 1. Crea il Progetto
-                var nuovoProgetto = new Progetto
-                {
-                    Titolo = request.Titolo,
-                    Descrizione = request.Descrizione,
-                    DataInizio = DateTime.UtcNow,
-                    DataPrevFine = dataFineProgetto, 
-                    StatoId = request.StatoId,
-                    AssegnatoA = request.AssegnatoAId.HasValue ? request.AssegnatoAId.ToString() : null
-                };
-
-                _context.Progetti.Add(nuovoProgetto);
-                await _context.SaveChangesAsync();
-
-                // 2. Crea le Fasi collegate
-                if (request.Fasi != null)
-                {
-                    foreach (var faseDto in request.Fasi)
-                    {
-                        var nuovaFase = new FaseProgetto
-                        {
-                            ProgettoId = nuovoProgetto.Id,
-                            Titolo = faseDto.Titolo,
-                            Descrizione = faseDto.Descrizione,
-                            // Anche qui forziamo UTC per sicurezza
-                            DataInizio = faseDto.DataInizio.HasValue
-                                ? DateTime.SpecifyKind(faseDto.DataInizio.Value, DateTimeKind.Utc)
-                                : null,
-                            DataPrevFine = faseDto.DataPrevFine.HasValue
-                                ? DateTime.SpecifyKind(faseDto.DataPrevFine.Value, DateTimeKind.Utc)
-                                : null,
-                            StatoId = faseDto.StatoId,
-                            Ordine = faseDto.Ordine,
-                            DataChiusura = (faseDto.StatoId == 3) ? DateTime.UtcNow : null
-                        };
-
-                        if (faseDto.AssegnatoAId.HasValue)
-                        {
-                            nuovaFase.AssegnatoA = faseDto.AssegnatoAId.ToString();
-                        }
-                        else if (!string.IsNullOrEmpty(faseDto.AssegnatoAEsterno))
-                        {
-                            nuovaFase.AssegnatoA = "Utente Esterno";
-                        }
-
-                        _context.FasiProgetto.Add(nuovaFase);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return Ok(new { Message = "Progetto creato con successo", ProjectId = nuovoProgetto.Id });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                // Log dell'errore interno per debug
-                Console.WriteLine($"Errore CreateProject: {ex}");
-                return StatusCode(500, $"Errore salvataggio: {ex.Message}");
-            }
-        }
-
-        // Classe di supporto per ricevere il nuovo stato dal client
-        public class UpdateStatusRequest
-        {
-            public int StatoId { get; set; }
-        }
-
-        // =============================================
-        // 1. AGGIORNA STATO FASE
-        // =============================================
-        [HttpPut("fasi/{id}/stato")]
-        public async Task<IActionResult> UpdateFaseStatus(int id, [FromBody] UpdateStatusRequest request)
-        {
-            var fase = await _context.FasiProgetto.FindAsync(id);
-            if (fase == null) return NotFound("Fase non trovata");
-
-            // Aggiorna lo stato
-            fase.StatoId = request.StatoId;
-
-            // LOGICA CHIUSURA:
-            // Se lo stato diventa 3 (Terminato), imposta la data di chiusura a OGGI (UTC).
-            // Se lo stato cambia in altro (es. torna in lavorazione), rimuovi la data di chiusura.
-            if (request.StatoId == 3)
-            {
-                // Verifica se era già chiusa per non sovrascrivere la data originale (opzionale)
-                if (!fase.DataChiusura.HasValue)
-                {
-                    fase.DataChiusura = DateTime.UtcNow;
-                }
-            }
-            else
-            {
-                // Se riapro la fase, resetto la data
-                fase.DataChiusura = null;
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Stato fase aggiornato", DataChiusura = fase.DataChiusura });
-        }
-
-        // =============================================
-        // 2. AGGIORNA STATO PROGETTO
-        // =============================================
-        [HttpPut("{id}/stato")]
-        public async Task<IActionResult> UpdateProgettoStatus(int id, [FromBody] UpdateStatusRequest request)
-        {
-            var progetto = await _context.Progetti.FindAsync(id);
-            if (progetto == null) return NotFound("Progetto non trovato");
-
-            progetto.StatoId = request.StatoId;
-
-            // LOGICA CHIUSURA PROGETTO
-            if (request.StatoId == 3) // 3 = Terminato
-            {
-                if (!progetto.DataChiusura.HasValue)
-                {
-                    progetto.DataChiusura = DateTime.UtcNow;
-                }
-            }
-            else
-            {
-                progetto.DataChiusura = null;
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Stato progetto aggiornato", DataChiusura = progetto.DataChiusura });
-        }
+        // GET: api/progetti/all
         [HttpGet("all")]
         public async Task<IActionResult> GetAllProgetti()
         {
-            // Recupera progetti con stato e conteggio fasi
-            // Ordinamento richiesto: Aperti (1) -> In Corso (2) -> Terminati (3)
-            // Assumiamo ID: 1=Nuovo, 2=InCorso, 3=Terminato. Se diversi, usa un CASE WHEN in SQL o ordina in memoria.
-            var progetti = await _context.Progetti
-                .OrderBy(p => p.StatoId) // 1, 2, 3...
+            var rawProjects = await _context.Progetti
+                .OrderBy(p => p.StatoId)
                 .ThenByDescending(p => p.Id)
                 .Select(p => new
                 {
@@ -205,57 +36,48 @@ namespace TicketAPI.Controllers
                     p.StatoId,
                     DataInizio = p.DataInizio,
                     DataPrevFine = p.DataPrevFine,
-                    StatoNome = _context.Stati.Where(s => s.Id == p.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "Sconosciuto",
-                    Avanzamento = 0 // Qui potresti calcolare % fasi completate
+                    StatoNome = _context.Stati.Where(s => s.Id == p.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-",
+                    p.AssegnatoA // Stringa nel DB
                 })
                 .ToListAsync();
 
-            return Ok(progetti);
-        }
+            var userIds = rawProjects
+                .Where(p => int.TryParse(p.AssegnatoA, out _))
+                .Select(p => int.Parse(p.AssegnatoA))
+                .Distinct()
+                .ToList();
 
-        // =============================================
-        // 4. GET COMMENTI
-        // =============================================
-        [HttpGet("{id}/commenti")]
-        public async Task<IActionResult> GetCommenti(int id)
-        {
-            var commenti = await _context.CommentiProgetti
-                .Where(c => c.ProgettoId == id)
-                .OrderBy(c => c.DataCreazione)
-                .ToListAsync();
-            return Ok(commenti);
-        }
+            var users = await _context.ItUtenti
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id);
 
-        // =============================================
-        // 5. ADD COMMENTO
-        // =============================================
-        public class AddCommentoRequest
-        {
-            public string Testo { get; set; }
-            public int? UtenteId { get; set; }
-            public string Username { get; set; }
-        }
-
-        [HttpPost("{id}/commenti")]
-        public async Task<IActionResult> AddCommento(int id, [FromBody] AddCommentoRequest request)
-        {
-            var commento = new CommentoProgetto
+            var result = rawProjects.Select(p =>
             {
-                ProgettoId = id,
-                Testo = request.Testo,
-                UtenteId = request.UtenteId,
-                Username = request.Username,
-                DataCreazione = DateTime.UtcNow
-            };
+                ItUtente? user = null;
+                if (int.TryParse(p.AssegnatoA, out int uid) && users.ContainsKey(uid))
+                {
+                    user = users[uid];
+                }
 
-            _context.CommentiProgetti.Add(commento);
-            await _context.SaveChangesAsync();
+                return new
+                {
+                    p.Id,
+                    p.Titolo,
+                    p.Descrizione,
+                    p.StatoId,
+                    p.DataInizio,
+                    p.DataPrevFine,
+                    p.StatoNome,
+                    // Gestione sicura di AssegnatoA per evitare NRE nel client
+                    AssegnatoA = (user != null) ? new { user.Id, user.Nome } : null,
+                    AssegnatoAId = user?.Id
+                };
+            });
 
-            return Ok(commento);
+            return Ok(result);
         }
 
-        // ... (altri metodi)
-
+        // GET: api/progetti/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProgetto(int id)
         {
@@ -267,7 +89,9 @@ namespace TicketAPI.Controllers
                 .OrderBy(f => f.Ordine)
                 .ToListAsync();
 
-            // MAPPING CORRETTO PER IL VIEWMODEL
+            int assegnatoId = 0;
+            if (int.TryParse(progetto.AssegnatoA, out int parsedId)) assegnatoId = parsedId;
+
             var result = new
             {
                 progetto.Id,
@@ -277,9 +101,8 @@ namespace TicketAPI.Controllers
                 progetto.DataInizio,
                 progetto.DataPrevFine,
                 progetto.DataChiusura,
-                progetto.AssegnatoA, // Per il progetto manteniamo l'ID/Stringa per la combo
-
-                // Mappiamo le fasi creando gli oggetti che il client si aspetta
+                AssegnatoA = new { Id = assegnatoId, Nome = "Caricamento..." },
+                AssegnatoAId = assegnatoId > 0 ? (int?)assegnatoId : null,
                 Fasi = fasi.Select(f => new
                 {
                     f.Id,
@@ -289,50 +112,163 @@ namespace TicketAPI.Controllers
                     f.DataPrevFine,
                     f.StatoId,
                     f.Ordine,
-
-                    // OGGETTO STATO (per x:Bind Stato.Nome)
-                    Stato = new
-                    {
-                        Id = f.StatoId,
-                        Nome = _context.Stati.Where(s => s.Id == f.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-"
-                    },
-
-                    // OGGETTO ASSEGNATOA (per x:Bind AssegnatoA.Nome)
-                    AssegnatoA = new
-                    {
-                        Id = 0, // Non ci serve l'ID reale per la sola visualizzazione lista
-                        Nome = f.AssegnatoA ?? "Non assegnato"
-                    }
+                    Stato = new { Id = f.StatoId, Nome = _context.Stati.Where(s => s.Id == f.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-" },
+                    AssegnatoA = new { Id = 0, Nome = f.AssegnatoA ?? "Non assegnato" }
                 }).ToList()
             };
 
             return Ok(result);
         }
 
-        [HttpPut("{id}/assegnatario")]
-        public async Task<IActionResult> UpdateAssegnatario(int id, [FromBody] object payload)
+        // POST: api/progetti
+        [HttpPost]
+        public async Task<IActionResult> CreateProgetto([FromBody] Progetto progetto)
         {
-            // Nota: payload semplificato { "assegnatoA": "123" }
-            // Implementazione rapida tramite dynamic o classe dedicata
+            if (progetto == null) return BadRequest();
+            progetto.DataInizio = DateTime.SpecifyKind(progetto.DataInizio ?? DateTime.Now, DateTimeKind.Utc);
+            if (progetto.DataPrevFine.HasValue) progetto.DataPrevFine = DateTime.SpecifyKind(progetto.DataPrevFine.Value, DateTimeKind.Utc);
+            _context.Progetti.Add(progetto);
+            await _context.SaveChangesAsync();
+            return Ok(progetto);
+        }
+
+        // PUT: api/progetti/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProject(int id, [FromBody] UpdateProjectRequest request)
+        {
+            if (id != request.Id) return BadRequest("ID progetto non corrispondente.");
+            var project = await _context.Progetti.FindAsync(id);
+            if (project == null) return NotFound("Progetto non trovato.");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var json = System.Text.Json.JsonSerializer.Serialize(payload);
-                var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                project.Titolo = request.Titolo;
+                project.Descrizione = request.Descrizione;
+                project.StatoId = request.StatoId;
+                project.AssegnatoA = request.AssegnatoAId.HasValue ? request.AssegnatoAId.ToString() : null;
 
-                if (data != null && data.ContainsKey("assegnatoA"))
+                if (request.Fasi != null)
                 {
-                    var p = await _context.Progetti.FindAsync(id);
-                    if (p != null)
+                    var existingPhases = await _context.FasiProgetto.Where(f => f.ProgettoId == id).ToListAsync();
+                    var incomingIds = request.Fasi.Where(f => f.Id > 0).Select(f => f.Id).ToList();
+                    var phasesToDelete = existingPhases.Where(f => !incomingIds.Contains(f.Id)).ToList();
+                    if (phasesToDelete.Any()) _context.FasiProgetto.RemoveRange(phasesToDelete);
+
+                    foreach (var faseDto in request.Fasi)
                     {
-                        p.AssegnatoA = data["assegnatoA"];
-                        await _context.SaveChangesAsync();
-                        return Ok();
+                        var startUtc = faseDto.DataInizio.HasValue ? DateTime.SpecifyKind(faseDto.DataInizio.Value, DateTimeKind.Utc) : (DateTime?)null;
+                        var endUtc = faseDto.DataPrevFine.HasValue ? DateTime.SpecifyKind(faseDto.DataPrevFine.Value, DateTimeKind.Utc) : (DateTime?)null;
+
+                        if (faseDto.Id > 0)
+                        {
+                            var existingPhase = existingPhases.FirstOrDefault(f => f.Id == faseDto.Id);
+                            if (existingPhase != null)
+                            {
+                                existingPhase.Titolo = faseDto.Titolo;
+                                existingPhase.Descrizione = faseDto.Descrizione;
+                                existingPhase.DataInizio = startUtc;
+                                existingPhase.DataPrevFine = endUtc;
+                                existingPhase.StatoId = faseDto.StatoId;
+                                existingPhase.Ordine = faseDto.Ordine;
+                                existingPhase.AssegnatoA = faseDto.AssegnatoAId.HasValue ? faseDto.AssegnatoAId.ToString() : null;
+                            }
+                        }
+                        else
+                        {
+                            _context.FasiProgetto.Add(new FaseProgetto
+                            {
+                                ProgettoId = id,
+                                Titolo = faseDto.Titolo,
+                                Descrizione = faseDto.Descrizione,
+                                DataInizio = startUtc,
+                                DataPrevFine = endUtc,
+                                StatoId = faseDto.StatoId,
+                                Ordine = faseDto.Ordine,
+                                AssegnatoA = faseDto.AssegnatoAId.HasValue ? faseDto.AssegnatoAId.ToString() : null
+                            });
+                        }
+                    }
+                    if (request.Fasi.Any(f => f.DataPrevFine.HasValue))
+                    {
+                        var maxDate = request.Fasi.Where(f => f.DataPrevFine.HasValue).Max(f => f.DataPrevFine.Value);
+                        project.DataPrevFine = DateTime.SpecifyKind(maxDate, DateTimeKind.Utc);
                     }
                 }
-                return BadRequest();
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok(new { Message = "Progetto aggiornato con successo" });
             }
-            catch { return BadRequest(); }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, $"Errore: {ex.Message}");
+            }
+        }
+
+        // --- NUOVI METODI COMMENTI (Fix 404) ---
+        [HttpGet("{id}/commenti")]
+        public async Task<IActionResult> GetCommenti(int id)
+        {
+            var commenti = await _context.CommentiProgetti
+                .Where(c => c.ProgettoId == id)
+                .OrderBy(c => c.DataCreazione)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Testo,
+                    c.DataCreazione,
+                    c.Username,
+                    c.UtenteId
+                })
+                .ToListAsync();
+            return Ok(commenti);
+        }
+
+        [HttpPost("{id}/commenti")]
+        public async Task<IActionResult> PostCommento(int id, [FromBody] CommentoDto commento)
+        {
+            if (commento == null || string.IsNullOrWhiteSpace(commento.Testo)) return BadRequest();
+            var nuovoCommento = new CommentoProgetto
+            {
+                ProgettoId = id,
+                Testo = commento.Testo,
+                UtenteId = commento.UtenteId,
+                Username = commento.Username,
+                DataCreazione = DateTime.UtcNow
+            };
+            _context.CommentiProgetti.Add(nuovoCommento);
+            await _context.SaveChangesAsync();
+            return Ok(nuovoCommento);
         }
     }
 
+    public class UpdateProjectRequest
+    {
+        public int Id { get; set; }
+        public string Titolo { get; set; }
+        public string Descrizione { get; set; }
+        public int StatoId { get; set; }
+        public int? AssegnatoAId { get; set; }
+        public List<UpdatePhaseDto> Fasi { get; set; }
+    }
+
+    public class UpdatePhaseDto
+    {
+        public int Id { get; set; }
+        public string Titolo { get; set; }
+        public string Descrizione { get; set; }
+        public DateTime? DataInizio { get; set; }
+        public DateTime? DataPrevFine { get; set; }
+        public int StatoId { get; set; }
+        public int Ordine { get; set; }
+        public int? AssegnatoAId { get; set; }
+    }
+
+    public class CommentoDto
+    {
+        public string Testo { get; set; }
+        public int UtenteId { get; set; }
+        public string Username { get; set; }
+    }
 }
