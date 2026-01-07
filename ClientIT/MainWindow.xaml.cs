@@ -91,17 +91,13 @@ namespace ClientIT
         {
             if (e.ClickedItem is ProjectViewModel project)
             {
-                // Nascondi Lista
                 ProjectListViewArea.Visibility = Visibility.Collapsed;
-
-                // Mostra Dettaglio
                 ProjectDetailViewArea.Visibility = Visibility.Visible;
 
-                // Recupera l'utente corrente per i commenti (assumendo tu lo abbia salvato all'avvio o lo simuli)
-                // Se non hai un oggetto "CurrentUser" globale, puoi crearne uno temporaneo basato sulla selezione a sinistra
                 var currentUser = UserListView.SelectedItem as ItUtente ?? new ItUtente { Nome = "Me" };
 
-                ProjectDetailControl.Load(project, currentUser);
+                // CHIAMATA AGGIORNATA: Passa anche Stati e Utenti
+                ProjectDetailControl.Load(project, currentUser, AllStati.ToList(), AllItUsers.ToList());
             }
         }
 

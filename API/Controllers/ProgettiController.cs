@@ -253,6 +253,86 @@ namespace TicketAPI.Controllers
 
             return Ok(commento);
         }
+
+        // ... (altri metodi)
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProgetto(int id)
+        {
+            var progetto = await _context.Progetti.FindAsync(id);
+            if (progetto == null) return NotFound("Progetto non trovato");
+
+            var fasi = await _context.FasiProgetto
+                .Where(f => f.ProgettoId == id)
+                .OrderBy(f => f.Ordine)
+                .ToListAsync();
+
+            // MAPPING CORRETTO PER IL VIEWMODEL
+            var result = new
+            {
+                progetto.Id,
+                progetto.Titolo,
+                progetto.Descrizione,
+                progetto.StatoId,
+                progetto.DataInizio,
+                progetto.DataPrevFine,
+                progetto.DataChiusura,
+                progetto.AssegnatoA, // Per il progetto manteniamo l'ID/Stringa per la combo
+
+                // Mappiamo le fasi creando gli oggetti che il client si aspetta
+                Fasi = fasi.Select(f => new
+                {
+                    f.Id,
+                    f.Titolo,
+                    f.Descrizione,
+                    f.DataInizio,
+                    f.DataPrevFine,
+                    f.StatoId,
+                    f.Ordine,
+
+                    // OGGETTO STATO (per x:Bind Stato.Nome)
+                    Stato = new
+                    {
+                        Id = f.StatoId,
+                        Nome = _context.Stati.Where(s => s.Id == f.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-"
+                    },
+
+                    // OGGETTO ASSEGNATOA (per x:Bind AssegnatoA.Nome)
+                    AssegnatoA = new
+                    {
+                        Id = 0, // Non ci serve l'ID reale per la sola visualizzazione lista
+                        Nome = f.AssegnatoA ?? "Non assegnato"
+                    }
+                }).ToList()
+            };
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/assegnatario")]
+        public async Task<IActionResult> UpdateAssegnatario(int id, [FromBody] object payload)
+        {
+            // Nota: payload semplificato { "assegnatoA": "123" }
+            // Implementazione rapida tramite dynamic o classe dedicata
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(payload);
+                var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+
+                if (data != null && data.ContainsKey("assegnatoA"))
+                {
+                    var p = await _context.Progetti.FindAsync(id);
+                    if (p != null)
+                    {
+                        p.AssegnatoA = data["assegnatoA"];
+                        await _context.SaveChangesAsync();
+                        return Ok();
+                    }
+                }
+                return BadRequest();
+            }
+            catch { return BadRequest(); }
+        }
     }
 
 }
