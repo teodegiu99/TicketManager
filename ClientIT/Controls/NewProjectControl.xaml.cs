@@ -18,23 +18,9 @@ namespace ClientIT.Controls
     // =========================
     // WRAPPER PER LA VISUALIZZAZIONE ROADMAP
     // =========================
-    public class RoadmapItem
-    {
-        public string Titolo { get; set; } = string.Empty;
-        public Thickness Margin { get; set; } // Posizione barra
-        public Thickness TextMargin { get; set; } // Posizione testo
-        public double Width { get; set; }     // Lunghezza
-        public SolidColorBrush Color { get; set; }
-        public string TooltipText { get; set; } = string.Empty;
-        public string DateText { get; set; } = string.Empty;
-        public PhaseViewModel OriginalPhase { get; set; }
-    }
 
-    public class TimelineLabel
-    {
-        public string Text { get; set; }
-        public Thickness Margin { get; set; }
-    }
+
+  
 
     public sealed partial class NewProjectControl : UserControl, INotifyPropertyChanged
     {

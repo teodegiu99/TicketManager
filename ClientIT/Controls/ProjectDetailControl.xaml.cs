@@ -13,29 +13,14 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Windows.UI;
 
 namespace ClientIT.Controls
 {
     // Classi di supporto per la roadmap
-    public class RoadmapItem
-    {
-        public string Titolo { get; set; } = string.Empty;
-        public Thickness Margin { get; set; }
-        public Thickness TextMargin { get; set; }
-        public double Width { get; set; }
-        public SolidColorBrush Color { get; set; }
-        public string TooltipText { get; set; } = string.Empty;
-        public string DateText { get; set; } = string.Empty;
-        public PhaseViewModel OriginalPhase { get; set; }
-    }
+ 
 
-    public class TimelineLabel
-    {
-        public string Text { get; set; }
-        public Thickness Margin { get; set; }
-    }
-
-    public sealed partial class ProjectDetailsControl : UserControl, INotifyPropertyChanged
+    public sealed partial class ProjectDetailControl : UserControl, INotifyPropertyChanged
     {
         // =========================
         // DATI PRINCIPALI
@@ -76,7 +61,7 @@ namespace ClientIT.Controls
         private void OnPropertyChanged([CallerMemberName] string name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        public ProjectDetailsControl()
+        public ProjectDetailControl()
         {
             this.InitializeComponent();
             _apiClient = new HttpClient(new HttpClientHandler
@@ -154,7 +139,34 @@ namespace ClientIT.Controls
                 _isLoadingData = false;
             }
         }
+        private async Task OpenPhaseDialog(PhaseViewModel phase)
+        {
+            if (phase == null) return;
 
+            var dialogControl = new PhaseDetailDialog();
+            dialogControl.Setup(_allUsersCache, _allStatiCache, phase);
+
+            var dialog = new ContentDialog
+            {
+                Title = "Modifica Fase",
+                Content = dialogControl,
+                PrimaryButtonText = "Applica",
+                CloseButtonText = "Annulla",
+                XamlRoot = XamlRoot
+            };
+
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            {
+                var updated = dialogControl.GetPhase();
+                // Aggiorna i dati...
+                phase.Titolo = updated.Titolo;
+                phase.Descrizione = updated.Descrizione;
+                phase.DataInizio = updated.DataInizio;
+                phase.DataPrevFine = updated.DataPrevFine;
+                phase.Stato = updated.Stato;
+                phase.AssegnatoA = updated.AssegnatoA;
+            }
+        }
         // =========================
         // LOGICA ROADMAP (Engine)
         // =========================
@@ -339,41 +351,17 @@ namespace ClientIT.Controls
         {
             if (e.ClickedItem is PhaseViewModel phase)
             {
-                var dialogControl = new PhaseDetailDialog();
-                dialogControl.Setup(_allUsersCache, _allStatiCache, phase);
-
-                var dialog = new ContentDialog
-                {
-                    Title = "Modifica Fase",
-                    Content = dialogControl,
-                    PrimaryButtonText = "Applica",
-                    CloseButtonText = "Annulla",
-                    XamlRoot = XamlRoot
-                };
-
-                if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-                {
-                    var updated = dialogControl.GetPhase();
-                    phase.Titolo = updated.Titolo;
-                    phase.Descrizione = updated.Descrizione;
-                    phase.DataInizio = updated.DataInizio;
-                    phase.DataPrevFine = updated.DataPrevFine;
-                    phase.Stato = updated.Stato;
-                    phase.AssegnatoA = updated.AssegnatoA;
-                }
+                await OpenPhaseDialog(phase);
             }
         }
 
         // Gestione Click dalla Roadmap
-        private void RoadmapItem_Click(object sender, RoutedEventArgs e)
+        private async void RoadmapItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is RoadmapItem item)
             {
-                // Simula il click sulla lista per aprire il dialog
-                _ = PhasesListView_ItemClick(null, new ItemClickEventArgs { OriginalSource = null });
-                // Nota: ItemClickEventArgs è sealed e difficile da instanziare manualmente.
-                // Meglio estrarre la logica del dialog in un metodo separato `OpenDialog(PhaseViewModel p)`.
-                // Per brevità qui chiamo direttamente la logica se necessario, ma ti consiglio il refactoring.
+                // Chiamiamo direttamente il metodo comune, SENZA inventare ItemClickEventArgs
+                await OpenPhaseDialog(item.OriginalPhase);
             }
         }
 

@@ -1,5 +1,7 @@
 ﻿using System;
-
+using System.Collections.Generic; // <--- Importante per List<>
+using Microsoft.UI.Xaml; // Per HorizontalAlignment
+using Microsoft.UI.Xaml.Media; // Per SolidColorBrush
 namespace ClientIT.Models
 {
     public class ProjectViewModel
@@ -11,7 +13,9 @@ namespace ClientIT.Models
         public string StatoNome { get; set; }
         public DateTime? DataInizio { get; set; }
         public DateTime? DataPrevFine { get; set; }
-
+        public Stato Stato { get; set; }            // Oggetto completo per il binding
+        public ItUtente AssegnatoA { get; set; }    // Oggetto completo per il binding
+        public List<PhaseViewModel> Fasi { get; set; } = new(); // Lista delle fasi
         // Per il binding del colore stato nella lista
         public string StatoColor => StatoId switch
         {

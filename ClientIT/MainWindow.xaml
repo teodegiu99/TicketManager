@@ -100,15 +100,15 @@
         <Grid Grid.Column="1">
 
             <Grid x:Name="NewTicketViewArea" Visibility="Collapsed">
-                <controls:NewTicketControl x:Name="NewTicketControl"/>
+                <controls:NewTicketControl x:Name="NewTicketControlElement" />
             </Grid>
 
             <Grid x:Name="UserAdminViewArea" Visibility="Collapsed">
-                <controls:UserAdminControl x:Name="UserAdminControl"/>
+                <controls:UserAdminControl x:Name="UserAdminControlElement"/>
             </Grid>
 
             <Grid x:Name="NewProjectViewArea" Visibility="Collapsed">
-                <controls:NewProjectControl x:Name="NewProjectControl"/>
+                <controls:NewProjectControl x:Name="NewProjectControlElement"/>
             </Grid>
 
             <Grid x:Name="ProjectListViewArea" Visibility="Collapsed">
@@ -152,7 +152,7 @@
             </Grid>
 
             <Grid x:Name="ProjectDetailViewArea" Visibility="Collapsed">
-                <controls:ProjectDetailControl x:Name="ProjectDetailControl"/>
+                <controls:ProjectDetailControl x:Name="ProjectDetailControlElement"/>
             </Grid>
 
             <Grid x:Name="ListViewArea" Visibility="Visible">

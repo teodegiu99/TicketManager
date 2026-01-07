@@ -42,12 +42,12 @@ namespace ClientIT
 
             this.Activated += MainWindow_Activated;
 
-            NewTicketControl.TicketCreated += async (s, args) =>
+            NewTicketControlElement.TicketCreated += async (s, args) =>
             {
                 await ShowTicketListAndRefresh();
             };
 
-            ProjectDetailControl.BackRequested += (s, args) => ShowProjectsButton_Click(null, null);
+            ProjectDetailControlElement.BackRequested += (s, args) => ShowProjectsButton_Click(null, null);
         }
 
         private bool _isFirstActivation = true;
@@ -97,7 +97,7 @@ namespace ClientIT
                 var currentUser = UserListView.SelectedItem as ItUtente ?? new ItUtente { Nome = "Me" };
 
                 // CHIAMATA AGGIORNATA: Passa anche Stati e Utenti
-                ProjectDetailControl.Load(project, currentUser, AllStati.ToList(), AllItUsers.ToList());
+                ProjectDetailControlElement.Load(project, currentUser, AllStati.ToList(), AllItUsers.ToList());
             }
         }
 
@@ -119,7 +119,7 @@ namespace ClientIT
             // MOSTRA NUOVO TICKET
             NewTicketViewArea.Visibility = Visibility.Visible;
 
-            NewTicketControl.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
+            NewTicketControlElement.SetupData(AllTipologie, AllUrgenze, AllSedi, _allAdUsers);
         }
         private void NewProjectButton_Click(object sender, RoutedEventArgs e)
         {
@@ -138,7 +138,7 @@ namespace ClientIT
             // MOSTRA CREA PROGETTO
             NewProjectViewArea.Visibility = Visibility.Visible;
 
-            NewProjectControl.SetupReferenceData(AllItUsers.ToList(), AllStati.ToList());
+            NewProjectControlElement.SetupReferenceData(AllItUsers.ToList(), AllStati.ToList());
         }
         // --- NUOVO: GESTIONE BOTTONE SBLOCCA UTENTE ---
         private void UserAdminButton_Click(object sender, RoutedEventArgs e)

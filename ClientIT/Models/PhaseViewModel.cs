@@ -10,7 +10,7 @@ namespace ClientIT.Models
         private string _descrizione = string.Empty;
         private DateTimeOffset? _dataInizio;
         private DateTimeOffset? _dataPrevFine;
-
+        public int Id { get; set; }
         // Usiamo ItUtente per il binding della ComboBox
         private ItUtente? _assegnatoA;
         private Stato? _stato;

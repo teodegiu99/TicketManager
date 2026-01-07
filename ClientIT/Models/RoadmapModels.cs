@@ -1,7 +1,8 @@
 ﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using ClientIT.Models; // Assicurati che PhaseViewModel sia visibile qui
 
-namespace ClientIT.Models
+namespace ClientIT.Controls // O ClientIT.Models, ma se usi Controls non devi cambiare gli using
 {
     public class RoadmapItem
     {
@@ -12,9 +13,7 @@ namespace ClientIT.Models
         public SolidColorBrush Color { get; set; }
         public string TooltipText { get; set; } = string.Empty;
         public string DateText { get; set; } = string.Empty;
-
-        // Riferimento generico (può essere PhaseViewModel o altro)
-        public object OriginalItem { get; set; }
+        public PhaseViewModel OriginalPhase { get; set; }
     }
 
     public class TimelineLabel
