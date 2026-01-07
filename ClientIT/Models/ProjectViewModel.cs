@@ -10,6 +10,7 @@ namespace ClientIT.Models
         public string Titolo { get; set; }
         public string Descrizione { get; set; }
         public int StatoId { get; set; }
+        public int? AssegnatoAId { get; set; } // <--- AGGIUNTA FONDAMENTALE
         public string StatoNome { get; set; }
         public DateTime? DataInizio { get; set; }
         public DateTime? DataPrevFine { get; set; }
