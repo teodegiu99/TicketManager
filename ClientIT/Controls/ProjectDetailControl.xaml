@@ -6,6 +6,7 @@
     xmlns:models="using:ClientIT.Models"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:shapes="using:Microsoft.UI.Xaml.Shapes" 
     mc:Ignorable="d">
 
     <Grid Background="{ThemeResource LayerFillColorDefaultBrush}">
@@ -118,7 +119,9 @@
                                     <Grid Height="30">
                                         <Button Margin="{x:Bind Margin}" Width="{x:Bind Width}" Background="{x:Bind Color}" 
                                                 Padding="0" CornerRadius="4" HorizontalAlignment="Left"
+                                                Height="24" 
                                                 ToolTipService.ToolTip="{x:Bind TooltipText}" Tag="{x:Bind}" Click="RoadmapItem_Click"/>
+
                                         <TextBlock Text="{x:Bind DateText}" Margin="{x:Bind TextMargin}" FontSize="10" VerticalAlignment="Center"/>
                                     </Grid>
                                 </DataTemplate>
@@ -151,14 +154,16 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <Ellipse Grid.Column="0" Width="32" Height="32" Fill="{ThemeResource AccentFillColorDefaultBrush}" 
-                                             VerticalAlignment="Bottom" Margin="0,0,8,0"
-                                             Visibility="Visible"/>
+                                    <Grid Width="32" Height="32" Margin="0,0,12,0" VerticalAlignment="Top">
+                                        <shapes:Ellipse Fill="{x:Bind Sfondo, Mode=OneWay}"/>
+                                        <TextBlock Text="{x:Bind Initials, Mode=OneWay}" 
+                                                   Foreground="White" 
+                                                   FontSize="12" 
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center" 
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
 
-                                    <TextBlock Grid.Column="0" Text="{x:Bind Initials}" 
-                                               Foreground="White" FontSize="12" FontWeight="Bold"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" 
-                                               Margin="0,0,8,4"/>
                                     <Border Grid.Column="1" 
                                             Background="{x:Bind Sfondo}" 
                                             CornerRadius="12" 
