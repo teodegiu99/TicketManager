@@ -8,11 +8,36 @@ namespace ClientIT.Models
     public class ProjectViewModel
     {
         public int Id { get; set; }
-        public string Titolo { get; set; }
-        public string Descrizione { get; set; }
-        public int StatoId { get; set; }
+
+        // FIX 1: Protezione per Titolo null
+        private string _titolo;
+        public string Titolo
+        {
+            get => _titolo ?? string.Empty;
+            set => _titolo = value;
+        }
+
+        // FIX 2: Protezione per Descrizione null (che causava crash nella lista)
+        private string _descrizione;
+        public string Descrizione
+        {
+            get => _descrizione ?? string.Empty;
+            set => _descrizione = value;
+        }
+
+        // --- FIX CRITICO: Cambia int in int? per evitare NullReferenceException nel Binding TwoWay ---
+        public int? StatoId { get; set; }
+
         public int? AssegnatoAId { get; set; }
-        public string StatoNome { get; set; }
+
+        // Protezione anche per StatoNome
+        private string _statoNome;
+        public string StatoNome
+        {
+            get => _statoNome ?? "-";
+            set => _statoNome = value;
+        }
+
         public DateTime? DataInizio { get; set; }
         public DateTime? DataPrevFine { get; set; }
 
@@ -21,10 +46,7 @@ namespace ClientIT.Models
 
         public List<PhaseViewModel> Fasi { get; set; } = new();
 
-        // --- FIX: Proprietà sicura per il binding nella lista ---
-        // Se AssegnatoA è null, restituisce "Non assegnato" invece di far crashare l'app
         public string AssegnatoANome => AssegnatoA?.Nome ?? "Non assegnato";
-
         public string StatoColor => StatoId switch
         {
             1 => "#3498db", // Nuovo (Blu)

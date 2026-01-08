@@ -21,6 +21,7 @@ namespace TicketAPI.Data
         public DbSet<Progetto> Progetti { get; set; }
         public DbSet<FaseProgetto> FasiProgetto { get; set; }
         public DbSet<CommentoProgetto> CommentiProgetti { get; set; }
+        public DbSet<Sollecito> Solleciti { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Serve per dire a EF Core che i nomi delle tabelle
@@ -33,6 +34,7 @@ namespace TicketAPI.Data
             modelBuilder.Entity<Stato>().ToTable("stato");
             modelBuilder.Entity<Progetto>().ToTable("progetti");
             modelBuilder.Entity<FaseProgetto>().ToTable("fasiprogetto");
+            modelBuilder.Entity<Sollecito>().ToTable("sollecito");
         }
     }
 }

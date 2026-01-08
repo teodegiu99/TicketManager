@@ -9,6 +9,10 @@ namespace TicketAPI.Models
     {
         // --- MODIFICA 1: Riportato a INT ---
         [Key]
+        [Column("id")]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
         [Column("nticket")]
         // --- MODIFICA 2: Aggiunto [DatabaseGenerated] ---
         // Questo dice a EF Core di lasciare che il DB generi il valore

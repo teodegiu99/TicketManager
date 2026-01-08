@@ -10,6 +10,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApiDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+
 // --- 2. Aggiungi i Controller e l'Autenticazione ---
 builder.Services.AddControllers();
 builder.Services.AddAuthentication(NegotiateDefaults.AuthenticationScheme)

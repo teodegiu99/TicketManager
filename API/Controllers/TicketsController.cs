@@ -1,16 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using System.DirectoryServices.AccountManagement;
-using TicketAPI.Data;
-using TicketAPI.Models;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using System.Linq;
 using System.Collections.Generic;
-
+using System.DirectoryServices.AccountManagement;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using TicketAPI.Data;
+using TicketAPI.Models;
 namespace TicketAPI.Controllers
 {
     [Authorize]
@@ -20,7 +19,6 @@ namespace TicketAPI.Controllers
     {
         private readonly ApiDbContext _context;
         private readonly IWebHostEnvironment _env;
-
         public TicketsController(ApiDbContext context, IWebHostEnvironment env)
         {
             _context = context;
@@ -242,6 +240,27 @@ namespace TicketAPI.Controllers
 
             if (modified) await _context.SaveChangesAsync();
             return Ok();
+        }
+        [HttpPost("{nticket}/sollecita")]
+        public async Task<IActionResult> SollecitaTicket(int nticket)
+        {
+            var ticket = await _context.Ticket.FirstOrDefaultAsync(t => t.Nticket == nticket);
+
+            if (ticket == null) return NotFound($"Ticket numero {nticket} non trovato.");
+
+            // 1. Salviamo SOLO il sollecito nel DB
+            var nuovoSollecito = new Sollecito
+            {
+                TicketId = ticket.Id,
+                DataSollecito = DateTime.UtcNow
+            };
+
+            _context.Solleciti.Add(nuovoSollecito);
+            await _context.SaveChangesAsync();
+
+            // NESSUNA NOTIFICA TEAMS QUI
+
+            return Ok(new { message = "Sollecito registrato con successo" });
         }
 
         [HttpPost]

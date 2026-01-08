@@ -109,11 +109,48 @@ namespace ClientUser
 
                 var dialog = new ContentDialog
                 {
-                    Title = "Dettaglio Ticket",
+                    Title = $"Dettaglio Ticket #{ticket.Nticket}", // Ho aggiunto il numero ticket nel titolo per chiarezza
                     Content = detailContent,
                     CloseButtonText = "Chiudi",
+                    // --- AGGIUNTA TASTO SOLLECITA ---
+                    SecondaryButtonText = "Sollecita",
                     XamlRoot = this.Content.XamlRoot,
                     DefaultButton = ContentDialogButton.Close
+                };
+
+                // Gestiamo il click del tasto "Sollecita"
+                dialog.SecondaryButtonClick += async (s, args) =>
+                {
+                    // Evitiamo che il dialogo si chiuda subito (opzionale, ma utile per dare feedback)
+                    args.Cancel = true;
+                    var d = (ContentDialog)s;
+                    d.IsSecondaryButtonEnabled = false; // Evita doppi click
+
+                    try
+                    {
+                        // Chiamata all'API
+                        var response = await _apiClient.PostAsync($"{_apiBaseUrl}/api/tickets/{ticket.Nticket}/sollecita", null);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            // Feedback visivo semplice modificando il titolo o mostrando un altro dialog
+                            d.Title = $"✅ Sollecito inviato! (Ticket #{ticket.Nticket})";
+                            d.SecondaryButtonText = "Inviato";
+                        }
+                        else
+                        {
+                            d.Title = $"❌ Errore sollecito (Ticket #{ticket.Nticket})";
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        d.Title = "❌ Errore di connessione";
+                    }
+                    finally
+                    {
+                        // Riabilita il bottone dopo un po' o lascialo disabilitato
+                        // d.IsSecondaryButtonEnabled = true; 
+                    }
                 };
 
                 await dialog.ShowAsync();
