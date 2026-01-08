@@ -68,7 +68,6 @@ namespace API.Controllers
                     p.DataInizio,
                     p.DataPrevFine,
                     p.StatoNome,
-                    // Gestione sicura di AssegnatoA per evitare NRE nel client
                     AssegnatoA = (user != null) ? new { user.Id, user.Nome } : null,
                     AssegnatoAId = user?.Id
                 };
@@ -206,7 +205,7 @@ namespace API.Controllers
             }
         }
 
-        // --- NUOVI METODI COMMENTI (Fix 404) ---
+        // --- METODI COMMENTI MANCANTI ---
         [HttpGet("{id}/commenti")]
         public async Task<IActionResult> GetCommenti(int id)
         {

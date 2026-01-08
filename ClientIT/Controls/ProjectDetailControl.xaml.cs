@@ -42,15 +42,15 @@ namespace ClientIT.Controls
         private List<Stato> _allStatiCache = new();
         private List<ItUtente> _allUsersCache = new();
 
-        // Tracker per rimuovere eventi (memory leak prevention)
+        // Tracker per evitare memory leak
         private List<PhaseViewModel> _phasesEventTracker = new();
 
         private double _roadmapWidth = 800;
         private bool _hasPhasesBool;
 
-        // --- FIX CRITICI PER I CRASH ---
+        // --- FIX CRASH: Flag per gestire navigazione rapida ---
         private bool _suppressRoadmap = false;
-        private int _currentLoadingId = -1; // Serve a capire se abbiamo cambiato progetto
+        private int _currentLoadingId = -1;
 
         public Visibility HasPhases => _hasPhasesBool ? Visibility.Visible : Visibility.Collapsed;
         public double RoadmapWidth { get => _roadmapWidth; set { _roadmapWidth = value; OnPropertyChanged(); } }
@@ -72,7 +72,7 @@ namespace ClientIT.Controls
 
         public void Load(ProjectViewModel projectSummary, ItUtente currentUser, List<Stato> stati, List<ItUtente> utenti)
         {
-            // Impostiamo l'ID corrente: qualsiasi caricamento asincrono precedente per un altro ID verrà ignorato
+            // Impostiamo l'ID corrente: invalida i caricamenti precedenti
             _currentLoadingId = projectSummary.Id;
 
             _currentUser = currentUser;
@@ -85,7 +85,7 @@ namespace ClientIT.Controls
 
             Project = projectSummary;
 
-            // Pulizia UI immediata
+            // Pulizia UI
             _suppressRoadmap = true;
             Phases.Clear();
             RoadmapItems.Clear();
@@ -93,7 +93,7 @@ namespace ClientIT.Controls
             Comments.Clear();
             _suppressRoadmap = false;
 
-            // Avvia caricamento asincrono
+            // Avvio caricamenti
             _ = LoadFullDetails(projectSummary.Id);
             _ = LoadComments(projectSummary.Id);
         }
@@ -104,7 +104,7 @@ namespace ClientIT.Controls
             {
                 var fullProject = await _apiClient.GetFromJsonAsync<ProjectViewModel>($"http://localhost:5210/api/progetti/{projectId}");
 
-                // --- FIX RACE CONDITION: Se l'utente è tornato indietro o ha cambiato progetto, ESCI ---
+                // SE L'UTENTE HA CAMBIATO PROGETTO, FERMATI
                 if (_currentLoadingId != projectId) return;
 
                 if (fullProject != null)
@@ -139,105 +139,42 @@ namespace ClientIT.Controls
             }
         }
 
-        private async void BtnSaveProject_Click(object sender, RoutedEventArgs e)
+        private async Task LoadComments(int projectId)
         {
-            if (Project == null) return;
-
-            var dto = new
-            {
-                Id = Project.Id,
-                Titolo = TxtTitolo.Text,
-                Descrizione = TxtDescrizione.Text,
-                StatoId = Project.StatoId,
-                AssegnatoAId = (Project.AssegnatoAId > 0) ? Project.AssegnatoAId : null,
-                Fasi = Phases.Select((p, i) => new
-                {
-                    Id = p.Id,
-                    Titolo = p.Titolo,
-                    Descrizione = p.Descrizione,
-                    DataInizio = p.DataInizio?.UtcDateTime,
-                    DataPrevFine = p.DataPrevFine?.UtcDateTime,
-                    StatoId = p.Stato?.Id ?? 1,
-                    Ordine = i,
-                    AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0) ? (int?)p.AssegnatoA.Id : null
-                }).ToList()
-            };
-
             try
             {
-                var res = await _apiClient.PutAsJsonAsync($"http://localhost:5210/api/progetti/{Project.Id}", dto);
+                Comments.Clear();
+                var list = await _apiClient.GetFromJsonAsync<List<CommentoViewModel>>($"http://localhost:5210/api/progetti/{projectId}/commenti");
 
-                if (res.IsSuccessStatusCode)
-                {
-                    await new ContentDialog { Title = "Salvato", Content = "Progetto aggiornato!", CloseButtonText = "Ok", XamlRoot = XamlRoot }.ShowAsync();
-                    // Ricarica solo se siamo ancora su questo progetto
-                    if (_currentLoadingId == Project.Id) await LoadFullDetails(Project.Id);
-                }
-                else
-                {
-                    string err = await res.Content.ReadAsStringAsync();
-                    await new ContentDialog { Title = "Errore Salvataggio", Content = err, CloseButtonText = "Chiudi", XamlRoot = XamlRoot }.ShowAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                if (XamlRoot != null)
-                    await new ContentDialog { Title = "Eccezione", Content = ex.Message, CloseButtonText = "Chiudi", XamlRoot = XamlRoot }.ShowAsync();
-            }
-        }
+                // FIX: Fermati se progetto cambiato
+                if (_currentLoadingId != projectId) return;
 
-        private void Phases_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            // Gestione pulita degli eventi per evitare memory leak
-            if (e.Action == NotifyCollectionChangedAction.Reset)
-            {
-                foreach (var item in _phasesEventTracker)
-                    if (item != null) item.PropertyChanged -= Phase_PropertyChanged;
-                _phasesEventTracker.Clear();
-            }
-            else
-            {
-                if (e.OldItems != null)
+                if (list != null)
                 {
-                    foreach (PhaseViewModel item in e.OldItems)
+                    foreach (var c in list)
                     {
-                        if (item != null)
-                        {
-                            item.PropertyChanged -= Phase_PropertyChanged;
-                            _phasesEventTracker.Remove(item);
-                        }
+                        bool isMe = (c.Username == _currentUser?.Nome) || (c.Username == _currentUser?.UsernameAd);
+                        c.Allineamento = isMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+                        c.Sfondo = isMe ? new SolidColorBrush(Color.FromArgb(255, 220, 240, 255)) : new SolidColorBrush(Colors.WhiteSmoke);
+                        Comments.Add(c);
                     }
-                }
-                if (e.NewItems != null)
-                {
-                    foreach (PhaseViewModel item in e.NewItems)
+
+                    // FIX CRASH: Controlla visibilità prima di scrollare!
+                    if (Comments.Any() && CommentsListView != null && this.Visibility == Visibility.Visible)
                     {
-                        if (item != null)
-                        {
-                            item.PropertyChanged += Phase_PropertyChanged;
-                            _phasesEventTracker.Add(item);
-                        }
+                        await Task.Delay(50);
+                        if (_currentLoadingId == projectId)
+                            CommentsListView.ScrollIntoView(Comments.Last());
                     }
                 }
             }
-
-            if (!_suppressRoadmap) GenerateRoadmap();
-        }
-
-        private void Phase_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (_suppressRoadmap) return;
-            if (e.PropertyName == nameof(PhaseViewModel.DataInizio) ||
-                e.PropertyName == nameof(PhaseViewModel.DataPrevFine) ||
-                e.PropertyName == nameof(PhaseViewModel.Titolo))
-            {
-                GenerateRoadmap();
-            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Errore commenti: {ex.Message}"); }
         }
 
         private void GenerateRoadmap()
         {
             if (_suppressRoadmap) return;
+            // Controllo extra per evitare crash se Phases è null
             if (Phases == null) return;
 
             RoadmapItems.Clear();
@@ -292,6 +229,73 @@ namespace ClientIT.Controls
             }
         }
 
+        private async void BtnSaveProject_Click(object sender, RoutedEventArgs e)
+        {
+            if (Project == null) return;
+            var dto = new
+            {
+                Id = Project.Id,
+                Titolo = TxtTitolo.Text,
+                Descrizione = TxtDescrizione.Text,
+                StatoId = Project.StatoId,
+                AssegnatoAId = (Project.AssegnatoAId > 0) ? Project.AssegnatoAId : null,
+                Fasi = Phases.Select((p, i) => new
+                {
+                    Id = p.Id,
+                    Titolo = p.Titolo,
+                    Descrizione = p.Descrizione,
+                    DataInizio = p.DataInizio?.UtcDateTime,
+                    DataPrevFine = p.DataPrevFine?.UtcDateTime,
+                    StatoId = p.Stato?.Id ?? 1,
+                    Ordine = i,
+                    AssegnatoAId = (p.AssegnatoA != null && p.AssegnatoA.Id > 0) ? (int?)p.AssegnatoA.Id : null
+                }).ToList()
+            };
+
+            try
+            {
+                var res = await _apiClient.PutAsJsonAsync($"http://localhost:5210/api/progetti/{Project.Id}", dto);
+                if (res.IsSuccessStatusCode)
+                {
+                    await new ContentDialog { Title = "Salvato", Content = "Progetto aggiornato!", CloseButtonText = "Ok", XamlRoot = XamlRoot }.ShowAsync();
+                    if (_currentLoadingId == Project.Id) await LoadFullDetails(Project.Id);
+                }
+                else
+                {
+                    string err = await res.Content.ReadAsStringAsync();
+                    await new ContentDialog { Title = "Errore Salvataggio", Content = err, CloseButtonText = "Chiudi", XamlRoot = XamlRoot }.ShowAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (XamlRoot != null) await new ContentDialog { Title = "Eccezione", Content = ex.Message, CloseButtonText = "Chiudi", XamlRoot = XamlRoot }.ShowAsync();
+            }
+        }
+
+        private void Phases_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var item in _phasesEventTracker) if (item != null) item.PropertyChanged -= Phase_PropertyChanged;
+                _phasesEventTracker.Clear();
+            }
+            else
+            {
+                if (e.OldItems != null) foreach (PhaseViewModel item in e.OldItems) if (item != null) { item.PropertyChanged -= Phase_PropertyChanged; _phasesEventTracker.Remove(item); }
+                if (e.NewItems != null) foreach (PhaseViewModel item in e.NewItems) if (item != null) { item.PropertyChanged += Phase_PropertyChanged; _phasesEventTracker.Add(item); }
+            }
+            if (!_suppressRoadmap) GenerateRoadmap();
+        }
+
+        private void Phase_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (_suppressRoadmap) return;
+            if (e.PropertyName == nameof(PhaseViewModel.DataInizio) || e.PropertyName == nameof(PhaseViewModel.DataPrevFine) || e.PropertyName == nameof(PhaseViewModel.Titolo))
+            {
+                GenerateRoadmap();
+            }
+        }
+
         private async Task OpenPhaseDialog(PhaseViewModel phase)
         {
             if (phase == null || XamlRoot == null) return;
@@ -324,46 +328,13 @@ namespace ClientIT.Controls
         private void BtnAddPhase_Click(object sender, RoutedEventArgs e)
         {
             var startDate = DateTimeOffset.Now;
-            if (Phases.Any() && Phases.Last().DataPrevFine.HasValue)
-                startDate = Phases.Last().DataPrevFine!.Value.AddDays(1);
+            if (Phases.Any() && Phases.Last().DataPrevFine.HasValue) startDate = Phases.Last().DataPrevFine!.Value.AddDays(1);
             Phases.Add(new PhaseViewModel { Id = 0, Titolo = "Nuova Fase", DataInizio = startDate, DataPrevFine = startDate.AddDays(5), Stato = _allStatiCache.FirstOrDefault() });
         }
 
         private void BtnRemovePhase_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button b && b.Tag is PhaseViewModel p) Phases.Remove(p);
-        }
-
-        private async Task LoadComments(int projectId)
-        {
-            try
-            {
-                Comments.Clear();
-                var list = await _apiClient.GetFromJsonAsync<List<CommentoViewModel>>($"http://localhost:5210/api/progetti/{projectId}/commenti");
-
-                // --- FIX RACE CONDITION ---
-                if (_currentLoadingId != projectId) return;
-
-                if (list != null)
-                {
-                    foreach (var c in list)
-                    {
-                        bool isMe = (c.Username == _currentUser?.Nome) || (c.Username == _currentUser?.UsernameAd);
-                        c.Allineamento = isMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-                        c.Sfondo = isMe ? new SolidColorBrush(Color.FromArgb(255, 220, 240, 255)) : new SolidColorBrush(Colors.WhiteSmoke);
-                        Comments.Add(c);
-                    }
-
-                    // --- FIX CRASH: Controlla visibilità prima di scrollare! ---
-                    if (Comments.Any() && CommentsListView != null && this.Visibility == Visibility.Visible)
-                    {
-                        await Task.Delay(50);
-                        if (_currentLoadingId == projectId)
-                            CommentsListView.ScrollIntoView(Comments.Last());
-                    }
-                }
-            }
-            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Errore commenti: {ex.Message}"); }
         }
 
         private async void BtnSendComment_Click(object sender, RoutedEventArgs e)
