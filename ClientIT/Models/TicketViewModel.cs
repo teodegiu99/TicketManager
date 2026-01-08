@@ -47,6 +47,13 @@ namespace ClientIT.Models
         public string? PerContoDi { get; set; }
         public bool UrgenzaCambiata { get; set; }
 
+        public int SollecitiCount { get; set; }
+
+        // Proprietà helper per nascondere il badge se è 0
+        public bool IsSollecitato => SollecitiCount > 0;
+
+        // Proprietà per il testo del badge
+        public string SollecitiText => $"Sollecitato {SollecitiCount} {(SollecitiCount == 1 ? "volta" : "volte")}";
         public Visibility PerContoDiVisibility =>
             string.IsNullOrEmpty(PerContoDi) ? Visibility.Collapsed : Visibility.Visible;
 

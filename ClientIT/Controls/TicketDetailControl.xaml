@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:ClientIT.Models"
+    xmlns:converters="using:ClientIT.Converters"
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -20,6 +21,8 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,0,0,16"/>
         </Style>
+        <converters:PathToImageConverter x:Key="PathToImageConverter"/>
+        <converters:DateToStringConverter x:Key="DateToStringConverter"/>
     </UserControl.Resources>
 
     <Grid Padding="0,16,0,0"
@@ -80,15 +83,25 @@
                     <TextBlock Text="{x:Bind ViewModel.Testo, Mode=OneWay}" TextWrapping="Wrap" FontSize="14" LineHeight="20"/>
                 </Border>
 
-                <Button x:Name="BtnScreenshot"
-                        Visibility="{x:Bind HasScreenshot(ViewModel.ScreenshotPath), Mode=OneWay}"
-                        Click="BtnScreenshot_Click"
-                        Margin="0,0,0,24">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE91B;"/>
-                        <TextBlock Text="Visualizza Screenshot Allegato"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel x:Name="ScreenshotPanel" Spacing="5">
+                    <StackPanel.Visibility>
+                        <Binding Path="ViewModel.ScreenshotPath" Converter="{StaticResource PathToImageConverter}" FallbackValue="Collapsed">
+                            <Binding.ConverterParameter>Visibility</Binding.ConverterParameter>
+                        </Binding>
+                    </StackPanel.Visibility>
+
+                    <TextBlock Text="Screenshot Allegato" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
+
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="4" HorizontalAlignment="Left">
+                        <Button Padding="0" Click="OpenScreenshot_Click" ToolTipService.ToolTip="Clicca per aprire il file originale">
+                            <Image Source="{x:Bind ViewModel.ScreenshotPath, Converter={StaticResource PathToImageConverter}, Mode=OneWay}" 
+                               MaxHeight="300" Stretch="Uniform"/>
+                        </Button>
+                    </Border>
+
+                    <TextBlock Text="{x:Bind ViewModel.ScreenshotPath, Mode=OneWay}" 
+                           FontSize="10" Foreground="Gray" TextWrapping="Wrap"/>
+                </StackPanel>
 
                 <TextBlock Text="Note IT (Admin)" Style="{StaticResource DetailLabelStyle}"/>
                 <TextBox Text="{x:Bind ViewModel.Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 

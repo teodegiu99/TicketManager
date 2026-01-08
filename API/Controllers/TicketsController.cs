@@ -184,6 +184,7 @@ namespace TicketAPI.Controllers
                     UrgenzaId = t.UrgenzaId,
                     Note = t.Note,
                     PerContoDi = t.PerContoDi,
+                    SollecitiCount = t.Solleciti.Count()
                 })
                 .ToListAsync();
 
@@ -266,33 +267,34 @@ namespace TicketAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromForm] TicketRequest request)
         {
+            // 1. Recupero dati utente (come prima)
             string adUsername = User.Identity.Name;
             string? userDisplayName = adUsername;
-            try { using (var context = new PrincipalContext(ContextType.Domain)) { var userPrincipal = UserPrincipal.FindByIdentity(context, adUsername); if (userPrincipal != null) userDisplayName = userPrincipal.DisplayName ?? adUsername; } } catch { }
+            try
+            {
+                using (var context = new PrincipalContext(ContextType.Domain))
+                {
+                    var userPrincipal = UserPrincipal.FindByIdentity(context, adUsername);
+                    if (userPrincipal != null) userDisplayName = userPrincipal.DisplayName ?? adUsername;
+                }
+            }
+            catch { }
 
+            // 2. Validazione riferimenti
             var urgenza = await _context.Urgenza.FirstOrDefaultAsync(u => u.Nome == request.Urgency);
             var tipologia = await _context.Tipologie.FirstOrDefaultAsync(t => t.Nome == request.ProblemType);
             var sede = await _context.Sedi.FirstOrDefaultAsync(s => s.Nome == request.Sede);
 
             if (urgenza == null || tipologia == null || sede == null) return BadRequest("Dati non validi.");
 
-            string? screenshotDbPath = null;
-            if (request.Screenshot != null && request.Screenshot.Length > 0)
-            {
-                var fileName = $"{Guid.NewGuid()}_{request.Screenshot.FileName}";
-                var filePath = Path.Combine(_env.ContentRootPath, "Uploads", fileName);
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                using (var stream = new FileStream(filePath, FileMode.Create)) { await request.Screenshot.CopyToAsync(stream); }
-                screenshotDbPath = Path.Combine("Uploads", fileName);
-            }
-
+            // 3. Creiamo l'oggetto Ticket (senza screenshot per ora)
             var newTicket = new Ticket
             {
                 Username = userDisplayName ?? "Sconosciuto",
                 Funzione = request.Funzione,
                 Titolo = request.Title,
                 Testo = request.Message,
-                ScreenshotPath = screenshotDbPath,
+                ScreenshotPath = null, // Lo imposteremo dopo aver avuto l'ID
                 DataCreazione = DateTime.UtcNow,
                 Macchina = request.Macchina,
                 TipologiaId = tipologia.Id,
@@ -301,8 +303,57 @@ namespace TicketAPI.Controllers
                 PerContoDi = request.PerContoDi
             };
 
+            // 4. Salviamo per generare l'ID / Nticket
             _context.Ticket.Add(newTicket);
             await _context.SaveChangesAsync();
+
+            // 5. Gestione Upload Screenshot con nome personalizzato
+            if (request.Screenshot != null && request.Screenshot.Length > 0)
+            {
+                try
+                {
+                    // Percorso base
+                    var targetFolder = @"S:\Inter_Uffici\Ticketmanager";
+                    if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
+
+                    // Recuperiamo i dati per il nome file
+                    // Usa Nticket se disponibile, altrimenti Id come fallback
+                    int ticketNumber = newTicket.Nticket > 0 ? newTicket.Nticket : newTicket.Id;
+
+                    // Puliamo lo username da caratteri scomodi per i file (spazi, backslash, ecc)
+                    string safeUsername = newTicket.Username.Replace(" ", "").Replace("\\", "").Replace("/", "").Trim();
+                    string extension = Path.GetExtension(request.Screenshot.FileName);
+
+                    // Calcolo Progressivo: Username+Nticket+p+X
+                    int progressivo = 1;
+                    string fileName = $"{safeUsername}{ticketNumber}p{progressivo}{extension}";
+                    string filePath = Path.Combine(targetFolder, fileName);
+
+                    // Verifica se esiste già un file con questo nome (es. p1) e incrementa se necessario
+                    while (System.IO.File.Exists(filePath))
+                    {
+                        progressivo++;
+                        fileName = $"{safeUsername}{ticketNumber}p{progressivo}{extension}";
+                        filePath = Path.Combine(targetFolder, fileName);
+                    }
+
+                    // Salva il file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await request.Screenshot.CopyToAsync(stream);
+                    }
+
+                    // Aggiorna il record nel DB con il percorso definitivo
+                    newTicket.ScreenshotPath = filePath;
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Logga l'errore ma non bloccare la creazione del ticket se l'upload fallisce
+                    System.Diagnostics.Debug.WriteLine($"Errore upload screenshot: {ex.Message}");
+                }
+            }
+
             return Ok(newTicket);
         }
 

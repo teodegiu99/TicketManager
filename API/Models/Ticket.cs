@@ -83,5 +83,7 @@ namespace TicketAPI.Models
 
         [Column("percontodi")]
         public string? PerContoDi { get; set; }
+
+        public virtual ICollection<Sollecito> Solleciti { get; set; } = new List<Sollecito>();
     }
 }

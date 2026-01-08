@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace ClientIT.Controls
 {
@@ -17,9 +18,58 @@ namespace ClientIT.Controls
         // =========================================================
         // 1. DEPENDENCY PROPERTIES
         // =========================================================
-
         public static readonly DependencyProperty ViewModelProperty =
-            DependencyProperty.Register(nameof(ViewModel), typeof(TicketViewModel), typeof(TicketDetailControl), new PropertyMetadata(null, OnDataChanged));
+   DependencyProperty.Register("ViewModel", typeof(TicketViewModel), typeof(TicketDetailControl),
+       new PropertyMetadata(null, OnViewModelChanged)); // <--- Qui colleghiamo l'evento
+
+        private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var control = (TicketDetailControl)d;
+            control.CheckScreenshotVisibility();
+        }
+
+        // Metodo helper per nascondere/mostrare il pannello screenshot
+        private void CheckScreenshotVisibility()
+        {
+            if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
+            {
+                ScreenshotPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ScreenshotPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // --- GESTORE CLICK IMMAGINE ---
+        private void OpenScreenshot_Click(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
+            {
+                try
+                {
+                    // Apre il file con il programma predefinito di Windows (Foto, Paint, ecc.)
+                    var p = new ProcessStartInfo(ViewModel.ScreenshotPath)
+                    {
+                        UseShellExecute = true
+                    };
+                    Process.Start(p);
+                }
+                catch (Exception ex)
+                {
+                    // Mostra errore se il file non si apre (es. percorso rete non raggiungibile)
+                    ContentDialog errorDialog = new ContentDialog
+                    {
+                        Title = "Impossibile aprire il file",
+                        Content = $"Errore: {ex.Message}\nPercorso: {ViewModel.ScreenshotPath}",
+                        CloseButtonText = "OK",
+                        XamlRoot = this.XamlRoot
+                    };
+                    _ = errorDialog.ShowAsync();
+                }
+            }
+        }
+     
 
         public TicketViewModel ViewModel
         {
