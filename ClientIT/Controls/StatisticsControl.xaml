@@ -202,7 +202,12 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <AutoSuggestBox x:Name="UserSearchBox" PlaceholderText="Es: Matteo o m.rossi" QueryIcon="Find" VerticalAlignment="Center"/>
+                        <AutoSuggestBox x:Name="UserSearchBox" 
+                PlaceholderText="Cerca per nome e cognome" 
+                QueryIcon="Find" 
+                VerticalAlignment="Center"
+                TextChanged="UserSearchBox_TextChanged" 
+                QuerySubmitted="UserSearchBox_QuerySubmitted"/>
                         <Button Grid.Column="1" Content="Cerca" Margin="8,0,0,0" Style="{ThemeResource AccentButtonStyle}" Click="SearchUser_Click"/>
                     </Grid>
 

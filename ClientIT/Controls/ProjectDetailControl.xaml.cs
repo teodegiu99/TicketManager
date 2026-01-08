@@ -329,7 +329,7 @@ namespace ClientIT.Controls
         {
             var startDate = DateTimeOffset.Now;
             if (Phases.Any() && Phases.Last().DataPrevFine.HasValue) startDate = Phases.Last().DataPrevFine!.Value.AddDays(1);
-            Phases.Add(new PhaseViewModel { Id = 0, Titolo = "Nuova Fase", DataInizio = startDate, DataPrevFine = startDate.AddDays(5), Stato = _allStatiCache.FirstOrDefault() });
+            Phases.Add(new PhaseViewModel { Id = 0, Titolo = string.Empty, DataInizio = startDate, DataPrevFine = startDate.AddDays(5), Stato = _allStatiCache.FirstOrDefault() });
         }
 
         private void BtnRemovePhase_Click(object sender, RoutedEventArgs e)

@@ -237,6 +237,116 @@ namespace ClientIT.Controls
         // GESTIONE EVENTI UTENTE (RICERCA E CLICK)
         // =========================================================
 
+        private void UserSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            // Procediamo solo se è l'utente a scrivere
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                var query = sender.Text.ToLower();
+
+                if (string.IsNullOrWhiteSpace(query) || _cachedAllTickets == null)
+                {
+                    sender.ItemsSource = null;
+                    return;
+                }
+
+                // Cerchiamo nomi unici tra 'Username' e 'PerContoDi' che contengono il testo
+                var suggestions = _cachedAllTickets
+                    .Select(t => t.Username)
+                    .Concat(_cachedAllTickets.Select(t => t.PerContoDi))
+                    .Where(s => !string.IsNullOrEmpty(s)) // Escludi nulli
+                    .Distinct() // Rimuovi duplicati
+                    .Where(u => u.ToLower().Contains(query)) // Filtra
+                    .Take(10) // Prendi i primi 10
+                    .ToList();
+
+                sender.ItemsSource = suggestions;
+            }
+        }
+
+        // 2. QUANDO PREMI INVIO O CLICCHI UN SUGGERIMENTO
+        private void UserSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            // Se l'utente ha cliccato un suggerimento, usiamo quello, altrimenti il testo scritto
+            var textToSearch = args.ChosenSuggestion != null ? args.ChosenSuggestion.ToString() : args.QueryText;
+
+            PerformUserSearch(textToSearch);
+        }
+
+        // 3. GESTIONE CLICK BOTTONE (Manteniamo la compatibilità)
+        private void SearchUser_Click(object sender, RoutedEventArgs e)
+        {
+            PerformUserSearch(UserSearchBox.Text);
+        }
+
+        // 4. LOGICA DI RICERCA CENTRALIZZATA (Refactoring del vecchio SearchUser_Click)
+        private void PerformUserSearch(string query)
+        {
+            query = query?.Trim();
+
+            if (string.IsNullOrWhiteSpace(query) || _cachedAllTickets == null)
+            {
+                UserStatsVisible = Visibility.Collapsed;
+                return;
+            }
+
+            // 1. Cerca i ticket creati dall'utente (Username)
+            var userTickets = _cachedAllTickets
+                .Where(t => t.Username.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            // 2. Cerca i ticket aperti da altri PER questo utente (PerContoDi)
+            var receivedTickets = _cachedAllTickets
+                .Where(t => !string.IsNullOrEmpty(t.PerContoDi) &&
+                            t.PerContoDi.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            // Se non c'è nulla né come creatore né come destinatario, nascondi tutto
+            if (!userTickets.Any() && !receivedTickets.Any())
+            {
+                UserStatsVisible = Visibility.Collapsed;
+                return;
+            }
+
+            UserTicketsReceivedCount = receivedTickets.Count;
+
+            // 3. Recupera il nome macchina più recente (dai ticket propri, o fallback sui ricevuti)
+            var lastTicket = userTickets.FirstOrDefault(t => !string.IsNullOrEmpty(t.Macchina))
+                             ?? receivedTickets.FirstOrDefault(t => !string.IsNullOrEmpty(t.Macchina));
+
+            UserMachineName = lastTicket != null ? lastTicket.Macchina : "N/D";
+
+            // 4. Calcola i contatori specifici (usando le liste separate per precisione)
+
+            // Propri (Creati dall'utente per se stesso)
+            UserOwnOpenCount = userTickets.Count(t => string.IsNullOrEmpty(t.PerContoDi) && t.StatoId != 3);
+            UserOwnClosedCount = userTickets.Count(t => string.IsNullOrEmpty(t.PerContoDi) && t.StatoId == 3);
+
+            // Per Conto Di (Creati dall'utente per altri)
+            UserBehalfOpenCount = userTickets.Count(t => !string.IsNullOrEmpty(t.PerContoDi) && t.StatoId != 3);
+            UserBehalfClosedCount = userTickets.Count(t => !string.IsNullOrEmpty(t.PerContoDi) && t.StatoId == 3);
+
+            // Urgenza modificata (consideriamo solo quelli creati dall'utente per responsabilità)
+            UserUrgencyChangedCount = userTickets.Count(t => t.UrgenzaCambiata);
+
+            // 5. UNISCI LE LISTE PER LA VISUALIZZAZIONE E I GRAFICI
+            // Questa è la parte che mancava: uniamo Creati + Ricevuti
+            var combinedList = userTickets
+                .Concat(receivedTickets)
+                .Distinct() // Evita duplicati se per caso username e percontodi coincidono
+                .OrderByDescending(t => t.DataCreazione)
+                .ToList();
+
+            // Aggiorna la lista a video
+            UserTicketList = combinedList;
+
+            // Aggiorna i grafici usando TUTTI i ticket che coinvolgono l'utente
+            UserTypeSeries = CreateRandomColorPieSeries(combinedList.GroupBy(t => t.TipologiaNome));
+            UserUrgencySeries = CreateRandomColorPieSeries(combinedList.GroupBy(t => t.UrgenzaNome));
+
+            UserStatsVisible = Visibility.Visible;
+        }
+
         private async void BtnRefresh_Click(object sender, RoutedEventArgs e) => await LoadStats();
 
         private void BtnFilter_Click(object sender, RoutedEventArgs e)
@@ -248,7 +358,7 @@ namespace ClientIT.Controls
         }
 
         // LOGICA RICERCA UTENTE (COMPLETA E AGGIORNATA)
-        private void SearchUser_Click(object sender, RoutedEventArgs e)
+        private void SearchUser_Click2(object sender, RoutedEventArgs e)
         {
             string query = UserSearchBox.Text?.Trim();
 

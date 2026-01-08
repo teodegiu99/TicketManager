@@ -196,7 +196,7 @@ namespace ClientIT.Controls
         private void BtnAddPhase_Click(object sender, RoutedEventArgs e)
         {
             // Aggiungendo alla collezione, scatterà l'evento Phases_CollectionChanged -> GenerateRoadmap
-            Phases.Add(new PhaseViewModel { Titolo = "Nuova fase" });
+            Phases.Add(new PhaseViewModel { Titolo = string.Empty, });
         }
 
         private void BtnRemovePhase_Click(object sender, RoutedEventArgs e)
