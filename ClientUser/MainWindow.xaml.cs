@@ -41,6 +41,7 @@ namespace ClientUser
         public string? Macchina { get; set; }
         public string? Funzione { get; set; }
 
+        public int SollecitiCount { get; set; }
         public string DataCreazioneFormatted => DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
     }
 
@@ -117,6 +118,7 @@ namespace ClientUser
                     XamlRoot = this.Content.XamlRoot,
                     DefaultButton = ContentDialogButton.Close
                 };
+                bool confirmationRequested = false;
 
                 // Gestiamo il click del tasto "Sollecita"
                 dialog.SecondaryButtonClick += async (s, args) =>
@@ -124,6 +126,14 @@ namespace ClientUser
                     // Evitiamo che il dialogo si chiuda subito (opzionale, ma utile per dare feedback)
                     args.Cancel = true;
                     var d = (ContentDialog)s;
+                    if (ticket.SollecitiCount > 0 && !confirmationRequested)
+                    {
+                        d.Title = $"⚠️ Ticket già sollecitato ({ticket.SollecitiCount} volte)";
+                        d.SecondaryButtonText = "Conferma di nuovo";
+                        // Impostiamo il flag così al prossimo click entra nel blocco "try" sotto
+                        confirmationRequested = true;
+                        return;
+                    }
                     d.IsSecondaryButtonEnabled = false; // Evita doppi click
 
                     try
@@ -136,6 +146,7 @@ namespace ClientUser
                             // Feedback visivo semplice modificando il titolo o mostrando un altro dialog
                             d.Title = $"✅ Sollecito inviato! (Ticket #{ticket.Nticket})";
                             d.SecondaryButtonText = "Inviato";
+                            ticket.SollecitiCount++;
                         }
                         else
                         {
