@@ -120,7 +120,13 @@ namespace ClientIT.Controls
 
         public int UserTicketsReceivedCount { get => _userTicketsReceivedCount; set { _userTicketsReceivedCount = value; OnPropertyChanged(); } }
         public int UserUrgencyChangedCount { get => _userUrgencyChangedCount; set { _userUrgencyChangedCount = value; OnPropertyChanged(); } }
+        // NUOVO: Serie per i solleciti in corso
+        private IEnumerable<ISeries> _solicitedSeries;
+        public IEnumerable<ISeries> SolicitedSeries { get => _solicitedSeries; set { _solicitedSeries = value; OnPropertyChanged(); } }
 
+        // NUOVO: Serie per i solleciti storici
+        private IEnumerable<ISeries> _reportSolicitedSeries;
+        public IEnumerable<ISeries> ReportSolicitedSeries { get => _reportSolicitedSeries; set { _reportSolicitedSeries = value; OnPropertyChanged(); } }
         // =========================================================
         // COSTRUTTORE E INIZIALIZZAZIONE
         // =========================================================
@@ -217,7 +223,11 @@ namespace ClientIT.Controls
                         UrgencySeries = CreateRandomColorPieSeries(activeTickets.GroupBy(t => t.UrgenzaNome));
                         TypeSeries = CreateRandomColorPieSeries(activeTickets.GroupBy(t => t.TipologiaNome));
                         ColorSeries = CreateColorSeries(activeTickets);
+                        // NUOVO: Calcola Solleciti Attivi
+                        SolicitedSeries = CreateSolicitedSeries(activeTickets); // <--- AGGIUNGI QUESTO
 
+                        // Aggiorna grafici reportistica
+                        ProcessReportData(allTickets);
                         // Aggiorna grafici reportistica
                         ProcessReportData(allTickets);
                     });
@@ -538,7 +548,10 @@ namespace ClientIT.Controls
             if (countOwn > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countOwn }, Name = "Per conto proprio", Fill = new SolidColorPaint(GetRandomColor()) });
             if (countBehalf > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countBehalf }, Name = "Per conto di terzi", Fill = new SolidColorPaint(GetRandomColor()) });
             if (countCed > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countCed }, Name = "Aperti da CED", Fill = new SolidColorPaint(GetRandomColor()) });
+//            ReportCreatorSeries = creatorList; in caso di problemi 
 
+            // NUOVO: Grafico Solleciti Storico (Aggiungilo qui)
+            ReportSolicitedSeries = CreateSolicitedSeries(filtered);
             ReportCreatorSeries = creatorList;
 
             // Aggiorna Grafico Utenti (chi ne apre di più)
@@ -589,7 +602,41 @@ namespace ClientIT.Controls
         // =========================================================
         // HELPER E FUNZIONI DI SUPPORTO
         // =========================================================
+        private IEnumerable<ISeries> CreateSolicitedSeries(List<TicketViewModel> tickets)
+        {
+            int sollecitati = tickets.Count(t => t.SollecitiCount > 0);
+            int normali = tickets.Count - sollecitati;
 
+            var list = new List<ISeries>();
+
+            if (sollecitati > 0)
+            {
+                list.Add(new PieSeries<double>
+                {
+                    Values = new[] { (double)sollecitati },
+                    Name = "Sollecitati",
+                    Fill = new SolidColorPaint(SKColors.Red), // Rosso per evidenziare
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White)
+                });
+            }
+
+            if (normali > 0)
+            {
+                list.Add(new PieSeries<double>
+                {
+                    Values = new[] { (double)normali },
+                    Name = "Normali",
+                    Fill = new SolidColorPaint(SKColors.LightGray), // Grigio per i normali
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsFormatter = point => $"{point.Coordinate.PrimaryValue}",
+                    DataLabelsPaint = new SolidColorPaint(SKColors.Black)
+                });
+            }
+
+            return list;
+        }
         private bool IsItUser(string ticketUsername)
         {
             if (string.IsNullOrEmpty(ticketUsername)) return false;
