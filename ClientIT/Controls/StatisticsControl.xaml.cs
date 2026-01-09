@@ -75,7 +75,8 @@ namespace ClientIT.Controls
         private int _userBehalfClosedCount; // Ticket per conto di (Terminati)
         private int _userTicketsReceivedCount; // Ticket aperti da altri PER questo utente
         private int _userUrgencyChangedCount;  // Quante volte è stata cambiata l'urgenza
-
+        private int _userSolicitedCount;      // Ticket con almeno 1 sollecito
+        private int _userMultiSolicitedCount; // Ticket con più di 1 sollecito
         // =========================================================
         // PROPRIETÀ PUBBLICHE (BINDING)
         // =========================================================
@@ -127,6 +128,8 @@ namespace ClientIT.Controls
         // NUOVO: Serie per i solleciti storici
         private IEnumerable<ISeries> _reportSolicitedSeries;
         public IEnumerable<ISeries> ReportSolicitedSeries { get => _reportSolicitedSeries; set { _reportSolicitedSeries = value; OnPropertyChanged(); } }
+        public int UserSolicitedCount { get => _userSolicitedCount; set { _userSolicitedCount = value; OnPropertyChanged(); } }
+        public int UserMultiSolicitedCount { get => _userMultiSolicitedCount; set { _userMultiSolicitedCount = value; OnPropertyChanged(); } }
         // =========================================================
         // COSTRUTTORE E INIZIALIZZAZIONE
         // =========================================================
@@ -343,10 +346,15 @@ namespace ClientIT.Controls
             // Questa è la parte che mancava: uniamo Creati + Ricevuti
             var combinedList = userTickets
                 .Concat(receivedTickets)
-                .Distinct() // Evita duplicati se per caso username e percontodi coincidono
+                .Distinct()
                 .OrderByDescending(t => t.DataCreazione)
                 .ToList();
 
+            // Conta quanti ticket in questa lista hanno solleciti > 0
+            UserSolicitedCount = combinedList.Count(t => t.SollecitiCount > 0);
+
+            // Conta quanti ticket hanno solleciti > 1 (pluri-sollecitati)
+            UserMultiSolicitedCount = combinedList.Count(t => t.SollecitiCount > 1);
             // Aggiorna la lista a video
             UserTicketList = combinedList;
 
