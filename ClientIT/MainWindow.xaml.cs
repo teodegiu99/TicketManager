@@ -57,7 +57,7 @@ namespace ClientIT
             if (_isFirstActivation)
             {
                 _isFirstActivation = false;
-                _ = LoadDataAsync();
+               // _ = LoadDataAsync();
             }
         }
 
@@ -171,7 +171,7 @@ namespace ClientIT
 
         // --- CARICAMENTO DATI ---
 
-        private async Task LoadDataAsync()
+        public async Task LoadDataAsync()
         {
             if (LoadingProgressRing != null)
             {
@@ -342,9 +342,9 @@ namespace ClientIT
                 {
                     url += "?" + string.Join("&", queryParams);
                 }
-
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 // Chiamata API
-                var tickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url);
+                var tickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url, options);
                 if (TicketListView != null) TicketListView.ItemsSource = tickets;
             }
             catch (Exception ex)

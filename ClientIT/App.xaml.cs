@@ -15,7 +15,7 @@ namespace ClientIT
         private HttpClient _apiClient;
 
         // Metti l'URL base della tua API (lo stesso di ClientUser)
-        private string _apiBaseUrl = "http://szblbiis01/";
+        private string _apiBaseUrl = "http://szblbiis01";
 
         public static ItAuthData? CurrentUser { get; private set; } // Reso Nullable
 
@@ -44,29 +44,57 @@ namespace ClientIT
         /// Questo metodo viene chiamato all'avvio.
         /// È stato modificato per eseguire l'autenticazione prima di mostrare la finestra.
         /// </summary>
+        // In ClientIT/App.xaml.cs
+
+        // In ClientIT/App.xaml.cs
+
         protected override async void OnLaunched(LaunchActivatedEventArgs args)
         {
+            // 1. Apri la finestra (vuota) per tenere vivo il processo
+            m_window = new MainWindow();
+            m_window.Activate();
+
             try
             {
-                // Esegui il check di autenticazione/autorizzazione
+                // 2. Fai il check di autenticazione
                 bool isAuthorized = await TryAuthenticateAsync();
 
-                if (isAuthorized)
+                if (!isAuthorized)
                 {
-                    // Utente autorizzato: mostra la finestra principale
-                    m_window = new MainWindow();
-                    m_window.Activate();
+                    // CASO A: Autenticazione fallita
+                    // Mostra l'errore e poi chiudi.
+                    ContentDialog errorDialog = new ContentDialog
+                    {
+                        Title = "Accesso Negato",
+                        Content = "Impossibile accedere al sistema TicketManager.\nVerifica la connessione alla rete aziendale o contatta l'amministratore.",
+                        CloseButtonText = "Chiudi Applicazione",
+                        XamlRoot = m_window.Content.XamlRoot
+                    };
+
+                    await errorDialog.ShowAsync();
+                    Application.Current.Exit();
                 }
                 else
                 {
-                    // Utente non autorizzato: mostra un errore e chiudi
-                    await ShowErrorDialogAndExit();
+                    // CASO B: Autenticazione riuscita!
+                    // Ora, e SOLO ORA, diciamo alla MainWindow di caricare i dati.
+                    if (m_window is MainWindow mainWin)
+                    {
+                        await mainWin.LoadDataAsync();
+                    }
                 }
             }
             catch (Exception ex)
             {
-                // Gestisci eventuali eccezioni non previste
-                await ShowErrorDialogAndExit($"Errore inaspettato: {ex.Message}");
+                // Cattura crash imprevisti
+                ContentDialog crashDialog = new ContentDialog
+                {
+                    Title = "Errore Critico all'Avvio",
+                    Content = $"Si è verificato un errore: {ex.Message}",
+                    CloseButtonText = "OK",
+                    XamlRoot = m_window.Content.XamlRoot
+                };
+                await crashDialog.ShowAsync();
             }
         }
 
