@@ -201,7 +201,7 @@ namespace ClientIT.Controls
             if (string.IsNullOrEmpty(ViewModel?.ScreenshotPath)) return;
 
             // Controlla che la porta sia corretta
-            string fullUrl = $"http://localhost:5210/{ViewModel.ScreenshotPath.Replace("\\", "/")}";
+            string fullUrl = $"http://szblbiis01/{ViewModel.ScreenshotPath.Replace("\\", "/")}";
 
             var dialog = new ContentDialog
             {

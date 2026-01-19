@@ -49,7 +49,7 @@ namespace ClientUser
     {
         private StorageFile? fileScreenshot = null;
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://szblbiis01";
         private List<string> _allAdUsers = new();
 
         // 1. Variabile per il Timer
@@ -59,6 +59,7 @@ namespace ClientUser
         {
             this.InitializeComponent();
             this.Title = "Nuovo Ticket Assistenza";
+
 
             var handler = new HttpClientHandler
             {

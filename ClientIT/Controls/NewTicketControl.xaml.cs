@@ -16,7 +16,7 @@ namespace ClientIT.Controls
 
         private HttpClient _apiClient;
         // Assicurati che l'URL sia corretto
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://szblbiis01";
         private List<string> _allAdUsers = new();
 
         public NewTicketControl()

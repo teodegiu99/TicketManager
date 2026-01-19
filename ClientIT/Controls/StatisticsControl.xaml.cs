@@ -22,7 +22,7 @@ namespace ClientIT.Controls
     public sealed partial class StatisticsControl : UserControl, INotifyPropertyChanged
     {
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://szblbiis01";
 
         // Cache dati principali
         private List<TicketViewModel> _cachedAllTickets = new();

@@ -15,7 +15,7 @@ namespace ClientIT
         private HttpClient _apiClient;
 
         // Metti l'URL base della tua API (lo stesso di ClientUser)
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://szblbiis01/";
 
         public static ItAuthData? CurrentUser { get; private set; } // Reso Nullable
 

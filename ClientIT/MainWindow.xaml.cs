@@ -17,7 +17,7 @@ namespace ClientIT
     {
         private HttpClient _apiClient;
         // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API
-        private string _apiBaseUrl = "http://localhost:5210";
+        private string _apiBaseUrl = "http://szblbiis01";
 
         // --- LISTE PER I COMBOBOX E FILTRI ---
         public ObservableCollection<Stato> AllStati { get; } = new();

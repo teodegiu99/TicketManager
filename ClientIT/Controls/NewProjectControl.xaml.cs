@@ -297,7 +297,7 @@ namespace ClientIT.Controls
                     }).ToList()
                 };
 
-                var res = await _apiClient.PostAsJsonAsync("http://localhost:5210/api/progetti", dto);
+                var res = await _apiClient.PostAsJsonAsync("http://szblbiis01/api/progetti", dto);
 
                 if (res.IsSuccessStatusCode)
                 {

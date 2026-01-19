@@ -11,7 +11,7 @@ namespace ClientUser
 
         // Costruiamo l'URL completo per l'immagine
         public string ScreenshotUrl => !string.IsNullOrEmpty(Ticket.ScreenshotPath)
-            ? $"http://localhost:5210/{Ticket.ScreenshotPath.Replace("\\", "/")}"
+            ? $"http://szblbiis01/{Ticket.ScreenshotPath.Replace("\\", "/")}"
             : string.Empty;
 
         // Proprietà per la visibilità condizionale
