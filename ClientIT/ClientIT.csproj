@@ -49,6 +49,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Update="Assets\logo.ico">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Page Update="Controls\ProjectDetailControl.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>

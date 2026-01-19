@@ -1,11 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.DirectoryServices.AccountManagement; // Necessario per Active Directory
-using System.Linq;
-using System.Threading.Tasks;
 using TicketAPI.Data;
 
 namespace TicketAPI.Controllers

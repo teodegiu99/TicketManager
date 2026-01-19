@@ -46,9 +46,9 @@
   </Applications>
 
 	<Capabilities>
-		<rescap:Capability Name="runFullTrust" />
 		<Capability Name="internetClient" />
 		<Capability Name="privateNetworkClientServer" />
-		<Capability Name="enterpriseAuthentication" />
+		<rescap:Capability Name="runFullTrust" />
+		<rescap:Capability Name="enterpriseAuthentication" />
 	</Capabilities>
 </Package>

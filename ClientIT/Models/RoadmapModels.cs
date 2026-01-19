@@ -1,6 +1,6 @@
-﻿using Microsoft.UI.Xaml;
+﻿using ClientIT.Models; // Assicurati che PhaseViewModel sia visibile qui
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using ClientIT.Models; // Assicurati che PhaseViewModel sia visibile qui
 
 namespace ClientIT.Controls // O ClientIT.Models, ma se usi Controls non devi cambiare gli using
 {

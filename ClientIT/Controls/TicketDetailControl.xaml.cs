@@ -69,7 +69,7 @@ namespace ClientIT.Controls
                 }
             }
         }
-     
+
 
         public TicketViewModel ViewModel
         {

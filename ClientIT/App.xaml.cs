@@ -1,11 +1,11 @@
 ﻿using ClientIT.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using System.Net.Http;
+using System;
 using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System;
 
 namespace ClientIT
 {
@@ -131,10 +131,10 @@ namespace ClientIT
             {
                 // Creiamo una finestra "invisibile" solo per mostrare il dialogo
                 m_window = new Window();
-                
+
                 // Assegna un contenuto fittizio per ottenere un XamlRoot
                 m_window.Content = new Grid();
-                
+
                 // Attiva la finestra
                 m_window.Activate();
 

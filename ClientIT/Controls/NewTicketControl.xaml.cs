@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace ClientIT.Controls
 {
@@ -105,7 +104,7 @@ namespace ClientIT.Controls
                 // (Replica esattamente il comportamento di ClientUser)
                 box.Text = string.Empty;
 
-                 ShowError("L'utente specificato 'per conto di' non esiste nella directory.");
+                ShowError("L'utente specificato 'per conto di' non esiste nella directory.");
             }
         }
 
@@ -177,7 +176,7 @@ namespace ClientIT.Controls
             TxtOggetto.Text = "";
             TxtMessaggio.Text = "";
             TxtFunzione.Text = "";
-            AsbPerContoDi.Text = ""; 
+            AsbPerContoDi.Text = "";
             if (CmbTipologia.Items.Count > 0) CmbTipologia.SelectedIndex = 0;
         }
 

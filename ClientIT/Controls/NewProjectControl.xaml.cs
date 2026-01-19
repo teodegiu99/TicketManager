@@ -20,7 +20,7 @@ namespace ClientIT.Controls
     // =========================
 
 
-  
+
 
     public sealed partial class NewProjectControl : UserControl, INotifyPropertyChanged
     {

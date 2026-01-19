@@ -516,7 +516,8 @@ namespace ClientIT.Controls
 
             // Filtra solo i ticket terminati nel periodo selezionato
             var filtered = allTickets
-                .Where(t => {
+                .Where(t =>
+                {
                     if (t.StatoId != 3) return false;
                     DateTime refDate = t.DataChiusura.HasValue ? t.DataChiusura.Value.ToLocalTime() : t.DataCreazione.ToLocalTime();
                     return refDate >= start && refDate <= end;
@@ -556,7 +557,7 @@ namespace ClientIT.Controls
             if (countOwn > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countOwn }, Name = "Per conto proprio", Fill = new SolidColorPaint(GetRandomColor()) });
             if (countBehalf > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countBehalf }, Name = "Per conto di terzi", Fill = new SolidColorPaint(GetRandomColor()) });
             if (countCed > 0) creatorList.Add(new PieSeries<double> { Values = new[] { (double)countCed }, Name = "Aperti da CED", Fill = new SolidColorPaint(GetRandomColor()) });
-//            ReportCreatorSeries = creatorList; in caso di problemi 
+            //            ReportCreatorSeries = creatorList; in caso di problemi 
 
             // NUOVO: Grafico Solleciti Storico (Aggiungilo qui)
             ReportSolicitedSeries = CreateSolicitedSeries(filtered);
