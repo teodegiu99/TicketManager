@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketManager;
 
 namespace ClientIT
 {
@@ -15,7 +16,6 @@ namespace ClientIT
         private HttpClient _apiClient;
 
         // Metti l'URL base della tua API (lo stesso di ClientUser)
-        private string _apiBaseUrl = "http://szblbiis01";
 
         public static ItAuthData? CurrentUser { get; private set; } // Reso Nullable
 
@@ -106,7 +106,7 @@ namespace ClientIT
             try
             {
                 // Chiama l'endpoint che abbiamo creato nell'API
-                var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/check");
+                var response = await _apiClient.GetAsync($"{ApiConfig.BaseUrl}/api/auth/check");
 
                 if (response.IsSuccessStatusCode)
                 {

@@ -9,14 +9,14 @@
 
   <Identity
     Name="bc860b93-2482-4d2b-b836-08462f0cb13c"
-    Publisher="CN=mdegi"
+    Publisher="CN=DZBLB"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="bc860b93-2482-4d2b-b836-08462f0cb13c" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>ClientIT</DisplayName>
-    <PublisherDisplayName>mdegi</PublisherDisplayName>
+    <PublisherDisplayName>DZBLB</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

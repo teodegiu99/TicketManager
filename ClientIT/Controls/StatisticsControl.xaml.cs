@@ -16,13 +16,13 @@ using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketManager;
 
 namespace ClientIT.Controls
 {
     public sealed partial class StatisticsControl : UserControl, INotifyPropertyChanged
     {
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://szblbiis01";
 
         // Cache dati principali
         private List<TicketViewModel> _cachedAllTickets = new();
@@ -172,10 +172,10 @@ namespace ClientIT.Controls
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-                var tStati = _apiClient.GetFromJsonAsync<List<Stato>>($"{_apiBaseUrl}/api/tickets/stati", options);
-                var tTipologie = _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
-                var tUrgenze = _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
-                var tUtenti = _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
+                var tStati = _apiClient.GetFromJsonAsync<List<Stato>>($"{ApiConfig.BaseUrl}/api/tickets/stati", options);
+                var tTipologie = _apiClient.GetFromJsonAsync<List<Tipologia>>($"{ApiConfig.BaseUrl}/api/tickets/tipologie", options);
+                var tUrgenze = _apiClient.GetFromJsonAsync<List<Urgenza>>($"{ApiConfig.BaseUrl}/api/tickets/urgenze", options);
+                var tUtenti = _apiClient.GetFromJsonAsync<List<ItUtente>>($"{ApiConfig.BaseUrl}/api/auth/users", options);
 
                 await Task.WhenAll(tStati, tTipologie, tUrgenze, tUtenti);
 
@@ -209,7 +209,7 @@ namespace ClientIT.Controls
                 if (_cachedItUsers.Count == 0) await LoadReferenceData();
 
                 // Carica tutti i ticket
-                string url = $"{_apiBaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
+                string url = $"{ApiConfig.BaseUrl}/api/tickets/all?includeAll=true&t={DateTime.Now.Ticks}";
                 var allTickets = await _apiClient.GetFromJsonAsync<List<TicketViewModel>>(url, options);
 
                 if (allTickets != null)
@@ -484,7 +484,7 @@ namespace ClientIT.Controls
         {
             try
             {
-                string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
+                string url = $"{ApiConfig.BaseUrl}/api/tickets/{nticket}/update";
                 var request = new
                 {
                     StatoId = ticket.StatoId,

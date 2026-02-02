@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketManager;
 
 namespace ClientIT
 {
@@ -17,7 +18,6 @@ namespace ClientIT
     {
         private HttpClient _apiClient;
         // ⚠️ Assicurati che la porta corrisponda a quella del tuo progetto API
-        private string _apiBaseUrl = "http://szblbiis01";
 
         // --- LISTE PER I COMBOBOX E FILTRI ---
         public ObservableCollection<Stato> AllStati { get; } = new();
@@ -65,7 +65,7 @@ namespace ClientIT
         {
             try
             {
-                var projects = await _apiClient.GetFromJsonAsync<List<ProjectViewModel>>($"{_apiBaseUrl}/api/progetti/all");
+                var projects = await _apiClient.GetFromJsonAsync<List<ProjectViewModel>>($"{ApiConfig.BaseUrl}/api/progetti/all");
                 ProjectListView.ItemsSource = projects;
             }
             catch { }
@@ -210,7 +210,7 @@ namespace ClientIT
             // 1. Stati
             try
             {
-                var stati = await _apiClient.GetFromJsonAsync<List<Stato>>($"{_apiBaseUrl}/api/tickets/stati", options);
+                var stati = await _apiClient.GetFromJsonAsync<List<Stato>>($"{ApiConfig.BaseUrl}/api/tickets/stati", options);
                 AllStati.Clear();
                 if (stati != null) foreach (var s in stati) AllStati.Add(s);
             }
@@ -219,7 +219,7 @@ namespace ClientIT
             // 2. Utenti IT
             try
             {
-                var utenti = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{_apiBaseUrl}/api/auth/users", options);
+                var utenti = await _apiClient.GetFromJsonAsync<List<ItUtente>>($"{ApiConfig.BaseUrl}/api/auth/users", options);
                 AllItUsers.Clear();
                 var nonAssegnato = ItUtente.NonAssegnato ?? new ItUtente { Id = 0, UsernameAd = "Non assegnato" };
                 AllItUsers.Add(nonAssegnato);
@@ -236,7 +236,7 @@ namespace ClientIT
             // 3. Tipologie
             try
             {
-                var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{_apiBaseUrl}/api/tickets/tipologie", options);
+                var tipologie = await _apiClient.GetFromJsonAsync<List<Tipologia>>($"{ApiConfig.BaseUrl}/api/tickets/tipologie", options);
                 AllTipologie.Clear();
                 if (tipologie != null) foreach (var t in tipologie) AllTipologie.Add(t);
             }
@@ -245,7 +245,7 @@ namespace ClientIT
             // 4. Urgenze
             try
             {
-                var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{_apiBaseUrl}/api/tickets/urgenze", options);
+                var urgenze = await _apiClient.GetFromJsonAsync<List<Urgenza>>($"{ApiConfig.BaseUrl}/api/tickets/urgenze", options);
                 AllUrgenze.Clear();
                 if (urgenze != null) foreach (var u in urgenze) AllUrgenze.Add(u);
             }
@@ -254,7 +254,7 @@ namespace ClientIT
             // 5. Sedi (NUOVO)
             try
             {
-                var sedi = await _apiClient.GetFromJsonAsync<List<string>>($"{_apiBaseUrl}/api/tickets/sedi", options);
+                var sedi = await _apiClient.GetFromJsonAsync<List<string>>($"{ApiConfig.BaseUrl}/api/tickets/sedi", options);
                 AllSedi.Clear();
                 if (sedi != null) foreach (var s in sedi) AllSedi.Add(s);
             }
@@ -263,7 +263,7 @@ namespace ClientIT
             // 6. Utenti AD
             try
             {
-                var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/ad-users-list");
+                var response = await _apiClient.GetAsync($"{ApiConfig.BaseUrl}/api/auth/ad-users-list");
                 if (response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync();
@@ -337,7 +337,7 @@ namespace ClientIT
                 }
 
                 // Costruiamo l'URL finale
-                string url = $"{_apiBaseUrl}/api/tickets/all";
+                string url = $"{ApiConfig.BaseUrl}/api/tickets/all";
                 if (queryParams.Any())
                 {
                     url += "?" + string.Join("&", queryParams);
@@ -535,7 +535,7 @@ namespace ClientIT
 
             try
             {
-                string url = $"{_apiBaseUrl}/api/tickets/{nticket}/update";
+                string url = $"{ApiConfig.BaseUrl}/api/tickets/{nticket}/update";
 
                 var request = new
                 {

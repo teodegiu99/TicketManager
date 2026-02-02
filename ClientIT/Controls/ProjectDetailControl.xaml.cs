@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using TicketManager;
 using Windows.UI;
 
 namespace ClientIT.Controls
@@ -102,7 +103,7 @@ namespace ClientIT.Controls
         {
             try
             {
-                var fullProject = await _apiClient.GetFromJsonAsync<ProjectViewModel>($"http://szblbiis01/api/progetti/{projectId}");
+                var fullProject = await _apiClient.GetFromJsonAsync<ProjectViewModel>($"{ApiConfig.BaseUrl}/api/progetti/{projectId}");
 
                 // SE L'UTENTE HA CAMBIATO PROGETTO, FERMATI
                 if (_currentLoadingId != projectId) return;
@@ -144,7 +145,7 @@ namespace ClientIT.Controls
             try
             {
                 Comments.Clear();
-                var list = await _apiClient.GetFromJsonAsync<List<CommentoViewModel>>($"http://szblbiis01/api/progetti/{projectId}/commenti");
+                var list = await _apiClient.GetFromJsonAsync<List<CommentoViewModel>>($"{ApiConfig.BaseUrl}/api/progetti/{projectId}/commenti");
 
                 // FIX: Fermati se progetto cambiato
                 if (_currentLoadingId != projectId) return;
@@ -254,7 +255,7 @@ namespace ClientIT.Controls
 
             try
             {
-                var res = await _apiClient.PutAsJsonAsync($"http://szblbiis01/api/progetti/{Project.Id}", dto);
+                var res = await _apiClient.PutAsJsonAsync($"{ApiConfig.BaseUrl}/api/progetti/{Project.Id}", dto);
                 if (res.IsSuccessStatusCode)
                 {
                     await new ContentDialog { Title = "Salvato", Content = "Progetto aggiornato!", CloseButtonText = "Ok", XamlRoot = XamlRoot }.ShowAsync();
@@ -343,7 +344,7 @@ namespace ClientIT.Controls
             var dto = new { Testo = TxtCommento.Text, UtenteId = _currentUser?.Id ?? 1, Username = _currentUser?.Nome ?? "Utente" };
             try
             {
-                var res = await _apiClient.PostAsJsonAsync($"http://szblbiis01/api/progetti/{Project.Id}/commenti", dto);
+                var res = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/progetti/{Project.Id}/commenti", dto);
                 if (res.IsSuccessStatusCode) { TxtCommento.Text = ""; await LoadComments(Project.Id); }
             }
             catch { }

@@ -8,13 +8,13 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using TicketManager;
 
 namespace ClientIT.Controls
 {
     public sealed partial class UserAdminControl : UserControl, INotifyPropertyChanged
     {
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://szblbiis01";
 
         // Dati per il Binding
         private string _currentUsername = "";
@@ -70,7 +70,7 @@ namespace ClientIT.Controls
             try
             {
                 var username = TxtSearchUser.Text.Trim();
-                var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/admin/user/{username}");
+                var response = await _apiClient.GetAsync($"{ApiConfig.BaseUrl}/api/admin/user/{username}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -111,7 +111,7 @@ namespace ClientIT.Controls
         {
             try
             {
-                var resp = await _apiClient.PostAsJsonAsync($"{_apiBaseUrl}/api/admin/unlock", _currentUsername);
+                var resp = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/admin/unlock", _currentUsername);
                 if (resp.IsSuccessStatusCode)
                 {
                     ShowMsg("Account sbloccato con successo!", InfoBarSeverity.Success);
@@ -126,7 +126,7 @@ namespace ClientIT.Controls
         {
             try
             {
-                var resp = await _apiClient.PostAsJsonAsync($"{_apiBaseUrl}/api/admin/toggle-enable", _currentUsername);
+                var resp = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/admin/toggle-enable", _currentUsername);
                 if (resp.IsSuccessStatusCode)
                 {
                     IsDisabled = !IsDisabled; // Inverte stato locale
@@ -145,7 +145,7 @@ namespace ClientIT.Controls
                 if (string.IsNullOrWhiteSpace(newPwd)) newPwd = "Ciaociao1!"; // Default come da VB
 
                 var req = new { Username = _currentUsername, NewPassword = newPwd, UserMustChangePassword = ChkChangeAtLogon.IsChecked == true };
-                var resp = await _apiClient.PostAsJsonAsync($"{_apiBaseUrl}/api/admin/reset-password", req);
+                var resp = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/admin/reset-password", req);
 
                 if (resp.IsSuccessStatusCode)
                 {

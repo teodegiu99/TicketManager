@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using TicketManager;
 
 namespace ClientIT.Controls
 {
@@ -15,7 +16,6 @@ namespace ClientIT.Controls
 
         private HttpClient _apiClient;
         // Assicurati che l'URL sia corretto
-        private string _apiBaseUrl = "http://szblbiis01";
         private List<string> _allAdUsers = new();
 
         public NewTicketControl()
@@ -146,7 +146,7 @@ namespace ClientIT.Controls
                     content.Add(new StringContent(AsbPerContoDi.Text), "PerContoDi");
                 }
 
-                var response = await _apiClient.PostAsync($"{_apiBaseUrl}/api/tickets", content);
+                var response = await _apiClient.PostAsync($"{ApiConfig.BaseUrl}/api/tickets", content);
 
                 if (response.IsSuccessStatusCode)
                 {

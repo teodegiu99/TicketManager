@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using TicketManager;
 
 namespace ClientIT.Controls
 {
@@ -297,7 +298,7 @@ namespace ClientIT.Controls
                     }).ToList()
                 };
 
-                var res = await _apiClient.PostAsJsonAsync("http://szblbiis01/api/progetti", dto);
+                var res = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/progetti", dto);
 
                 if (res.IsSuccessStatusCode)
                 {

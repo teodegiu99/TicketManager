@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using TicketManager;
 
 namespace ClientIT.Controls
 {
@@ -201,7 +202,7 @@ namespace ClientIT.Controls
             if (string.IsNullOrEmpty(ViewModel?.ScreenshotPath)) return;
 
             // Controlla che la porta sia corretta
-            string fullUrl = $"http://szblbiis01/{ViewModel.ScreenshotPath.Replace("\\", "/")}";
+            string fullUrl = $"{ApiConfig.BaseUrl}{ViewModel.ScreenshotPath.Replace("\\", "/")}";
 
             var dialog = new ContentDialog
             {

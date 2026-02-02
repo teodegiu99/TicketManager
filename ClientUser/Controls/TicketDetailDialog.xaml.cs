@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using TicketManager;
 
 namespace ClientUser
 {
@@ -9,7 +10,7 @@ namespace ClientUser
 
         // Costruiamo l'URL completo per l'immagine
         public string ScreenshotUrl => !string.IsNullOrEmpty(Ticket.ScreenshotPath)
-            ? $"http://szblbiis01/{Ticket.ScreenshotPath.Replace("\\", "/")}"
+            ? $"{ApiConfig.BaseUrl}/{Ticket.ScreenshotPath.Replace("\\", "/")}"
             : string.Empty;
 
         // Proprietà per la visibilità condizionale

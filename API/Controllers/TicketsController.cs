@@ -307,7 +307,7 @@ namespace TicketAPI.Controllers
                 try
                 {
                     // Percorso base
-                    var targetFolder = @"S:\Inter_Uffici\Ticketmanager";
+                    var targetFolder = @"\\szblbfs01\zblb$\group_utenti\Inter_Uffici\Ticketmanager";
                     if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
 
                     // Recuperiamo i dati per il nome file

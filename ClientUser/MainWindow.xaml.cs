@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
+using TicketManager;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
@@ -49,7 +50,6 @@ namespace ClientUser
     {
         private StorageFile? fileScreenshot = null;
         private HttpClient _apiClient;
-        private string _apiBaseUrl = "http://szblbiis01";
         private List<string> _allAdUsers = new();
 
         // 1. Variabile per il Timer
@@ -140,7 +140,7 @@ namespace ClientUser
                     try
                     {
                         // Chiamata all'API
-                        var response = await _apiClient.PostAsync($"{_apiBaseUrl}/api/tickets/{ticket.Nticket}/sollecita", null);
+                        var response = await _apiClient.PostAsync($"{ApiConfig.BaseUrl}/api/tickets/{ticket.Nticket}/sollecita", null);
 
                         if (response.IsSuccessStatusCode)
                         {
@@ -181,7 +181,7 @@ namespace ClientUser
 
             try
             {
-                string url = $"{_apiBaseUrl}/api/tickets/all?mine=true";
+                string url = $"{ApiConfig.BaseUrl}/api/tickets/all?mine=true";
                 var tickets = await _apiClient.GetFromJsonAsync<List<TicketDto>>(url);
 
                 if (MyTicketsList != null)
@@ -211,7 +211,7 @@ namespace ClientUser
         {
             try
             {
-                var response = await _apiClient.GetAsync($"{_apiBaseUrl}/api/auth/ad-users-list");
+                var response = await _apiClient.GetAsync($"{ApiConfig.BaseUrl}/api/auth/ad-users-list");
                 if (response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync();
@@ -227,9 +227,9 @@ namespace ClientUser
         {
             try
             {
-                await PopolaComboBoxOggetti(cmbTipologia, $"{_apiBaseUrl}/api/tickets/tipologie");
-                await PopolaComboBoxOggetti(cmbUrgenza, $"{_apiBaseUrl}/api/tickets/urgenze");
-                await PopolaComboBoxStringhe(cmbSede, $"{_apiBaseUrl}/api/tickets/sedi");
+                await PopolaComboBoxOggetti(cmbTipologia, $"{ApiConfig.BaseUrl}/api/tickets/tipologie");
+                await PopolaComboBoxOggetti(cmbUrgenza, $"{ApiConfig.BaseUrl}/api/tickets/urgenze");
+                await PopolaComboBoxStringhe(cmbSede, $"{ApiConfig.BaseUrl}/api/tickets/sedi");
             }
             catch (Exception ex)
             {
@@ -345,7 +345,7 @@ namespace ClientUser
             try
             {
                 btnInvia.IsEnabled = false;
-                var response = await _apiClient.PostAsync($"{_apiBaseUrl}/api/tickets", content);
+                var response = await _apiClient.PostAsync($"{ApiConfig.BaseUrl}/api/tickets", content);
 
                 if (response.IsSuccessStatusCode)
                 {
