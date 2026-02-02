@@ -28,12 +28,12 @@ namespace ClientUser
         public string Titolo { get; set; } = string.Empty;
         public string Testo { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
-
+        public int StatoId { get; set; }
         public string StatoNome { get; set; } = string.Empty;
         public string UrgenzaNome { get; set; } = string.Empty;
         public string TipologiaNome { get; set; } = string.Empty;
         public string SedeNome { get; set; } = string.Empty;
-
+        public string AssegnatoaNome { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string? PerContoDi { get; set; }
 
@@ -68,11 +68,15 @@ namespace ClientUser
             };
             _apiClient = new HttpClient(handler);
 
-            // 2. Configurazione e Avvio del Timer (5 Minuti)
             _autoRefreshTimer = new DispatcherTimer();
-            _autoRefreshTimer.Interval = TimeSpan.FromMinutes(5);
+            _autoRefreshTimer.Interval = TimeSpan.FromSeconds(30); // Era FromMinutes(5)
             _autoRefreshTimer.Tick += AutoRefreshTimer_Tick;
             _autoRefreshTimer.Start();
+        }
+        private async void swShowClosed_Toggled(object sender, RoutedEventArgs e)
+        {
+            // Ricarica la lista quando si cambia lo switch
+            await LoadMyTickets();
         }
 
         // 3. Evento che scatta ogni 5 minuti
@@ -113,13 +117,72 @@ namespace ClientUser
                 {
                     Title = $"Dettaglio Ticket #{ticket.Nticket}", // Ho aggiunto il numero ticket nel titolo per chiarezza
                     Content = detailContent,
-                    CloseButtonText = "Chiudi",
+                    CloseButtonText = "Indietro",
                     // --- AGGIUNTA TASTO SOLLECITA ---
                     SecondaryButtonText = "Sollecita",
                     XamlRoot = this.Content.XamlRoot,
                     DefaultButton = ContentDialogButton.Close
                 };
+              
+                // --- MODIFICA 3: Logica Bottone Chiudi Ticket ---
+                // Mostriamo il tasto "Chiudi" solo se il ticket non è già chiuso (Stato != "Chiuso" o id 3)
+                // Nota: Verifichiamo lo stato tramite stringa o id se disponibile nel DTO
+                if (!ticket.StatoNome.Equals("Terminato", StringComparison.OrdinalIgnoreCase))
+                {
+                    dialog.PrimaryButtonText = "Chiudi Ticket";
+                }
+
                 bool confirmationRequested = false;
+
+                // Gestione Chiusura Ticket (Primary Button)
+                dialog.PrimaryButtonClick += async (s, args) =>
+                {
+                    args.Cancel = true; // Non chiudere subito il dialog per gestire feedback
+                    var d = (ContentDialog)s;
+
+                    if (!confirmationRequested)
+                    {
+                        d.Title = "Sei sicuro?";
+                        d.Content = "Vuoi chiudere definitivamente questo ticket?";
+                        d.PrimaryButtonText = "Conferma Chiusura";
+                        d.SecondaryButtonText = ""; // Nasconde il sollecito durante la conferma
+                        confirmationRequested = true;
+                        return;
+                    }
+
+                    try
+                    {
+                        // Payload per l'aggiornamento stato (StatoId 3 = Chiuso)
+                        var updateRequest = new { StatoId = 3, Note = "Chiuso dall'utente" };
+
+                        // Chiamata API PUT
+                        var response = await _apiClient.PutAsJsonAsync($"{ApiConfig.BaseUrl}/api/tickets/{ticket.Nticket}/update", updateRequest);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            d.Title = "✅ Ticket Chiuso";
+                            d.Content = "Il ticket è stato chiuso con successo.";
+                            d.PrimaryButtonText = ""; // Nasconde bottone
+                            d.IsSecondaryButtonEnabled = false;
+
+                            // Forza refresh lista immediato
+                            await LoadMyTickets();
+
+                            // Chiude il dialog dopo 1 secondo
+                            await Task.Delay(1000);
+                            args.Cancel = false;
+                        }
+                        else
+                        {
+                            d.Title = "❌ Errore";
+                            d.Content = "Impossibile chiudere il ticket.";
+                        }
+                    }
+                    catch
+                    {
+                        d.Title = "❌ Errore Connessione";
+                    }
+                };
 
                 // Gestiamo il click del tasto "Sollecita"
                 dialog.SecondaryButtonClick += async (s, args) =>
@@ -181,12 +244,41 @@ namespace ClientUser
 
             try
             {
+                // 1. Costruiamo l'URL base
                 string url = $"{ApiConfig.BaseUrl}/api/tickets/all?mine=true";
+
+                // 2. Se lo switch "Mostra terminati" è attivo, aggiungiamo il parametro
+                if (swShowClosed != null && swShowClosed.IsOn)
+                {
+                    url += "&includeAll=true";
+                }
+
                 var tickets = await _apiClient.GetFromJsonAsync<List<TicketDto>>(url);
 
-                if (MyTicketsList != null)
+                if (MyTicketsList != null && tickets != null)
                 {
-                    MyTicketsList.ItemsSource = tickets;
+                    // 3. Logica di Ordinamento e Raggruppamento
+
+                    // A. Ticket APERTI (StatoId != 3)
+                    // Li manteniamo nell'ordine dato dal server (che è per Urgenza)
+                    var openTickets = tickets
+                        .Where(t => t.StatoId != 3)
+                        .ToList();
+
+                    // B. Ticket CHIUSI (StatoId == 3)
+                    // Li ordiniamo per data decrescente (dal più recente al più vecchio)
+                    var closedTickets = tickets
+                        .Where(t => t.StatoId == 3)
+                        .OrderByDescending(t => t.DataCreazione)
+                        .ToList();
+
+                    // C. Uniamo le due liste
+                    var finalList = new List<TicketDto>();
+                    finalList.AddRange(openTickets);
+                    finalList.AddRange(closedTickets);
+
+                    // Assegniamo la lista ordinata alla ListView
+                    MyTicketsList.ItemsSource = finalList;
                 }
             }
             catch (Exception ex)

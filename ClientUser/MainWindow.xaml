@@ -32,7 +32,14 @@
 
                 <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                     <TextBlock Text="I miei Ticket" Style="{ThemeResource SubtitleTextBlockStyle}"/>
-                    <TextBlock Text="Richieste aperte o in corso" Opacity="0.6" FontSize="12"/>
+
+                    <ToggleSwitch x:Name="swShowClosed" 
+                  OffContent="Mostra terminati" 
+                  OnContent="Nascondi terminati" 
+                  IsOn="False" 
+                  FontSize="12"
+                  MinHeight="0"
+                  Toggled="swShowClosed_Toggled"/>
                 </StackPanel>
 
                 <Button Grid.Column="1" 
@@ -78,7 +85,14 @@
                                     <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="6,2">
                                         <TextBlock Text="{x:Bind StatoNome}" FontSize="10"/>
                                     </Border>
+
                                     <TextBlock Text="{x:Bind UrgenzaNome}" FontSize="10" Foreground="OrangeRed" VerticalAlignment="Center"/>
+
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <FontIcon Glyph="&#xE77B;" FontSize="10" Opacity="0.6"/>
+                                        <TextBlock Text="{x:Bind AssegnatoaNome}" FontSize="10" Opacity="0.6" FontWeight="SemiBold"/>
+                                    </StackPanel>
+
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>

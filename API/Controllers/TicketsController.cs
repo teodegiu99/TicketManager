@@ -167,7 +167,7 @@ namespace TicketAPI.Controllers
                     Username = t.Username,
                     Funzione = t.Funzione,
                     Macchina = t.Macchina,
-                    AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.UsernameAd : "Non assegnato",
+                    AssegnatoaNome = t.Assegnatoa != null ? t.Assegnatoa.NomeCompleto : "Non assegnato",
                     DataCreazione = t.DataCreazione,
                     DataChiusura = t.DataChiusura,
                     UrgenzaCambiata = t.UrgenzaCambiata,
