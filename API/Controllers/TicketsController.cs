@@ -2,8 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.DirectoryServices.AccountManagement;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using TicketAPI.Data;
 using TicketAPI.Models;
+
 namespace TicketAPI.Controllers
 {
     [Authorize]
@@ -11,12 +16,14 @@ namespace TicketAPI.Controllers
     [Route("api/[controller]")]
     public class TicketsController : ControllerBase
     {
+        private readonly IConfiguration _configuration;
         private readonly ApiDbContext _context;
         private readonly IWebHostEnvironment _env;
-        public TicketsController(ApiDbContext context, IWebHostEnvironment env)
+        public TicketsController(ApiDbContext context, IWebHostEnvironment env, IConfiguration configuration)
         {
             _context = context;
             _env = env;
+            _configuration = configuration;
         }
 
         public class TicketRequest
@@ -193,6 +200,7 @@ namespace TicketAPI.Controllers
             if (ticket == null) return NotFound($"Ticket {nticket} non trovato.");
 
             bool modified = false;
+            int ID_CRITICA = 4;
 
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
@@ -201,6 +209,17 @@ namespace TicketAPI.Controllers
                 {
                     DateTime oraItaliana = DateTime.Now;
                     ticket.DataChiusura = DateTime.SpecifyKind(oraItaliana, DateTimeKind.Utc);
+                    try
+                    {
+                        // Se c'è una nota nella request usiamo quella, altrimenti quella già nel ticket
+                        string noteRisoluzione = request.Note ?? ticket.Note ?? "Nessuna nota";
+                        await NotifyUserViaTeams(ticket, noteRisoluzione);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Errore notifica Teams: {ex.Message}");
+                        // Non blocchiamo il return Ok()
+                    }
                 }
                 else
                 {
@@ -208,7 +227,19 @@ namespace TicketAPI.Controllers
                 }
                 modified = true;
             }
+            if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
+            {
+                // Se la NUOVA urgenza è Critica (e quella vecchia non lo era, o anche se lo era)
+                if (request.UrgenzaId.Value == ID_CRITICA)
+                {
+                    // Lanciamo il broadcast in background (senza awaitare per non bloccare l'interfaccia utente)
+                    _ = Task.Run(() => BroadcastCriticalAlert(ticket));
+                }
 
+                ticket.UrgenzaId = request.UrgenzaId.Value;
+                ticket.UrgenzaCambiata = true;
+                modified = true;
+            }
             if (request.Note != null)
             {
                 if (ticket.Note != request.Note) { ticket.Note = request.Note; modified = true; }
@@ -236,6 +267,77 @@ namespace TicketAPI.Controllers
             if (modified) await _context.SaveChangesAsync();
             return Ok();
         }
+        private async Task NotifyUserViaTeams(Ticket ticket, string notes)
+        {
+            string webhookUrl = _configuration["TeamsWebhookUrl"];
+            if (string.IsNullOrEmpty(webhookUrl)) return;
+
+            // 1. Determina chi notificare (Il creatore o il "Per Conto Di")
+            string targetDisplayName = !string.IsNullOrEmpty(ticket.PerContoDi)
+                ? ticket.PerContoDi
+                : ticket.Username;
+
+            // 2. Recupera l'EMAIL (UserPrincipalName) da AD usando il DisplayName
+            string targetEmail = GetEmailFromDisplayName(targetDisplayName);
+
+            if (string.IsNullOrEmpty(targetEmail))
+            {
+                System.Diagnostics.Debug.WriteLine($"Impossibile trovare email per {targetDisplayName}");
+                return;
+            }
+
+            // 3. Prepara il payload JSON
+            var payload = new
+            {
+                ticketNumber = ticket.Nticket,
+                title = ticket.Titolo,
+                userEmail = targetEmail, // Power Automate userà questa per la chat diretta
+                notes = notes
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // 4. Invia la richiesta HTTP POST
+            using (var client = new HttpClient())
+            {
+                var response = await client.PostAsync(webhookUrl, content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Errore webhook Teams: {response.StatusCode}");
+                }
+            }
+        }
+
+        // Metodo per cercare l'email in AD partendo dal Nome (simile a quello che usavi in GetTickets)
+        private string? GetEmailFromDisplayName(string displayName)
+        {
+            try
+            {
+                using (var context = new PrincipalContext(ContextType.Domain))
+                {
+                    // Cerchiamo per DisplayName (es. "Mario Rossi")
+                    var userPrincipal = new UserPrincipal(context);
+                    userPrincipal.DisplayName = displayName;
+
+                    // Nota: FindOneByExample potrebbe non essere precisissimo se ci sono omonimi, 
+                    // ma dato che salvi il DisplayName nel ticket, è il modo migliore per tornare indietro.
+                    var searcher = new PrincipalSearcher(userPrincipal);
+                    var result = searcher.FindOne() as UserPrincipal;
+
+                    if (result != null)
+                    {
+                        // Restituisce l'indirizzo email o lo UserPrincipalName (che di solito è l'email in Azure AD/Teams)
+                        return !string.IsNullOrEmpty(result.EmailAddress) ? result.EmailAddress : result.UserPrincipalName;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore AD Lookup: {ex.Message}");
+            }
+            return null;
+        }
         [HttpPost("{nticket}/sollecita")]
         public async Task<IActionResult> SollecitaTicket(int nticket)
         {
@@ -256,6 +358,69 @@ namespace TicketAPI.Controllers
             // NESSUNA NOTIFICA TEAMS QUI
 
             return Ok(new { message = "Sollecito registrato con successo" });
+        }
+
+        // --- AGGIUNGI QUESTO METODO HELPER ALLA FINE DEL CONTROLLER ---
+
+        private async Task BroadcastCriticalAlert(Ticket ticket)
+        {
+            string webhookUrl = _configuration["TeamsCriticalUrl"];
+            if (string.IsNullOrEmpty(webhookUrl)) return;
+
+            try
+            {
+                // 1. Recupera tutti gli utenti IT dal database
+                var itUsers = await _context.ItUtenti.ToListAsync();
+
+                // 2. Prepara il payload base (uguale per tutti)
+                var payloadObj = new
+                {
+                    ticketNumber = ticket.Nticket,
+                    title = $"[CRITICO] {ticket.Titolo}", // Aggiungo un prefisso per evidenziarlo
+                    notes = "ATTENZIONE: Ticket Critico Aperto/Aggiornato. Richiesto intervento immediato.",
+                    userEmail = "" // Lo riempiremo nel ciclo
+                };
+
+                using (var client = new HttpClient())
+                {
+                    // 3. Ciclo su ogni utente IT
+                    foreach (var user in itUsers)
+                    {
+                        // Recupera l'email da AD (usando il metodo che abbiamo fatto prima)
+                        // Usa NomeCompleto se c'è, altrimenti UsernameAd
+                        string nameToSearch = !string.IsNullOrEmpty(user.NomeCompleto) ? user.NomeCompleto : user.UsernameAd;
+                        string email = GetEmailFromDisplayName(nameToSearch);
+
+                        if (string.IsNullOrEmpty(email)) continue; // Se non troviamo l'email, saltiamo
+
+                        // Aggiorna l'email nel payload
+                        var currentPayload = new
+                        {
+                            payloadObj.ticketNumber,
+                            payloadObj.title,
+                            payloadObj.notes,
+                            userEmail = email
+                        };
+
+                        var json = JsonSerializer.Serialize(currentPayload);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        // Invia la notifica (Non usiamo await per non bloccare troppo il ciclo, o usiamo await se vogliamo sicurezza)
+                        try
+                        {
+                            await client.PostAsync(webhookUrl, content);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Errore invio a {email}: {ex.Message}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore Broadcast: {ex.Message}");
+            }
         }
 
         [HttpPost]
@@ -301,6 +466,13 @@ namespace TicketAPI.Controllers
             _context.Ticket.Add(newTicket);
             await _context.SaveChangesAsync();
 
+            int ID_CRITICA = 4; // Controlla il tuo ID
+
+            // Se nasce già critico
+            if (newTicket.UrgenzaId == ID_CRITICA)
+            {
+                _ = Task.Run(() => BroadcastCriticalAlert(newTicket));
+            }
             // 5. Gestione Upload Screenshot con nome personalizzato
             if (request.Screenshot != null && request.Screenshot.Length > 0)
             {
