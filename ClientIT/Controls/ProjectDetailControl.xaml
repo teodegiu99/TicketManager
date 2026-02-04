@@ -135,45 +135,42 @@
                         BorderThickness="1" 
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         Height="350">
-                    <ListView x:Name="CommentsListView" 
-                              ItemsSource="{x:Bind Comments}" 
-                              SelectionMode="None" 
-                              Padding="12">
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="Margin" Value="0,2"/>
-                                <Setter Property="MinHeight" Value="0"/>
-                            </Style>
-                        </ListView.ItemContainerStyle>
+                    <ListView x:Name="CommentsListView" ItemsSource="{x:Bind Comments}" SelectionMode="None">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:CommentoViewModel">
-                                <Grid HorizontalAlignment="{x:Bind Allineamento}" MaxWidth="500">
+                                <Grid Margin="0,4" HorizontalAlignment="{x:Bind Allineamento}">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <Grid Width="32" Height="32" Margin="0,0,12,0" VerticalAlignment="Top">
-                                        <shapes:Ellipse Fill="{x:Bind Sfondo, Mode=OneWay}"/>
-                                        <TextBlock Text="{x:Bind Initials, Mode=OneWay}" 
-                                                   Foreground="White" 
-                                                   FontSize="12" 
-                                                   FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center" 
-                                                   VerticalAlignment="Center"/>
-                                    </Grid>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Background="{x:Bind Sfondo}" 
+                            CornerRadius="12" 
+                            Padding="12,8"
+                            MaxWidth="400">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4" Opacity="0.7">
+                                                    <Grid Width="20" Height="20" CornerRadius="10" Background="Black" Margin="0,0,6,0">
+                                                        <TextBlock Text="{x:Bind Iniziali}" 
+                                                Foreground="White" 
+                                                FontSize="10" 
+                                                HorizontalAlignment="Center" 
+                                                VerticalAlignment="Center" 
+                                                FontWeight="Bold"/>
+                                                    </Grid>
 
-                                    <Border Grid.Column="1" 
-                                            Background="{x:Bind Sfondo}" 
-                                            CornerRadius="12" 
-                                            Padding="12,8">
-                                        <StackPanel>
-                                            <TextBlock Text="{x:Bind Username}" FontSize="10" Opacity="0.5" FontWeight="Bold" Margin="0,0,0,4"/>
-                                            <TextBlock Text="{x:Bind Testo}" TextWrapping="Wrap" FontSize="13" Foreground="Black"/>
-                                            <TextBlock Text="{x:Bind DataFormat}" FontSize="9" Opacity="0.4" HorizontalAlignment="Right" Margin="0,4,0,0" Foreground="Black"/>
-                                        </StackPanel>
-                                    </Border>
+                                                    <TextBlock Text="{x:Bind Username}" FontSize="11" FontWeight="SemiBold" 
+                                           Foreground="{x:Bind ColoreTesto}" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{x:Bind DataCreazione}" FontSize="10" 
+                                           Foreground="{x:Bind ColoreTesto}"/>
+                                                </StackPanel>
+
+                                                <TextBlock Text="{x:Bind Testo}" 
+                                       TextWrapping="Wrap" 
+                                       Foreground="{x:Bind ColoreTesto}" 
+                                       FontSize="14"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>

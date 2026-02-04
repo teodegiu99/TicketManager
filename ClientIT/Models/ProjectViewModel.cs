@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using System;
 using System.Collections.Generic;
 
 namespace ClientIT.Models
@@ -57,14 +59,21 @@ namespace ClientIT.Models
     public class CommentoViewModel
     {
         public int Id { get; set; }
-        public string Username { get; set; }
         public string Testo { get; set; }
         public DateTime DataCreazione { get; set; }
+        public string Username { get; set; }
+        public int UtenteId { get; set; }
 
-        public string Initials => !string.IsNullOrEmpty(Username) ? Username.Substring(0, 1).ToUpper() : "?";
-        public string DataFormat => DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+        // --- PROPRIETÀ VISIVE ---
+        public HorizontalAlignment Allineamento { get; set; }
 
-        public Microsoft.UI.Xaml.HorizontalAlignment Allineamento { get; set; } = Microsoft.UI.Xaml.HorizontalAlignment.Left;
-        public Microsoft.UI.Xaml.Media.SolidColorBrush Sfondo { get; set; }
+        // Sfondo del fumetto
+        public SolidColorBrush Sfondo { get; set; }
+
+        // NUOVO: Colore del testo (per contrasto)
+        public SolidColorBrush ColoreTesto { get; set; }
+
+        // NUOVO: Le iniziali da mostrare nel cerchietto
+        public string Iniziali { get; set; }
     }
 }

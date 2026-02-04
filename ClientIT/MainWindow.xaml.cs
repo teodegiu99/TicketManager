@@ -94,8 +94,14 @@ namespace ClientIT
                 ProjectListViewArea.Visibility = Visibility.Collapsed;
                 ProjectDetailViewArea.Visibility = Visibility.Visible;
 
-                var currentUser = UserListView.SelectedItem as ItUtente ?? new ItUtente { Nome = "Me" };
-
+                //var currentUser = UserListView.SelectedItem as ItUtente ?? new ItUtente { Nome = "Me" };
+                var currentUser = new ItUtente
+                {
+                    Id = App.CurrentUser.Id,
+                    UsernameAd = App.CurrentUser.UsernameAd,
+                    Nome = App.CurrentUser.UsernameAd, // O NomeCompleto se lo hai nell'AuthData
+                    Permesso = App.CurrentUser.Permesso
+                };
                 // CHIAMATA AGGIORNATA: Passa anche Stati e Utenti
                 ProjectDetailControlElement.Load(project, currentUser, AllStati.ToList(), AllItUsers.ToList());
             }

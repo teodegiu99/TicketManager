@@ -149,29 +149,62 @@ namespace ClientIT.Controls
 
                 // FIX: Fermati se progetto cambiato
                 if (_currentLoadingId != projectId) return;
-
                 if (list != null)
                 {
                     foreach (var c in list)
                     {
-                        bool isMe = (c.Username == _currentUser?.Nome) || (c.Username == _currentUser?.UsernameAd);
-                        c.Allineamento = isMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-                        c.Sfondo = isMe ? new SolidColorBrush(Color.FromArgb(255, 220, 240, 255)) : new SolidColorBrush(Colors.WhiteSmoke);
-                        Comments.Add(c);
-                    }
+                        // 1. Determina se sono IO o un altro
+                        bool isMe = (c.UtenteId == _currentUser?.Id);
+                        // Nota: uso UtenteId che è più sicuro del nome, ma va bene anche la tua logica precedente
 
-                    // FIX CRASH: Controlla visibilità prima di scrollare!
-                    if (Comments.Any() && CommentsListView != null && this.Visibility == Visibility.Visible)
-                    {
-                        await Task.Delay(50);
-                        if (_currentLoadingId == projectId)
-                            CommentsListView.ScrollIntoView(Comments.Last());
+                        // 2. Impostazioni Grafiche
+                        if (isMe)
+                        {
+                            // MESSAGGIO MIO: Allineato a destra, Blu Scuro, Testo Bianco
+                            c.Allineamento = HorizontalAlignment.Right;
+                            c.Sfondo = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 120, 215)); // Accent Blue
+                            c.ColoreTesto = new SolidColorBrush(Microsoft.UI.Colors.White); // Contrasto alto
+                        }
+                        else
+                        {
+                            // MESSAGGIO ALTRUI: Allineato a sinistra, Grigio Chiaro, Testo Nero
+                            c.Allineamento = HorizontalAlignment.Left;
+                            c.Sfondo = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 230, 230, 230)); // Grigio chiaro
+                            c.ColoreTesto = new SolidColorBrush(Microsoft.UI.Colors.Black); // Testo scuro
+                        }
+
+                        // 3. Calcolo Iniziali (Nome + Cognome)
+                        c.Iniziali = GetInitials(c.Username);
+
+                        Comments.Add(c);
                     }
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Errore commenti: {ex.Message}"); }
         }
+        private string GetInitials(string fullName)
+        {
+            if (string.IsNullOrWhiteSpace(fullName)) return "?";
 
+            var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 1)
+            {
+                // Solo un nome: prendi le prime 2 lettere o solo la prima
+                string name = parts[0];
+                return name.Length > 1 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
+            }
+
+            if (parts.Length >= 2)
+            {
+                // Nome e Cognome: prendi la prima lettera del primo e la prima dell'ultimo
+                char first = parts[0][0];
+                char last = parts[parts.Length - 1][0];
+                return $"{first}{last}".ToUpper();
+            }
+
+            return "?";
+        }
         private void GenerateRoadmap()
         {
             if (_suppressRoadmap) return;
