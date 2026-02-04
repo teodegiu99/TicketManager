@@ -1,6 +1,8 @@
 ﻿
+using API.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using TicketAPI.Data;
 using TicketAPI.Models;
 
@@ -21,22 +23,20 @@ namespace API.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAllProgetti()
         {
+            // 1. Scarica i progetti base
             var rawProjects = await _context.Progetti
                 .OrderBy(p => p.StatoId)
                 .ThenByDescending(p => p.Id)
-                .Select(p => new
-                {
-                    p.Id,
-                    p.Titolo,
-                    p.Descrizione,
-                    p.StatoId,
-                    DataInizio = p.DataInizio,
-                    DataPrevFine = p.DataPrevFine,
-                    StatoNome = _context.Stati.Where(s => s.Id == p.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-",
-                    p.AssegnatoA // Stringa nel DB
-                })
                 .ToListAsync();
 
+            // 2. Scarica TUTTE le fasi dei progetti trovati (in una sola query per performance)
+            var projectIds = rawProjects.Select(p => (int?)p.Id).ToList();
+            var allFasi = await _context.FasiProgetto
+                .Where(f => projectIds.Contains(f.ProgettoId))
+                .OrderBy(f => f.Ordine)
+                .ToListAsync();
+
+            // 3. Scarica Utenti (codice tuo esistente ottimizzato)
             var userIds = rawProjects
                 .Where(p => int.TryParse(p.AssegnatoA, out _))
                 .Select(p => int.Parse(p.AssegnatoA))
@@ -47,13 +47,25 @@ namespace API.Controllers
                 .Where(u => userIds.Contains(u.Id))
                 .ToDictionaryAsync(u => u.Id);
 
+            // 4. Unisci tutto in memoria
             var result = rawProjects.Select(p =>
             {
                 ItUtente? user = null;
                 if (int.TryParse(p.AssegnatoA, out int uid) && users.ContainsKey(uid))
-                {
                     user = users[uid];
-                }
+
+                // Filtra le fasi per questo progetto
+                var fasiDelProgetto = allFasi
+                    .Where(f => f.ProgettoId == p.Id)
+                    .Select(f => new {
+                        f.Id,
+                        f.Titolo,
+                        f.DataInizio,
+                        f.DataPrevFine,
+                        f.StatoId,
+                        f.Ordine
+                    })
+                    .ToList();
 
                 return new
                 {
@@ -63,9 +75,11 @@ namespace API.Controllers
                     p.StatoId,
                     p.DataInizio,
                     p.DataPrevFine,
-                    p.StatoNome,
+                    // Nota: StatoNome andrebbe recuperato meglio, ma per ora lascialo come nel tuo codice o vuoto
+                    StatoNome = _context.Stati.Where(s => s.Id == p.StatoId).Select(s => s.Nome).FirstOrDefault() ?? "-",
                     AssegnatoA = (user != null) ? new { user.Id, user.Nome } : null,
-                    AssegnatoAId = user?.Id
+                    AssegnatoAId = user?.Id,
+                    Fasi = fasiDelProgetto // <--- ORA LE FASI CI SONO
                 };
             });
 
@@ -117,14 +131,65 @@ namespace API.Controllers
 
         // POST: api/progetti
         [HttpPost]
-        public async Task<IActionResult> CreateProgetto([FromBody] Progetto progetto)
+        public async Task<IActionResult> CreateProgetto([FromBody] CreateProjectRequest request)
         {
-            if (progetto == null) return BadRequest();
-            progetto.DataInizio = DateTime.SpecifyKind(progetto.DataInizio ?? DateTime.Now, DateTimeKind.Utc);
-            if (progetto.DataPrevFine.HasValue) progetto.DataPrevFine = DateTime.SpecifyKind(progetto.DataPrevFine.Value, DateTimeKind.Utc);
-            _context.Progetti.Add(progetto);
-            await _context.SaveChangesAsync();
-            return Ok(progetto);
+            if (request == null) return BadRequest();
+
+            // 1. Creiamo l'oggetto Progetto (senza fasi per ora)
+            var nuovoProgetto = new Progetto
+            {
+                Titolo = request.Titolo,
+                Descrizione = request.Descrizione,
+                StatoId = request.StatoId,
+                AssegnatoA = request.AssegnatoAId.HasValue ? request.AssegnatoAId.ToString() : null,
+                DataInizio = DateTime.UtcNow, // O prendi quello della prima fase se preferisci
+            };
+
+            // Calcolo Data Prevista Fine basato sulla fase che finisce più tardi
+            if (request.Fasi != null && request.Fasi.Any(f => f.DataPrevFine.HasValue))
+            {
+                var maxDate = request.Fasi
+                    .Where(f => f.DataPrevFine.HasValue)
+                    .Max(f => f.DataPrevFine.Value);
+                nuovoProgetto.DataPrevFine = DateTime.SpecifyKind(maxDate, DateTimeKind.Utc);
+            }
+
+            // 2. Salviamo il progetto per ottenere l'ID (DatabaseGenerated)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Progetti.Add(nuovoProgetto);
+                await _context.SaveChangesAsync(); // Qui viene generato nuovoProgetto.Id
+
+                // 3. Ora salviamo le fasi collegandole all'ID appena creato
+                if (request.Fasi != null && request.Fasi.Any())
+                {
+                    var nuoveFasi = request.Fasi.Select(f => new FaseProgetto
+                    {
+                        ProgettoId = nuovoProgetto.Id, // <--- COLLEGAMENTO FONDAMENTALE
+                        Titolo = f.Titolo,
+                        Descrizione = f.Descrizione,
+                        DataInizio = f.DataInizio.HasValue ? DateTime.SpecifyKind(f.DataInizio.Value, DateTimeKind.Utc) : null,
+                        DataPrevFine = f.DataPrevFine.HasValue ? DateTime.SpecifyKind(f.DataPrevFine.Value, DateTimeKind.Utc) : null,
+                        StatoId = f.StatoId > 0 ? f.StatoId : 1, // Default stato
+                        Ordine = f.Ordine,
+                        AssegnatoA = f.AssegnatoAId.HasValue ? f.AssegnatoAId.ToString() : null
+                    }).ToList();
+
+                    _context.FasiProgetto.AddRange(nuoveFasi);
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                // Ritorna l'oggetto creato (o l'ID)
+                return Ok(nuovoProgetto);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, $"Errore creazione progetto: {ex.Message}");
+            }
         }
 
         // PUT: api/progetti/5
@@ -266,4 +331,13 @@ namespace API.Controllers
         public int UtenteId { get; set; }
         public string Username { get; set; }
     }
+}
+
+public class CreateProjectRequest
+{
+    public string Titolo { get; set; }
+    public string Descrizione { get; set; }
+    public int StatoId { get; set; }
+    public int? AssegnatoAId { get; set; }
+    public List<UpdatePhaseDto> Fasi { get; set; } // Riutilizziamo UpdatePhaseDto che va bene
 }
