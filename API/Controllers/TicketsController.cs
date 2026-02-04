@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using TicketAPI.Data;
 using TicketAPI.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TicketAPI.Controllers
 {
@@ -19,11 +20,13 @@ namespace TicketAPI.Controllers
         private readonly IConfiguration _configuration;
         private readonly ApiDbContext _context;
         private readonly IWebHostEnvironment _env;
-        public TicketsController(ApiDbContext context, IWebHostEnvironment env, IConfiguration configuration)
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+        public TicketsController(ApiDbContext context, IWebHostEnvironment env, IConfiguration configuration, IServiceScopeFactory scopeFactory)
         {
             _context = context;
             _env = env;
             _configuration = configuration;
+            _serviceScopeFactory = scopeFactory;
         }
 
         public class TicketRequest
@@ -248,7 +251,23 @@ namespace TicketAPI.Controllers
             if (request.AssegnatoaId.HasValue || request.AssegnatoaId == null)
             {
                 int? idDaSalvare = request.AssegnatoaId == 0 ? null : request.AssegnatoaId;
-                if (ticket.AssegnatoaId != idDaSalvare) { ticket.AssegnatoaId = idDaSalvare; modified = true; }
+
+                // Verifichiamo se l'assegnatario è cambiato
+                if (ticket.AssegnatoaId != idDaSalvare)
+                {
+                    ticket.AssegnatoaId = idDaSalvare;
+                    modified = true;
+
+                    // SE c'è un nuovo assegnatario (idDaSalvare non è null), mandiamo la notifica
+                    if (idDaSalvare.HasValue)
+                    {
+                        // Lanciamo il task in background passando ID Ticket e ID Assegnatario
+                        // Usiamo i valori attuali per evitare problemi di concorrenza
+                        int tId = ticket.Nticket;
+                        int uId = idDaSalvare.Value;
+                        _ = Task.Run(() => NotifyAssigneeViaTeams(tId, uId));
+                    }
+                }
             }
 
             if (request.UrgenzaId.HasValue && ticket.UrgenzaId != request.UrgenzaId.Value)
@@ -308,7 +327,69 @@ namespace TicketAPI.Controllers
                 }
             }
         }
+        private async Task NotifyAssigneeViaTeams(int ticketNumber, int assigneeId)
+        {
+            string webhookUrl = _configuration["TeamsAssignmentUrl"];
+            if (string.IsNullOrEmpty(webhookUrl)) return;
 
+            // Creiamo uno scope nuovo per il thread background
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var backgroundContext = scope.ServiceProvider.GetRequiredService<ApiDbContext>();
+
+                try
+                {
+                    // 1. Recuperiamo i dati dell'utente IT (l'assegnatario)
+                    var itUser = await backgroundContext.ItUtenti.FindAsync(assigneeId);
+                    if (itUser == null) return;
+
+                    // 2. Recuperiamo il titolo del ticket (serve per il messaggio)
+                    var ticketInfo = await backgroundContext.Ticket
+                        .Where(t => t.Nticket == ticketNumber)
+                        .Select(t => new { t.Titolo })
+                        .FirstOrDefaultAsync();
+
+                    if (ticketInfo == null) return;
+
+                    // 3. Cerchiamo l'email in AD
+                    string nameToSearch = !string.IsNullOrEmpty(itUser.NomeCompleto) ? itUser.NomeCompleto : itUser.UsernameAd;
+
+                    // Nota: GetEmailFromDisplayName crea internamente il suo contesto AD, quindi è sicuro chiamarlo qui
+                    string targetEmail = GetEmailFromDisplayName(nameToSearch);
+
+                    if (string.IsNullOrEmpty(targetEmail))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Email non trovata per assegnatario: {nameToSearch}");
+                        return;
+                    }
+
+                    // 4. Invio a Power Automate
+                    var payload = new
+                    {
+                        ticketNumber = ticketNumber,
+                        title = ticketInfo.Titolo,
+                        assigneeEmail = targetEmail,
+                        notes = "Ti è stato assegnato un nuovo ticket."
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    using (var client = new HttpClient())
+                    {
+                        var response = await client.PostAsync(webhookUrl, content);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Errore notifica assegnazione: {response.StatusCode}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Errore NotifyAssigneeViaTeams: {ex.Message}");
+                }
+            }
+        }
         // Metodo per cercare l'email in AD partendo dal Nome (simile a quello che usavi in GetTickets)
         private string? GetEmailFromDisplayName(string displayName)
         {
@@ -367,62 +448,69 @@ namespace TicketAPI.Controllers
             string webhookUrl = _configuration["TeamsCriticalUrl"];
             if (string.IsNullOrEmpty(webhookUrl)) return;
 
-            try
+            // Creiamo uno scope esplicito per il background task
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                // 1. Recupera tutti gli utenti IT dal database
-                var itUsers = await _context.ItUtenti.ToListAsync();
+                // Otteniamo un NUOVO contesto db che vive solo per la durata di questo metodo
+                var backgroundContext = scope.ServiceProvider.GetRequiredService<ApiDbContext>();
 
-                // 2. Prepara il payload base (uguale per tutti)
-                var payloadObj = new
+                try
                 {
-                    ticketNumber = ticket.Nticket,
-                    title = $"[CRITICO] {ticket.Titolo}", // Aggiungo un prefisso per evidenziarlo
-                    notes = "ATTENZIONE: Ticket Critico Aperto/Aggiornato. Richiesto intervento immediato.",
-                    userEmail = "" // Lo riempiremo nel ciclo
-                };
+                    // 1. Recupera tutti gli utenti IT dal database usando il contesto BACKGROUND
+                    var itUsers = await backgroundContext.ItUtenti.ToListAsync();
 
-                using (var client = new HttpClient())
-                {
-                    // 3. Ciclo su ogni utente IT
-                    foreach (var user in itUsers)
+                    // 2. Prepara il payload base
+                    var payloadObj = new
                     {
-                        // Recupera l'email da AD (usando il metodo che abbiamo fatto prima)
-                        // Usa NomeCompleto se c'è, altrimenti UsernameAd
-                        string nameToSearch = !string.IsNullOrEmpty(user.NomeCompleto) ? user.NomeCompleto : user.UsernameAd;
-                        string email = GetEmailFromDisplayName(nameToSearch);
+                        ticketNumber = ticket.Nticket,
+                        title = $"[CRITICO] {ticket.Titolo}",
+                        notes = "ATTENZIONE: Ticket Critico Aperto/Aggiornato. Richiesto intervento immediato.",
+                        userEmail = ""
+                    };
 
-                        if (string.IsNullOrEmpty(email)) continue; // Se non troviamo l'email, saltiamo
-
-                        // Aggiorna l'email nel payload
-                        var currentPayload = new
+                    using (var client = new HttpClient())
+                    {
+                        foreach (var user in itUsers)
                         {
-                            payloadObj.ticketNumber,
-                            payloadObj.title,
-                            payloadObj.notes,
-                            userEmail = email
-                        };
+                            // Nota: GetEmailFromDisplayName crea il suo contesto AD, quindi è ok.
+                            string nameToSearch = !string.IsNullOrEmpty(user.NomeCompleto) ? user.NomeCompleto : user.UsernameAd;
+                            string email = GetEmailFromDisplayName(nameToSearch);
 
-                        var json = JsonSerializer.Serialize(currentPayload);
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                            if (string.IsNullOrEmpty(email)) continue;
 
-                        // Invia la notifica (Non usiamo await per non bloccare troppo il ciclo, o usiamo await se vogliamo sicurezza)
-                        try
-                        {
-                            await client.PostAsync(webhookUrl, content);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Errore invio a {email}: {ex.Message}");
+                            var currentPayload = new
+                            {
+                                payloadObj.ticketNumber,
+                                payloadObj.title,
+                                payloadObj.notes,
+                                userEmail = email
+                            };
+
+                            var json = JsonSerializer.Serialize(currentPayload);
+                            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                            try
+                            {
+                                var response = await client.PostAsync(webhookUrl, content);
+                                // Log di debug più esplicito
+                                if (!response.IsSuccessStatusCode)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"Errore PowerAutomate per {email}: {response.StatusCode}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Errore invio a {email}: {ex.Message}");
+                            }
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Errore Broadcast: {ex.Message}");
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Errore Broadcast nel task async: {ex.Message}");
+                }
             }
         }
-
         [HttpPost]
         public async Task<IActionResult> CreateTicket([FromForm] TicketRequest request)
         {
