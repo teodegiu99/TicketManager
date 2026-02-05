@@ -70,8 +70,8 @@
                                 <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="4" Padding="8,4">
 <TextBlock FontSize="12" FontWeight="SemiBold">
     <Run Text="Ticket #"/>
-    <Run Text="{x:Bind Nticket}"/>
-</TextBlock>                                </Border>
+    <Run Text="{Binding Nticket}"/> </TextBlock>
+							</Border>
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
