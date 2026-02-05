@@ -1,0 +1,75 @@
+<ContentDialog
+    x:Class="ClientIT.Controls.AddDocDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Aggiungi alla Documentazione"
+    PrimaryButtonText="Salva"
+    CloseButtonText="Annulla"
+    DefaultButton="Primary"
+    Style="{ThemeResource DefaultContentDialogStyle}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="600">
+        <Grid Width="500" RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBox x:Name="TxtTitolo" Header="Titolo" PlaceholderText="Inserisci un titolo breve" Grid.Row="0"/>
+
+            <ComboBox x:Name="CmbCategoria" Header="Categoria (Tipologia)" HorizontalAlignment="Stretch" 
+                      DisplayMemberPath="Nome" SelectedValuePath="Id" Grid.Row="1"/>
+
+            <StackPanel Grid.Row="2" Spacing="4">
+                <TextBlock Text="Soluzione" Style="{ThemeResource CaptionTextBlockStyle}"/>
+                <RichEditBox x:Name="RtbSoluzione" Height="150" PlaceholderText="Descrivi la soluzione..." AcceptsReturn="True"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="3" Spacing="8">
+                <TextBlock Text="Keywords (Premi Invio per aggiungere)" Style="{ThemeResource CaptionTextBlockStyle}"/>
+
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="TxtNewKeyword" PlaceholderText="Es: Stampante, Errore 500" KeyDown="TxtNewKeyword_KeyDown"/>
+                    <Button Grid.Column="1" Content="Aggiungi" Click="BtnAddKeyword_Click"/>
+                </Grid>
+
+                <ItemsControl x:Name="KeywordsList" ItemsSource="{x:Bind ViewModelKeywords}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VariableSizedWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="3" ItemHeight="32"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="16" Margin="0,0,8,8" Padding="12,4">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding}" Foreground="White" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" 
+                                            Background="Transparent" BorderThickness="0" Foreground="White"
+                                            Padding="0" MinWidth="20" Height="20" VerticalAlignment="Center"
+                                            Click="BtnRemoveKeyword_Click" Tag="{Binding}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <TextBox x:Name="TxtQuery" Header="Query SQL (Opzionale)" 
+                     AcceptsReturn="True" Height="80" FontFamily="Consolas" Grid.Row="4"
+                     PlaceholderText="SELECT * FROM..."/>
+
+        </Grid>
+    </ScrollViewer>
+</ContentDialog>

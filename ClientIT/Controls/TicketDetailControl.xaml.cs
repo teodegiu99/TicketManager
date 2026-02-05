@@ -5,23 +5,37 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq; // Necessario per LINQ
+using System.Net.Http; // Necessario per API
+using System.Net.Http.Json; // Necessario per JSON
+using System.Threading.Tasks;
 using TicketManager;
 
 namespace ClientIT.Controls
 {
     public sealed partial class TicketDetailControl : UserControl
     {
+        private readonly HttpClient _apiClient;
+
         public TicketDetailControl()
         {
             this.InitializeComponent();
+
+            // Inizializza HttpClient per le chiamate API (Documentazione)
+            var handler = new HttpClientHandler
+            {
+                UseDefaultCredentials = true,
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+            };
+            _apiClient = new HttpClient(handler);
         }
 
         // =========================================================
         // 1. DEPENDENCY PROPERTIES
         // =========================================================
         public static readonly DependencyProperty ViewModelProperty =
-   DependencyProperty.Register("ViewModel", typeof(TicketViewModel), typeof(TicketDetailControl),
-       new PropertyMetadata(null, OnViewModelChanged)); // <--- Qui colleghiamo l'evento
+            DependencyProperty.Register("ViewModel", typeof(TicketViewModel), typeof(TicketDetailControl),
+                new PropertyMetadata(null, OnViewModelChanged));
 
         private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -29,48 +43,39 @@ namespace ClientIT.Controls
             control.CheckScreenshotVisibility();
         }
 
-        // Metodo helper per nascondere/mostrare il pannello screenshot
         private void CheckScreenshotVisibility()
         {
             if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
             {
-                ScreenshotPanel.Visibility = Visibility.Visible;
+                if (ScreenshotPanel != null) ScreenshotPanel.Visibility = Visibility.Visible;
             }
             else
             {
-                ScreenshotPanel.Visibility = Visibility.Collapsed;
+                if (ScreenshotPanel != null) ScreenshotPanel.Visibility = Visibility.Collapsed;
             }
         }
 
-        // --- GESTORE CLICK IMMAGINE ---
         private void OpenScreenshot_Click(object sender, RoutedEventArgs e)
         {
             if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
             {
                 try
                 {
-                    // Apre il file con il programma predefinito di Windows (Foto, Paint, ecc.)
-                    var p = new ProcessStartInfo(ViewModel.ScreenshotPath)
-                    {
-                        UseShellExecute = true
-                    };
+                    var p = new ProcessStartInfo(ViewModel.ScreenshotPath) { UseShellExecute = true };
                     Process.Start(p);
                 }
                 catch (Exception ex)
                 {
-                    // Mostra errore se il file non si apre (es. percorso rete non raggiungibile)
-                    ContentDialog errorDialog = new ContentDialog
+                    _ = new ContentDialog
                     {
                         Title = "Impossibile aprire il file",
                         Content = $"Errore: {ex.Message}\nPercorso: {ViewModel.ScreenshotPath}",
                         CloseButtonText = "OK",
                         XamlRoot = this.XamlRoot
-                    };
-                    _ = errorDialog.ShowAsync();
+                    }.ShowAsync();
                 }
             }
         }
-
 
         public TicketViewModel ViewModel
         {
@@ -155,13 +160,114 @@ namespace ClientIT.Controls
             }
         }
 
-        private void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        // --- MODIFICA PRINCIPALE QUI SOTTO ---
+        private async void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int val) return;
+
             if (val != ViewModel.StatoId)
             {
+                // 1. Aggiorna stato e notifica parent
                 ViewModel.StatoId = val;
                 TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, val));
+
+                // 2. Controllo se è "Terminato" per la documentazione
+                // Cerchiamo l'oggetto Stato corrispondente nella lista delle opzioni
+                var nuovoStato = StatoOptions?.FirstOrDefault(s => s.Id == val);
+
+                if (nuovoStato != null && nuovoStato.Nome.Equals("Terminato", StringComparison.OrdinalIgnoreCase))
+                {
+                    await AskToCreateDocumentation();
+                }
+            }
+        }
+
+        // Metodo helper separato per la logica documentazione
+        private async Task AskToCreateDocumentation()
+        {
+            // A. Chiedi conferma all'utente
+            ContentDialog confirmDialog = new ContentDialog
+            {
+                Title = "Ticket Terminato",
+                Content = "Vuoi aggiungere la risoluzione di questo ticket alla Documentazione (Knowledge Base)?",
+                PrimaryButtonText = "Sì, aggiungi",
+                CloseButtonText = "No",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = this.XamlRoot
+            };
+
+            var result = await confirmDialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                // B. Prepara dati per la modale
+                string titoloSuggerito = ViewModel.Titolo;
+                string soluzioneSuggerita = ViewModel.Note ?? "";
+
+                // Convertiamo IList in List per passarlo al dialog (se AddDocDialog accetta List)
+                var listTipologie = TipologiaOptions != null ? TipologiaOptions.ToList() : new List<Tipologia>();
+
+                // C. Apri la modale AddDocDialog
+                AddDocDialog docDialog = new AddDocDialog(listTipologie, soluzioneSuggerita, titoloSuggerito);
+                docDialog.XamlRoot = this.XamlRoot;
+
+                var docResult = await docDialog.ShowAsync();
+
+                if (docResult == ContentDialogResult.Primary)
+                {
+                    // D. Recupera i dati e invia al Server
+                    var dati = docDialog.GetResult();
+
+                    var docRequest = new
+                    {
+                        Nticket = ViewModel.Nticket,
+                        Titolo = dati.Titolo,
+                        Soluzione = dati.Soluzione,
+                        Query = dati.Query,
+                        CategoriaId = dati.CategoriaId,
+                        Keywords = dati.Keywords // Lista di stringhe, il server gestirà IDs
+                    };
+
+                    try
+                    {
+                        var response = await _apiClient.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione", docRequest);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            // Feedback visivo semplice
+                            var successDialog = new ContentDialog
+                            {
+                                Title = "Successo",
+                                Content = "Documentazione creata correttamente!",
+                                CloseButtonText = "Ok",
+                                XamlRoot = this.XamlRoot
+                            };
+                            await successDialog.ShowAsync();
+                        }
+                        else
+                        {
+                            var err = await response.Content.ReadAsStringAsync();
+                            var errDialog = new ContentDialog
+                            {
+                                Title = "Errore Creazione",
+                                Content = $"Impossibile salvare: {err}",
+                                CloseButtonText = "Chiudi",
+                                XamlRoot = this.XamlRoot
+                            };
+                            await errDialog.ShowAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        var exDialog = new ContentDialog
+                        {
+                            Title = "Eccezione",
+                            Content = ex.Message,
+                            CloseButtonText = "Chiudi",
+                            XamlRoot = this.XamlRoot
+                        };
+                        await exDialog.ShowAsync();
+                    }
+                }
             }
         }
 
@@ -178,14 +284,10 @@ namespace ClientIT.Controls
             }
         }
 
-        // GESTORE PER LE NOTE (Corretto il nome per matchare lo XAML)
         private void NoteTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (ViewModel != null)
             {
-                // Notifichiamo alla MainWindow di salvare.
-                // Il testo è già nel ViewModel grazie al Binding TwoWay nel XAML.
-                // Usiamo "0" come valore dummy perché la MainWindow legge tutto il ViewModel.
                 TicketPropertyChanged?.Invoke(this, new TicketGenericChangedEventArgs(ViewModel.Nticket, "Note", 0));
             }
         }
@@ -200,8 +302,6 @@ namespace ClientIT.Controls
         private async void BtnScreenshot_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(ViewModel?.ScreenshotPath)) return;
-
-            // Controlla che la porta sia corretta
             string fullUrl = $"{ApiConfig.BaseUrl}{ViewModel.ScreenshotPath.Replace("\\", "/")}";
 
             var dialog = new ContentDialog
