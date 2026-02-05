@@ -50,6 +50,13 @@
                         <TextBlock Text="Tutti i Progetti"/>
                     </StackPanel>
                 </Button>
+
+                <Button x:Name="ShowDocsButton" HorizontalAlignment="Stretch" Click="ShowDocsButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE82D;"/>
+                        <TextBlock Text="Documentazione"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
             <Border Grid.Row="1" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
@@ -98,19 +105,33 @@
         </Grid>
 
         <Grid Grid.Column="1">
+            <Button x:Name="UserAdminButton" Grid.Row="2" Margin="0,12,0,0" HorizontalAlignment="Stretch" Click="UserAdminButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE779;"/>
+                    <TextBlock Text="Sblocca Utente"/>
+                </StackPanel>
+            </Button>
 
-            <Grid x:Name="NewTicketViewArea" Visibility="Collapsed">
-                <controls:NewTicketControl x:Name="NewTicketControlElement" />
-            </Grid>
+            <Button x:Name="NewProjectButton" Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewProjectButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8F1;"/>
+                    <TextBlock Text="Crea Progetto"/>
+                </StackPanel>
+            </Button>
 
-            <Grid x:Name="UserAdminViewArea" Visibility="Collapsed">
-                <controls:UserAdminControl x:Name="UserAdminControlElement"/>
-            </Grid>
+            <Button x:Name="NewTicketButton" Grid.Row="4" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="NewTicketButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;"/>
+                    <TextBlock Text="Nuovo Ticket"/>
+                </StackPanel>
+            </Button>
 
-            <Grid x:Name="NewProjectViewArea" Visibility="Collapsed">
-                <controls:NewProjectControl x:Name="NewProjectControlElement"/>
-            </Grid>
-
+            <Button x:Name="StatsButton" Grid.Row="5" Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="StatsButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE9D2;"/>
+                    <TextBlock Text="Statistiche"/>
+                </StackPanel>
+            </Button>
             <Grid x:Name="ProjectListViewArea" Visibility="Collapsed">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

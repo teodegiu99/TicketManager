@@ -106,7 +106,46 @@ namespace ClientIT
                 ProjectDetailControlElement.Load(project, currentUser, AllStati.ToList(), AllItUsers.ToList());
             }
         }
+        private async void ShowDocsButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateSidebarButtons(sender as Button);
 
+            if (UserListView != null) UserListView.SelectedIndex = -1;
+
+            // Nascondi tutto
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            StatisticsViewArea.Visibility = Visibility.Collapsed;
+            NewTicketViewArea.Visibility = Visibility.Collapsed;
+            NewProjectViewArea.Visibility = Visibility.Collapsed;
+            UserAdminViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectListViewArea != null) ProjectListViewArea.Visibility = Visibility.Collapsed;
+            if (ProjectDetailViewArea != null) ProjectDetailViewArea.Visibility = Visibility.Collapsed;
+
+            // Mostra Documentazione
+            DocumentationViewArea.Visibility = Visibility.Visible;
+
+            // Carica i dati passando le tipologie (per la combobox filtri)
+            await DocumentationControlElement.LoadData(AllTipologie.ToList());
+        }
+        private void UpdateSidebarButtons(Button selectedButton)
+        {
+            // Resetta lo stile di tutti i bottoni
+            if (ShowAllButton != null) ShowAllButton.Style = null;
+            if (ShowProjectsButton != null) ShowProjectsButton.Style = null;
+            if (UserAdminButton != null) UserAdminButton.Style = null;
+            if (NewProjectButton != null) NewProjectButton.Style = null;
+            if (NewTicketButton != null) NewTicketButton.Style = null;
+
+            // IMPORTANTE: Includi il nuovo bottone
+            if (ShowDocsButton != null) ShowDocsButton.Style = null;
+
+            // Applica lo stile Accent a quello selezionato
+            if (selectedButton != null)
+            {
+                selectedButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+            }
+        }
         private void NewTicketButton_Click(object sender, RoutedEventArgs e)
         {
             if (UserListView != null) UserListView.SelectedIndex = -1;

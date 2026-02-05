@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 		<None Remove="Controls\AddDocDialog.xaml" />
+		<None Remove="Controls\DocumentationControl.xaml" />
 		<None Remove="Controls\NewProjectControl.xaml" />
 		<None Remove="Controls\NewTicketControl.xaml" />
 		<None Remove="Controls\PhaseDetailDialog.xaml" />
@@ -56,6 +57,12 @@
 	  <Content Update="Assets\logo.ico">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Page Update="Controls\DocumentationControl.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<ItemGroup>
