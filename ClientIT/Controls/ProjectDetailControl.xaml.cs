@@ -182,28 +182,42 @@ namespace ClientIT.Controls
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Errore commenti: {ex.Message}"); }
         }
-        private string GetInitials(string fullName)
+        private string GetInitials(string rawName)
         {
-            if (string.IsNullOrWhiteSpace(fullName)) return "?";
+            if (string.IsNullOrWhiteSpace(rawName)) return "?";
 
-            var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            // 1. Rimuovi il dominio (es: "DZBLB\mario.rossi" -> "mario.rossi")
+            // Cerca l'ultima occorrenza di \ o /
+            int slashIndex = rawName.LastIndexOf('\\');
+            if (slashIndex == -1) slashIndex = rawName.LastIndexOf('/');
+
+            string cleanName = rawName;
+            if (slashIndex >= 0 && slashIndex < rawName.Length - 1)
+            {
+                // Prendi solo la parte DOPO la barra
+                cleanName = rawName.Substring(slashIndex + 1);
+            }
+
+            // 2. Gestisci username col punto (es: "mario.rossi" -> "mario rossi")
+            // Questo permette di avere iniziali "MR" invece di "Ma"
+            cleanName = cleanName.Replace('.', ' ');
+
+            // 3. Calcola le iniziali
+            var parts = cleanName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 0) return "?";
 
             if (parts.Length == 1)
             {
-                // Solo un nome: prendi le prime 2 lettere o solo la prima
+                // Solo un nome (es: "Administrator" -> "AD")
                 string name = parts[0];
                 return name.Length > 1 ? name.Substring(0, 2).ToUpper() : name.ToUpper();
             }
 
-            if (parts.Length >= 2)
-            {
-                // Nome e Cognome: prendi la prima lettera del primo e la prima dell'ultimo
-                char first = parts[0][0];
-                char last = parts[parts.Length - 1][0];
-                return $"{first}{last}".ToUpper();
-            }
-
-            return "?";
+            // Più nomi (es: "Mario Rossi" -> "MR")
+            char first = parts[0][0];
+            char last = parts[parts.Length - 1][0];
+            return $"{first}{last}".ToUpper();
         }
         private void GenerateRoadmap()
         {
