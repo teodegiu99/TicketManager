@@ -12,7 +12,7 @@ namespace ClientIT
 {
     public partial class App : Application
     {
-        private Window m_window;
+        public Window m_window;
         private HttpClient _apiClient;
 
         // Metti l'URL base della tua API (lo stesso di ClientUser)

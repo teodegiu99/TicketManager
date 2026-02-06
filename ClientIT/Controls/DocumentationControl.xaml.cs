@@ -20,13 +20,19 @@ namespace ClientIT.Controls
 
         // Collezione per i badge delle keyword di filtro
         public ObservableCollection<string> FilterKeywords { get; } = new();
-
+        private List<Tipologia> _cachedTipologie;
         public DocumentationControl()
         {
             this.InitializeComponent();
 
             var handler = new HttpClientHandler { UseDefaultCredentials = true, ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true };
             _apiClient = new HttpClient(handler);
+            DocDetailControl.BackRequested += (s, e) => ShowList();
+            DocDetailControl.DataSaved += async (s, e) =>
+            {
+                ShowList();
+                await LoadData(_cachedTipologie); // Ricarica la lista aggiornata
+            };
         }
 
         // Metodo chiamato dalla MainWindow quando si apre la pagina
@@ -153,6 +159,25 @@ namespace ClientIT.Controls
             FilterKeywords.Clear();
 
             ApplyFilters();
+        }
+        private void DocsListView_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (e.ClickedItem is DocumentazioneDto doc)
+            {
+                // Nascondi Lista, Mostra Dettaglio
+                ListViewArea.Visibility = Visibility.Collapsed;
+                DetailViewArea.Visibility = Visibility.Visible;
+
+                // Carica i dati nel controllo dettaglio
+                DocDetailControl.Load(doc, _cachedTipologie);
+            }
+        }
+
+        private void ShowList()
+        {
+            DetailViewArea.Visibility = Visibility.Collapsed;
+            ListViewArea.Visibility = Visibility.Visible;
+            DocsListView.SelectedItem = null;
         }
     }
 }

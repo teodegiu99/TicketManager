@@ -116,5 +116,24 @@ namespace API.Controllers
 
             return Ok(doc);
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateDocumentazione(int id, [FromBody] DocumentazioneDto dto)
+        {
+            var doc = await _context.Documentazione.FindAsync(id);
+            if (doc == null) return NotFound();
+
+            doc.Titolo = dto.Titolo;
+            doc.Soluzione = dto.Soluzione;
+
+            // CORREZIONE QUI: Usa .Categoria (nome nel DB) = dto.CategoriaId (nome nel frontend)
+            doc.Categoria = dto.CategoriaId;
+
+            // Gestione Query se presente
+            doc.Query = dto.Query;
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
     }
 }
