@@ -48,12 +48,14 @@ namespace ClientIT.Controls
             }
             IcKeywords.ItemsSource = _currentKeywords;
 
-            // 3. Caricamento ComboBox Categoria
-            // Se la lista categorie è vuota, la combobox rimarrà vuota.
-            if (categorie != null && categorie.Any())
+            // 3. Caricamento ComboBox (FIX: Reset ItemsSource per refresh forzato)
+            if (categorie != null)
             {
+                // Rimuovi binding precedente se esiste
+                CmbCategoria.ItemsSource = null;
                 CmbCategoria.ItemsSource = categorie;
-                // Imposta il valore selezionato solo se presente
+
+                // Imposta l'item selezionato
                 if (doc.CategoriaId > 0)
                 {
                     CmbCategoria.SelectedValue = doc.CategoriaId;
@@ -81,6 +83,8 @@ namespace ClientIT.Controls
                 RtbSoluzione.Document.SetText(TextSetOptions.None, "");
             }
         }
+
+
 
         // --- Gestione Keywords ---
 
@@ -168,33 +172,57 @@ namespace ClientIT.Controls
         private async void Save_Click(object sender, RoutedEventArgs e)
         {
             RtbSoluzione.Document.GetText(TextGetOptions.FormatRtf, out string rtfContent);
+            if (rtfContent != null) rtfContent = rtfContent.Replace("\0", "").Trim();
 
-            var updateDto = new DocumentazioneDto
+            int selectedCatId = 0;
+            if (CmbCategoria.SelectedValue is int id) selectedCatId = id;
+
+            // Crea il DTO
+            var docDto = new DocumentazioneDto
             {
-                Id = _currentDoc.Id,
+                Id = _currentDoc.Id, // Se è 0, il backend creerà un nuovo ID
                 Titolo = TxtTitolo.Text,
-                CategoriaId = (int?)CmbCategoria.SelectedValue ?? 0,
+                CategoriaId = selectedCatId,
                 Soluzione = rtfContent,
-                Query = TxtQuery.Text, // Salva la query
-
-                // Passiamo le keyword come stringhe. 
-                // Il backend dovrà occuparsi di aggiornare la tabella di join o l'array.
+                Query = TxtQuery.Text,
                 KeywordNomi = _currentKeywords.ToList(),
+                Nticket = _currentDoc.Nticket, // Mantiene 0 se nuovo, o il vecchio se esiste
 
-                Nticket = _currentDoc.Nticket
+                CategoriaNome = null,
+                CategoriaColore = null,
+                KeywordIds = null
             };
 
             try
             {
-                var response = await _client.PutAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione/{_currentDoc.Id}", updateDto);
+                HttpResponseMessage response;
+
+                // SE L'ID È 0 => CREAZIONE (POST)
+                if (_currentDoc.Id == 0)
+                {
+                    response = await _client.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione", docDto);
+                }
+                // ALTRIMENTI => AGGIORNAMENTO (PUT)
+                else
+                {
+                    response = await _client.PutAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione/{_currentDoc.Id}", docDto);
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
                     DataSaved?.Invoke(this, EventArgs.Empty);
                 }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"Errore salvataggio: {error}");
+                }
             }
-            catch { /* Gestione errori */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Eccezione salvataggio: {ex.Message}");
+            }
         }
-
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
     }
 }

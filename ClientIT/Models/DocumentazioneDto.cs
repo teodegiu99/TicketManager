@@ -10,13 +10,13 @@ namespace ClientIT.Models
         public string Soluzione { get; set; }
         public string? Query { get; set; }
 
-        // Dati Tipologia
+        // Dati Tipologia (Nullable per evitare errori di validazione in invio)
         public int CategoriaId { get; set; }
-        public string CategoriaNome { get; set; }
-        public string CategoriaColore { get; set; }
+        public string? CategoriaNome { get; set; }
+        public string? CategoriaColore { get; set; }
 
         // Dati Keywords
-        public int[] KeywordIds { get; set; }
-        public List<string> KeywordNomi { get; set; }
+        public int[]? KeywordIds { get; set; }
+        public List<string>? KeywordNomi { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 using ClientIT.Models; // Assumendo che Tipologia sia qui
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,12 +39,13 @@ namespace ClientIT.Controls
         // Metodo chiamato dalla MainWindow quando si apre la pagina
         public async Task LoadData(List<Tipologia> tipologie)
         {
-            // Popola Tipologie
+            // FIX: Salviamo le tipologie nella cache locale per poterle passare al dettaglio
+            _cachedTipologie = tipologie;
+
+            // Popola Tipologie nel filtro
             FilterTipologia.ItemsSource = tipologie;
 
-            // Scarica tutta la documentazione (o filtra lato server se preferisci)
-            // Per ora scarichiamo tutto e filtriamo in memoria (Client-Side Filtering)
-            // dato che la documentazione non sarà gigantesca.
+            // Scarica tutta la documentazione
             await RefreshDocs();
         }
 
@@ -101,7 +103,6 @@ namespace ClientIT.Controls
                 foreach (var filterKey in FilterKeywords)
                 {
                     string kLower = filterKey.ToLower();
-                    // Controlla se nella lista dei nomi delle keyword del doc c'è quella cercata
                     query = query.Where(d => d.KeywordNomi != null &&
                                              d.KeywordNomi.Any(kn => kn.ToLower().Contains(kLower)));
                 }
@@ -112,7 +113,9 @@ namespace ClientIT.Controls
         }
 
         // --- GESTIONE KEYWORD BADGES ---
-        private void TxtFilterKeyword_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+        // --- GESTIONE KEYWORDS FILTRO ---
+
+        private void TxtFilterKeyword_KeyDown(object sender, KeyRoutedEventArgs e)
         {
             if (e.Key == Windows.System.VirtualKey.Enter)
             {
@@ -129,6 +132,7 @@ namespace ClientIT.Controls
             if (!string.IsNullOrEmpty(txt) && !FilterKeywords.Contains(txt))
             {
                 FilterKeywords.Add(txt);
+                ApplyFilters(); // <--- IMPORTANTE: Ricalcola i filtri quando aggiungi!
             }
             TxtFilterKeyword.Text = "";
             TxtFilterKeyword.Focus(FocusState.Programmatic);
@@ -136,7 +140,11 @@ namespace ClientIT.Controls
 
         private void BtnRemoveFilterKeyword_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button b && b.Tag is string val) FilterKeywords.Remove(val);
+            if (sender is Button b && b.Tag is string val)
+            {
+                FilterKeywords.Remove(val);
+                ApplyFilters(); // <--- IMPORTANTE: Ricalcola i filtri quando rimuovi!
+            }
         }
 
         // --- GESTIONE SEARCH/RESET ---
@@ -178,6 +186,26 @@ namespace ClientIT.Controls
             DetailViewArea.Visibility = Visibility.Collapsed;
             ListViewArea.Visibility = Visibility.Visible;
             DocsListView.SelectedItem = null;
+        }
+        private void BtnNewDoc_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. Crea un DTO vuoto per la nuova documentazione
+            var newDoc = new DocumentazioneDto
+            {
+                Id = 0, // 0 segnala che è nuovo
+                Titolo = "",
+                Soluzione = "",
+                Query = "",
+                KeywordNomi = new List<string>(), // Importante inizializzare la lista
+                Nticket = 0
+            };
+
+            // 2. Passa alla visualizzazione dettaglio
+            ListViewArea.Visibility = Visibility.Collapsed;
+            DetailViewArea.Visibility = Visibility.Visible;
+
+            // 3. Carica il DTO vuoto nel controllo (usa le tipologie in cache)
+            DocDetailControl.Load(newDoc, _cachedTipologie);
         }
     }
 }

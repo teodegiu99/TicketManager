@@ -123,17 +123,56 @@ namespace API.Controllers
             var doc = await _context.Documentazione.FindAsync(id);
             if (doc == null) return NotFound();
 
-            doc.Titolo = dto.Titolo;
-            doc.Soluzione = dto.Soluzione;
+            // 1. Aggiorna campi base (con sanificazione da \0 per Postgres)
+            doc.Titolo = dto.Titolo?.Replace("\0", "").Trim();
 
-            // CORREZIONE QUI: Usa .Categoria (nome nel DB) = dto.CategoriaId (nome nel frontend)
+            // Il RichEditBox spesso invia un terminatore null alla fine, Postgres lo odia.
+            doc.Soluzione = dto.Soluzione?.Replace("\0", "").Trim();
+
             doc.Categoria = dto.CategoriaId;
+            doc.Query = dto.Query?.Replace("\0", "").Trim();
 
-            // Gestione Query se presente
-            doc.Query = dto.Query;
+            // 2. Gestione Keywords
+            var keywordIds = new List<int>();
+            if (dto.KeywordNomi != null)
+            {
+                foreach (var kName in dto.KeywordNomi)
+                {
+                    var cleanName = kName.Replace("\0", "").Trim(); // Sanifica anche qui
+                    if (string.IsNullOrWhiteSpace(cleanName)) continue;
 
-            await _context.SaveChangesAsync();
-            return Ok();
+                    // Cerca se esiste (Case Insensitive)
+                    var existingKey = await _context.Keywords
+                        .FirstOrDefaultAsync(k => k.Nome.ToLower() == cleanName.ToLower());
+
+                    if (existingKey != null)
+                    {
+                        keywordIds.Add(existingKey.Id);
+                    }
+                    else
+                    {
+                        // Crea nuova se non esiste
+                        var newKey = new Keyword { Nome = cleanName };
+                        _context.Keywords.Add(newKey);
+                        await _context.SaveChangesAsync();
+                        keywordIds.Add(newKey.Id);
+                    }
+                }
+            }
+
+            doc.Keywords = keywordIds.ToArray();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                // Logga l'errore interno per capire meglio se succede altro
+                Console.WriteLine(ex.ToString());
+                return StatusCode(500, "Errore durante il salvataggio: " + ex.Message);
+            }
         }
     }
 }
