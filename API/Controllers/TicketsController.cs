@@ -55,8 +55,8 @@ namespace TicketAPI.Controllers
             [FromForm(Name = "PerContoDi")]
             public string? PerContoDi { get; set; }
 
-            [FromForm(Name = "Screenshot")]
-            public IFormFile? Screenshot { get; set; }
+            [FromForm(Name = "Screenshots")]
+            public List<IFormFile>? Screenshots { get; set; } 
         }
 
         public class TicketUpdateRequest
@@ -181,7 +181,7 @@ namespace TicketAPI.Controllers
                     DataCreazione = t.DataCreazione,
                     DataChiusura = t.DataChiusura,
                     UrgenzaCambiata = t.UrgenzaCambiata,
-                    ScreenshotPath = t.ScreenshotPath,
+                    SScreenshotPaths = t.Allegati.Select(a => a.FilePath).ToList(),
                     StatoId = t.StatoId,
                     AssegnatoaId = t.AssegnatoaId,
                     TipologiaId = t.TipologiaId,
@@ -541,7 +541,6 @@ namespace TicketAPI.Controllers
                 Funzione = request.Funzione,
                 Titolo = request.Title,
                 Testo = request.Message,
-                ScreenshotPath = null, // Lo imposteremo dopo aver avuto l'ID
                 DataCreazione = DateTime.UtcNow,
                 Macchina = request.Macchina,
                 TipologiaId = tipologia.Id,
@@ -562,28 +561,19 @@ namespace TicketAPI.Controllers
                 _ = Task.Run(() => BroadcastCriticalAlert(newTicket));
             }
             // 5. Gestione Upload Screenshot con nome personalizzato
-            if (request.Screenshot != null && request.Screenshot.Length > 0)
+            if (request.Screenshots != null && request.Screenshots.Count > 0)
             {
-                try
+                var targetFolder = @"\\szblbfs01\zblb$\group_utenti\Inter_Uffici\Ticketmanager";
+                string safeUsername = newTicket.Username.Replace(" ", "").Trim();
+                int ticketNumber = newTicket.Nticket;
+
+                foreach (var file in request.Screenshots)
                 {
-                    // Percorso base
-                    var targetFolder = @"\\szblbfs01\zblb$\group_utenti\Inter_Uffici\Ticketmanager";
-                    if (!Directory.Exists(targetFolder)) Directory.CreateDirectory(targetFolder);
-
-                    // Recuperiamo i dati per il nome file
-                    // Usa Nticket se disponibile, altrimenti Id come fallback
-                    int ticketNumber = newTicket.Nticket > 0 ? newTicket.Nticket : newTicket.Id;
-
-                    // Puliamo lo username da caratteri scomodi per i file (spazi, backslash, ecc)
-                    string safeUsername = newTicket.Username.Replace(" ", "").Replace("\\", "").Replace("/", "").Trim();
-                    string extension = Path.GetExtension(request.Screenshot.FileName);
-
-                    // Calcolo Progressivo: Username+Nticket+p+X
+                    string extension = Path.GetExtension(file.FileName);
                     int progressivo = 1;
                     string fileName = $"{safeUsername}{ticketNumber}p{progressivo}{extension}";
                     string filePath = Path.Combine(targetFolder, fileName);
 
-                    // Verifica se esiste già un file con questo nome (es. p1) e incrementa se necessario
                     while (System.IO.File.Exists(filePath))
                     {
                         progressivo++;
@@ -591,21 +581,19 @@ namespace TicketAPI.Controllers
                         filePath = Path.Combine(targetFolder, fileName);
                     }
 
-                    // Salva il file
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
-                        await request.Screenshot.CopyToAsync(stream);
+                        await file.CopyToAsync(stream);
                     }
 
-                    // Aggiorna il record nel DB con il percorso definitivo
-                    newTicket.ScreenshotPath = filePath;
-                    await _context.SaveChangesAsync();
+                    // Salva il riferimento nella nuova tabella
+                    _context.TicketAllegati.Add(new TicketAllegato
+                    {
+                        TicketId = newTicket.Id,
+                        FilePath = filePath
+                    });
                 }
-                catch (Exception ex)
-                {
-                    // Logga l'errore ma non bloccare la creazione del ticket se l'upload fallisce
-                    System.Diagnostics.Debug.WriteLine($"Errore upload screenshot: {ex.Message}");
-                }
+                await _context.SaveChangesAsync();
             }
 
             return Ok(newTicket);

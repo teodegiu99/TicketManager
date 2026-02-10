@@ -81,14 +81,22 @@
                 </StackPanel>
             </Grid>
 
-            <StackPanel Visibility="{x:Bind HasScreenshot}">
-                <TextBlock Text="Allegato" Style="{ThemeResource BodyStrongTextBlockStyle}" Margin="0,0,0,4"/>
-                <Image Source="{x:Bind Ticket.ScreenshotPath, Converter={StaticResource ImageConverter}}" 
-                       MaxHeight="300" 
-                       Stretch="Uniform" 
-                       HorizontalAlignment="Left"/>
-            </StackPanel>
+            <StackPanel Visibility="{x:Bind HasScreenshots}">
+                <TextBlock Text="Allegati" Style="{ThemeResource BodyStrongTextBlockStyle}" Margin="0,0,0,8"/>
 
+                <ItemsControl ItemsSource="{x:Bind Ticket.ScreenshotPaths}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Border Margin="0,0,0,12" CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                <Image Source="{Binding Converter={StaticResource ImageConverter}}" 
+                           MaxHeight="400" 
+                           Stretch="Uniform" 
+                           HorizontalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

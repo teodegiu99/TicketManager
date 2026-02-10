@@ -167,12 +167,18 @@
                 <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                     <Button x:Name="btnUpload" Click="btnUpload_Click">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE8E5;"/>
-                            <TextBlock Text="Carica Screenshot" />
+                            <FontIcon Glyph="&#xEB9F;"/>
+                            <TextBlock Text="Aggiungi Screenshot" />
                         </StackPanel>
                     </Button>
 
-                    <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock x:Name="lblFileScelto" FontWeight="Bold" VerticalAlignment="Center" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+
+                    <Button Content="Cancella tutto" 
+            Click="{x:Bind PulisciAllegati}" 
+            Visibility="Collapsed" 
+            x:Name="btnClearFiles"
+            Style="{StaticResource DefaultButtonStyle}"/>
                 </StackPanel>
 
                 <Button x:Name="btnInvia" 

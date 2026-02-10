@@ -82,7 +82,7 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <CommandBar DefaultLabelPosition="Right" Background="Transparent" IsOpen="True">
+            <CommandBar DefaultLabelPosition="Right" Background="Transparent" IsOpen="false">
                 <AppBarButton Icon="Bold" Label="Grassetto" Click="Editor_Bold_Click"/>
                 <AppBarButton Icon="Italic" Label="Corsivo" Click="Editor_Italic_Click"/>
                 <AppBarSeparator/>
@@ -101,14 +101,23 @@
                          HorizontalAlignment="Stretch"/>
         </Grid>
 
-        <TextBlock Grid.Row="4" Text="Query SQL (Opzionale)" Style="{ThemeResource CaptionTextBlockStyle}" Margin="0,0,0,4"/>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="10" Margin="0,0,0,4">
+            <TextBlock Text="Query SQL (Opzionale)" Style="{ThemeResource CaptionTextBlockStyle}" VerticalAlignment="Center"/>
+            <Button x:Name="BtnCopyQuery" 
+            Click="BtnCopyQuery_Click" 
+            Background="Transparent" 
+            BorderThickness="0" 
+            ToolTipService.ToolTip="Copia Query">
+                <FontIcon Glyph="&#xF413;" FontSize="14"/>
+            </Button>
+        </StackPanel>
 
         <TextBox Grid.Row="5" x:Name="TxtQuery" 
-                 PlaceholderText="SELECT * FROM..." 
-                 AcceptsReturn="True" 
-                 FontFamily="Consolas"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                 Margin="0,0,0,16"/>
+         PlaceholderText="SELECT * FROM..." 
+         AcceptsReturn="True" 
+         FontFamily="Consolas"
+         ScrollViewer.VerticalScrollBarVisibility="Auto"
+         Margin="0,0,0,16"/>
 
         <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
             <Button Content="Indietro" Click="Back_Click"/>

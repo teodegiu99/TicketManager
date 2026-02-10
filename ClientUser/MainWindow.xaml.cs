@@ -38,17 +38,17 @@ namespace ClientUser
         public string? PerContoDi { get; set; }
 
         public string? Note { get; set; }
-        public string? ScreenshotPath { get; set; }
         public string? Macchina { get; set; }
         public string? Funzione { get; set; }
 
         public int SollecitiCount { get; set; }
+        public List<string> ScreenshotPaths { get; set; } = new List<string>();
         public string DataCreazioneFormatted => DataCreazione.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
     }
 
     public sealed partial class MainWindow : Window
     {
-        private StorageFile? fileScreenshot = null;
+        private List<StorageFile> _selectedScreenshots = new();
         private HttpClient _apiClient;
         private List<string> _allAdUsers = new();
 
@@ -405,8 +405,18 @@ namespace ClientUser
             filePicker.FileTypeFilter.Add(".png");
             var hwnd = WindowNative.GetWindowHandle(this);
             InitializeWithWindow.Initialize(filePicker, hwnd);
-            fileScreenshot = await filePicker.PickSingleFileAsync();
-            if (fileScreenshot != null) lblFileScelto.Text = $"File: {fileScreenshot.Name}";
+
+            // Cambiato in PickMultipleFilesAsync
+            var files = await filePicker.PickMultipleFilesAsync();
+            if (files != null && files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    if (!_selectedScreenshots.Any(f => f.Path == file.Path))
+                        _selectedScreenshots.Add(file);
+                }
+                lblFileScelto.Text = $"{_selectedScreenshots.Count} file selezionati";
+            }
         }
 
         private async void btnInvia_Click(object sender, RoutedEventArgs e)
@@ -427,13 +437,16 @@ namespace ClientUser
             content.Add(new StringContent(txtTesto.Text ?? ""), "Message");
             content.Add(new StringContent(asbPerContoDi.Text ?? ""), "PerContoDi");
 
-            if (fileScreenshot != null)
+            if (_selectedScreenshots.Any())
             {
-                var fileStream = await fileScreenshot.OpenStreamForReadAsync();
-                var streamContent = new StreamContent(fileStream);
-                content.Add(streamContent, "Screenshot", fileScreenshot.Name);
+                foreach (var file in _selectedScreenshots)
+                {
+                    var fileStream = await file.OpenStreamForReadAsync();
+                    var streamContent = new StreamContent(fileStream);
+                    // Il backend dovrà essere pronto a ricevere una lista di file con la stessa chiave "Screenshots"
+                    content.Add(streamContent, "Screenshots", file.Name);
+                }
             }
-
             try
             {
                 btnInvia.IsEnabled = false;
@@ -467,7 +480,7 @@ namespace ClientUser
             txtTesto.Text = "";
             txtFunzione.Text = "";
             asbPerContoDi.Text = "";
-            fileScreenshot = null;
+            _selectedScreenshots.Clear();
             lblFileScelto.Text = "";
             if (cmbTipologia.Items.Count > 0) cmbTipologia.SelectedIndex = 0;
             if (cmbUrgenza.Items.Count > 0) cmbUrgenza.SelectedIndex = 0;
@@ -487,7 +500,12 @@ namespace ClientUser
             await dialog.ShowAsync();
         }
 
-
+        public void PulisciAllegati()
+        {
+            _selectedScreenshots.Clear();
+            lblFileScelto.Text = "";
+            if (btnClearFiles != null) btnClearFiles.Visibility = Visibility.Collapsed;
+        }
         private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             if (txtFunzione == null || cmbTipologia == null) return;

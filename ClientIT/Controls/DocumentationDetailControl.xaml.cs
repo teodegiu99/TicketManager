@@ -223,6 +223,31 @@ namespace ClientIT.Controls
                 System.Diagnostics.Debug.WriteLine($"Eccezione salvataggio: {ex.Message}");
             }
         }
+        private void BtnCopyQuery_Click(object sender, RoutedEventArgs e)
+        {
+            var queryText = TxtQuery.Text;
+            if (!string.IsNullOrWhiteSpace(queryText))
+            {
+                var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                package.SetText(queryText);
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+
+                // Opzionale: Cambia temporaneamente l'icona o mostra un feedback visivo
+                ShowCopyFeedback();
+            }
+        }
+
+        private async void ShowCopyFeedback()
+        {
+            // Cambia l'icona in "Completato" (Checkmark) per un secondo
+            if (BtnCopyQuery.Content is FontIcon icon)
+            {
+                string oldGlyph = icon.Glyph;
+                icon.Glyph = "\uE73E"; // Icona Checkmark
+                await System.Threading.Tasks.Task.Delay(1500);
+                icon.Glyph = oldGlyph;
+            }
+        }
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
     }
 }

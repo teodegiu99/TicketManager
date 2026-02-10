@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TicketManager;
+using System.Linq;
 
 namespace ClientUser
 {
@@ -8,13 +9,11 @@ namespace ClientUser
     {
         public TicketDto Ticket { get; }
 
-        // Costruiamo l'URL completo per l'immagine
-        public string ScreenshotUrl => !string.IsNullOrEmpty(Ticket.ScreenshotPath)
-            ? $"{ApiConfig.BaseUrl}/{Ticket.ScreenshotPath.Replace("\\", "/")}"
-            : string.Empty;
+        // Sostituiamo la vecchia proprietà singola con il controllo sulla lista
+        public Visibility HasScreenshots => (Ticket.ScreenshotPaths != null && Ticket.ScreenshotPaths.Any()) 
+            ? Visibility.Visible 
+            : Visibility.Collapsed;
 
-        // Proprietà per la visibilità condizionale
-        public Visibility HasScreenshot => !string.IsNullOrEmpty(Ticket.ScreenshotPath) ? Visibility.Visible : Visibility.Collapsed;
         public Visibility HasNotes => !string.IsNullOrEmpty(Ticket.Note) ? Visibility.Visible : Visibility.Collapsed;
         public Visibility HasPerContoDi => !string.IsNullOrEmpty(Ticket.PerContoDi) ? Visibility.Visible : Visibility.Collapsed;
 

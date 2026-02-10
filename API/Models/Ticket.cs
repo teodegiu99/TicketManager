@@ -30,8 +30,9 @@ namespace TicketAPI.Models
         [Column("testo")]
         public string Testo { get; set; } = string.Empty;
 
-        [Column("screenshotpath")]
-        public string? ScreenshotPath { get; set; }
+        //   [Column("screenshotpath")]
+        //   public string? ScreenshotPath { get; set; }
+        public virtual ICollection<TicketAllegato> Allegati { get; set; } = new List<TicketAllegato>();
 
         [Column("datacreazione")]
         public DateTime DataCreazione { get; set; }
@@ -84,5 +85,19 @@ namespace TicketAPI.Models
         public string? PerContoDi { get; set; }
 
         public virtual ICollection<Sollecito> Solleciti { get; set; } = new List<Sollecito>();
+    }
+
+    [Table("ticket_allegati")]
+    public class TicketAllegato
+    {
+        [Key]
+        [Column("id")]
+        public int Id { get; set; }
+
+        [Column("ticket_id")]
+        public int TicketId { get; set; }
+
+        [Column("file_path")]
+        public string FilePath { get; set; } = string.Empty;
     }
 }
