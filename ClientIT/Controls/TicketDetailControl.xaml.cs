@@ -299,6 +299,14 @@ namespace ClientIT.Controls
             return DateTime.SpecifyKind(date, DateTimeKind.Utc).ToLocalTime().ToString("dd/MM/yyyy HH:mm");
         }
 
+        private void TeamViewer_Click(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel != null)
+            {
+                ViewModel.ConnectTeamViewer();
+            }
+        }
+
 
         public Visibility HasScreenshot(string path) => string.IsNullOrEmpty(path) ? Visibility.Collapsed : Visibility.Visible;
 

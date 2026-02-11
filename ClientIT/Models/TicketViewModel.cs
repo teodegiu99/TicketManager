@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Windows.UI;
 
@@ -246,6 +247,56 @@ namespace ClientIT.Models
         {
             get => _note;
             set { if (_note != value) { _note = value; OnPropertyChanged(); } }
+        }
+
+        // Assicurati di avere: using System.Diagnostics;
+
+        public void ConnectTeamViewer()
+        {
+            // Usa il nome della macchina (hostname) o un ID se ce l'hai nel DB
+            string target = this.Macchina;
+
+            if (string.IsNullOrWhiteSpace(target)) return;
+
+            try
+            {
+                // Sintassi comando TeamViewer: "C:\Path\To\TeamViewer.exe" -i <ID_o_Hostname> --Password <pwd>
+                // Se TeamViewer è installato e registrato nel PATH o nel registro, basta invocare l'URL protocol o l'eseguibile.
+
+                // METODO 1: Via Protocollo URL (più moderno, se supportato dalla versione TV)
+                // Process.Start(new ProcessStartInfo($"teamviewer10://control?device={target}") { UseShellExecute = true });
+
+                // METODO 2: Via Riga di Comando (più robusto per versioni legacy/standard)
+                // Cerchiamo di lanciare l'eseguibile. Nota: il percorso potrebbe variare (x86 vs x64).
+
+                var p = new ProcessStartInfo
+                {
+                    FileName = "teamviewer.exe", // Presume che TeamViewer sia nelle variabili d'ambiente
+                    Arguments = $"-i {target}", // -i indica l'ID o l'IP/Hostname
+                    UseShellExecute = true
+                };
+
+                Process.Start(p);
+            }
+            catch (Exception ex)
+            {
+                // Se fallisce (es. TeamViewer non è nel PATH), prova con il percorso assoluto comune
+                try
+                {
+                    var p = new ProcessStartInfo
+                    {
+                        FileName = @"C:\Program Files\TeamViewer\TeamViewer.exe",
+                        Arguments = $"-i {target}",
+                        UseShellExecute = true
+                    };
+                    Process.Start(p);
+                }
+                catch
+                {
+                    // Gestisci l'errore (magari mostra un messaggio che TV non è installato)
+                    System.Diagnostics.Debug.WriteLine("Impossibile avviare TeamViewer");
+                }
+            }
         }
 
     }
