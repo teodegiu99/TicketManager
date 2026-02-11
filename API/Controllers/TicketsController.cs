@@ -181,7 +181,10 @@ namespace TicketAPI.Controllers
                     DataCreazione = t.DataCreazione,
                     DataChiusura = t.DataChiusura,
                     UrgenzaCambiata = t.UrgenzaCambiata,
-                    SScreenshotPaths = t.Allegati.Select(a => a.FilePath).ToList(),
+                    Allegati = t.Allegati.Select(a => new
+                    {
+                        Path = a.FilePath
+                    }).ToList(),
                     StatoId = t.StatoId,
                     AssegnatoaId = t.AssegnatoaId,
                     TipologiaId = t.TipologiaId,

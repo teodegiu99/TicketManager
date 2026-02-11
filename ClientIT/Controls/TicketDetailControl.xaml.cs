@@ -55,14 +55,20 @@ namespace ClientIT.Controls
                 {
                     try
                     {
-                        // Componi l'URL usando la BaseUrl
-                        string fullUrl = $"{TicketManager.ApiConfig.BaseUrl}/{allegato.Path.Replace("\\", "/")}";
-                        var p = new ProcessStartInfo(fullUrl) { UseShellExecute = true };
+                        // CORREZIONE: Usiamo direttamente il path di rete (UNC)
+                        // Impostando UseShellExecute = true, Windows aprirà il file con il programma predefinito (es. Foto)
+                        var p = new ProcessStartInfo(allegato.Path)
+                        {
+                            UseShellExecute = true
+                        };
                         Process.Start(p);
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"Errore apertura allegato: {ex.Message}");
+
+                        // Opzionale: Mostra un avviso all'utente se il file non viene trovato
+                        // (es. permessi mancanti o file spostato)
                     }
                 }
             }
@@ -287,7 +293,13 @@ namespace ClientIT.Controls
         // 5. UTILS E SCREENSHOT
         // =========================================================
 
-        public string FormatDate(DateTime date) => date.ToString("dd/MM/yyyy HH:mm");
+        public string FormatDate(DateTime date)
+        {
+            // Forza il sistema a trattare la data come UTC, poi converti in Locale (Italiano)
+            return DateTime.SpecifyKind(date, DateTimeKind.Utc).ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+        }
+
+
         public Visibility HasScreenshot(string path) => string.IsNullOrEmpty(path) ? Visibility.Collapsed : Visibility.Visible;
 
         private async void BtnScreenshot_Click(object sender, RoutedEventArgs e)

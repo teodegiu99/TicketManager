@@ -7,15 +7,12 @@ namespace ClientIT.Converters
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value is DateTime dt)
+            if (value is DateTime date)
             {
-                return dt.ToLocalTime().ToString("dd/MM/yyyy");
+                // CORREZIONE DEFINITIVA
+                return DateTime.SpecifyKind(date, DateTimeKind.Utc).ToLocalTime().ToString("dd/MM/yyyy HH:mm");
             }
-            if (value is DateTimeOffset dto)
-            {
-                return dto.ToLocalTime().ToString("dd/MM/yyyy");
-            }
-            return "-";
+            return string.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

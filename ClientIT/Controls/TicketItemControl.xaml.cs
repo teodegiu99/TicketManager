@@ -105,7 +105,13 @@ namespace ClientIT.Controls
             UpdateCombo(AssegnatoCombo, AssigneeOptions, ViewModel.AssegnatoaId ?? 0, AssegnatoaComboBox_SelectionChanged);
         }
 
-        public string FormatDate(DateTime date) => date.ToString("dd/MM/yyyy HH:mm");
+        // ClientIT/Controls/TicketItemControl.xaml.cs
+
+        public string FormatDate(DateTime date)
+        {
+            // Stessa correzione: Specifica UTC -> Converti a Locale
+            return DateTime.SpecifyKind(date, DateTimeKind.Utc).ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+        }
 
         // --- 3. EVENTI ---
 

@@ -74,7 +74,10 @@
                     <TextBlock Text="Postazione" Opacity="0.6" FontSize="12"/>
                     <TextBlock Text="{x:Bind Ticket.Macchina}" FontWeight="SemiBold"/>
                 </StackPanel>
-
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="2">
+                    <TextBlock Text="Assegnato a (Tecnico)" Opacity="0.6" FontSize="12"/>
+                    <TextBlock Text="{x:Bind Ticket.AssegnatoaNome}" FontWeight="SemiBold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
+                </StackPanel>
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Visibility="{x:Bind HasPerContoDi}">
                     <TextBlock Text="Aperto per conto di" Opacity="0.6" FontSize="12"/>
                     <TextBlock Text="{x:Bind Ticket.PerContoDi}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
