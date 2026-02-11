@@ -6,23 +6,14 @@ namespace ClientIT.Converters
 {
     public class PathToImageConverter : IValueConverter
     {
+        // In ClientIT/Converters/PathToImageConverter.cs
         public object Convert(object value, Type targetType, object parameter, string language)
         {
             if (value is string path && !string.IsNullOrEmpty(path))
             {
-                try
-                {
-                    // Verifica veloce se il file esiste (opzionale, ma evita errori di caricamento)
-                    if (System.IO.File.Exists(path))
-                    {
-                        // Crea una BitmapImage dal percorso file
-                        return new BitmapImage(new Uri(path));
-                    }
-                }
-                catch
-                {
-                    // Se fallisce (es. disco S: non connesso), non ritorna nulla
-                }
+                // Componi l'URL usando la BaseUrl definita in ApiConfig
+                string fullUrl = $"{TicketManager.ApiConfig.BaseUrl}/{path.Replace("\\", "/")}";
+                return new BitmapImage(new Uri(fullUrl));
             }
             return null;
         }

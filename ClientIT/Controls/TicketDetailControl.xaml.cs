@@ -40,39 +40,30 @@ namespace ClientIT.Controls
         private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var control = (TicketDetailControl)d;
-            control.CheckScreenshotVisibility();
         }
 
-        private void CheckScreenshotVisibility()
-        {
-            if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
-            {
-                if (ScreenshotPanel != null) ScreenshotPanel.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                if (ScreenshotPanel != null) ScreenshotPanel.Visibility = Visibility.Collapsed;
-            }
-        }
 
+        // C:\Users\mdegi\Desktop\TicketManager\ClientIT\Controls\TicketDetailControl.xaml.cs
+
+        // Rimuovi il vecchio OpenScreenshot_Click e sostituiscilo con questo:
         private void OpenScreenshot_Click(object sender, RoutedEventArgs e)
         {
-            if (ViewModel != null && !string.IsNullOrEmpty(ViewModel.ScreenshotPath))
+            // Recuperiamo l'allegato dal DataContext del bottone cliccato
+            if (sender is Button btn && btn.DataContext is TicketAllegato allegato)
             {
-                try
+                if (!string.IsNullOrEmpty(allegato.Path))
                 {
-                    var p = new ProcessStartInfo(ViewModel.ScreenshotPath) { UseShellExecute = true };
-                    Process.Start(p);
-                }
-                catch (Exception ex)
-                {
-                    _ = new ContentDialog
+                    try
                     {
-                        Title = "Impossibile aprire il file",
-                        Content = $"Errore: {ex.Message}\nPercorso: {ViewModel.ScreenshotPath}",
-                        CloseButtonText = "OK",
-                        XamlRoot = this.XamlRoot
-                    }.ShowAsync();
+                        // Componi l'URL usando la BaseUrl
+                        string fullUrl = $"{TicketManager.ApiConfig.BaseUrl}/{allegato.Path.Replace("\\", "/")}";
+                        var p = new ProcessStartInfo(fullUrl) { UseShellExecute = true };
+                        Process.Start(p);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Errore apertura allegato: {ex.Message}");
+                    }
                 }
             }
         }
@@ -301,22 +292,28 @@ namespace ClientIT.Controls
 
         private async void BtnScreenshot_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(ViewModel?.ScreenshotPath)) return;
-            string fullUrl = $"{ApiConfig.BaseUrl}{ViewModel.ScreenshotPath.Replace("\\", "/")}";
-
-            var dialog = new ContentDialog
+            // 1. Recupera l'allegato specifico dal mittente (sender) dell'evento
+            if (sender is FrameworkElement element && element.DataContext is TicketAllegato allegato)
             {
-                Title = "Allegato",
-                CloseButtonText = "Chiudi",
-                XamlRoot = this.XamlRoot,
-                Content = new Image
+                if (string.IsNullOrEmpty(allegato.Path)) return;
+
+                // 2. Componi l'URL usando il path dell'allegato specifico
+                string fullUrl = $"{ApiConfig.BaseUrl}/{allegato.Path.Replace("\\", "/")}";
+
+                var dialog = new ContentDialog
                 {
-                    Source = new BitmapImage(new Uri(fullUrl)),
-                    MaxHeight = 600,
-                    Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform
-                }
-            };
-            await dialog.ShowAsync();
+                    Title = "Allegato",
+                    CloseButtonText = "Chiudi",
+                    XamlRoot = this.XamlRoot,
+                    Content = new Image
+                    {
+                        Source = new BitmapImage(new Uri(fullUrl)),
+                        MaxHeight = 600,
+                        Stretch = Microsoft.UI.Xaml.Media.Stretch.Uniform
+                    }
+                };
+                await dialog.ShowAsync();
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Windows.UI;
@@ -42,7 +44,16 @@ namespace ClientIT.Models
         public string Funzione { get; set; } = string.Empty;
         public string Macchina { get; set; } = string.Empty;
         public DateTime DataCreazione { get; set; }
-        public string ScreenshotPath { get; set; } = string.Empty;
+        private ObservableCollection<TicketAllegato> _allegati = new ObservableCollection<TicketAllegato>();
+        public ObservableCollection<TicketAllegato> Allegati
+        {
+            get => _allegati;
+            set
+            {
+                _allegati = value;
+                OnPropertyChanged(nameof(Allegati)); // Usa il tuo metodo standard per la notifica
+            }
+        }
         public string? PerContoDi { get; set; }
         public bool UrgenzaCambiata { get; set; }
 
