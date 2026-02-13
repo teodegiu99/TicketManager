@@ -73,18 +73,20 @@ namespace TicketAPI.Controllers
         {
             var users = new List<string>();
 
-            // Lista di prefissi da NASCONDERE (Case Insensitive)
-            // Aggiungi o rimuovi voci da questa lista secondo necessità
+            // 1. LISTA PREFISSI DA ESCLUDERE (Blacklist)
             var excludedPrefixes = new[]
             {
-                "help",
-                "admin",
-                "microsoft",
-                "protex",
-                "health",
-                "dosch",
-                "assistenza"
-            };
+        "help", "admin", "microsoft", "protex",
+        "health", "dosch", "assistenza"
+    };
+
+            // 2. LISTA OU DA INCLUDERE (Whitelist)
+            // Cerchiamo queste stringhe nel percorso dell'utente
+            var allowedOus = new[]
+            {
+        "OU=Zegna Baruffa",
+        "OU=Zegna Baruffa_Botto Poala"
+    };
 
             try
             {
@@ -95,30 +97,41 @@ namespace TicketAPI.Controllers
                     {
                         if (result is UserPrincipal user)
                         {
+                            // Recuperiamo il Nome Visualizzato
                             string displayName = !string.IsNullOrEmpty(user.DisplayName) ? user.DisplayName : user.Name;
 
-                            if (!string.IsNullOrEmpty(displayName))
-                            {
-                                // Controlla se il nome inizia con uno dei prefissi esclusi (ignora maiuscole/minuscole)
-                                bool isExcluded = excludedPrefixes.Any(prefix =>
-                                    displayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+                            // Recuperiamo il DistinguishedName (percorso completo es: CN=Nome,OU=Reparto,DC=...)
+                            string distinguishedName = user.DistinguishedName;
 
-                                if (!isExcluded)
+                            if (!string.IsNullOrEmpty(displayName) && !string.IsNullOrEmpty(distinguishedName))
+                            {
+                                // A. CONTROLLO OU (Whitelist)
+                                // L'utente deve trovarsi in una delle OU specificate
+                                bool isInAllowedOu = allowedOus.Any(ou =>
+                                    distinguishedName.Contains(ou, StringComparison.OrdinalIgnoreCase));
+
+                                if (isInAllowedOu)
                                 {
-                                    users.Add(displayName);
+                                    // B. CONTROLLO PREFISSI (Blacklist)
+                                    // Il nome non deve iniziare con i prefissi esclusi
+                                    bool isExcluded = excludedPrefixes.Any(prefix =>
+                                        displayName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+
+                                    if (!isExcluded)
+                                    {
+                                        users.Add(displayName);
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Ordina alfabeticamente e rimuove duplicati
                 return Ok(users.OrderBy(u => u).Distinct().ToList());
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Errore nel recupero utenti AD: {ex.Message}");
-                // Restituisce una lista vuota in caso di errore per non bloccare il client
                 return Ok(new List<string>());
             }
         }

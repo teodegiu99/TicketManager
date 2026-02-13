@@ -11,9 +11,11 @@
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
+		<WindowsPackageType>None</WindowsPackageType>
+		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+		<SelfContained>true</SelfContained>
+		<ApplicationIcon>Assets\logo.ico</ApplicationIcon>
 
-		<WindowsPackageType>MSIX</WindowsPackageType>
-		<EnableDefaultPageItems>true</EnableDefaultPageItems>
 
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
 <PublishTrimmed>false</PublishTrimmed>
