@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36811.4 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicketsAPI", "API\TicketsAPI.csproj", "{22C3A93C-E8C8-44DA-A5D8-1AC108B97F4A}"
 EndProject
@@ -26,7 +26,6 @@ Global
 		{22C3A93C-E8C8-44DA-A5D8-1AC108B97F4A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Debug|Any CPU.ActiveCfg = Debug|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Debug|Any CPU.Build.0 = Debug|x64
-		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Debug|Any CPU.Deploy.0 = Debug|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.ActiveCfg = Release|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.Build.0 = Release|x64
 		{B19769AD-7E7B-43E4-8695-0D1DC080D421}.Release|Any CPU.Deploy.0 = Release|x64

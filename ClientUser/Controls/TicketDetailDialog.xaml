@@ -53,6 +53,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0">
@@ -78,7 +79,7 @@
                     <TextBlock Text="Assegnato a (Tecnico)" Opacity="0.6" FontSize="12"/>
                     <TextBlock Text="{x:Bind Ticket.AssegnatoaNome}" FontWeight="SemiBold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
                 </StackPanel>
-                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Visibility="{x:Bind HasPerContoDi}">
+                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Visibility="{x:Bind HasPerContoDi}">
                     <TextBlock Text="Aperto per conto di" Opacity="0.6" FontSize="12"/>
                     <TextBlock Text="{x:Bind Ticket.PerContoDi}" FontWeight="Bold" Foreground="{ThemeResource AccentFillColorDefaultBrush}"/>
                 </StackPanel>
