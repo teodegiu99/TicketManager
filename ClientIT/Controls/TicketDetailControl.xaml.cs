@@ -39,7 +39,11 @@ namespace ClientIT.Controls
 
         private static void OnViewModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
+            // Recupera l'istanza del controllo
             var control = (TicketDetailControl)d;
+
+            // CORREZIONE: Forza l'aggiornamento delle selezioni quando il ViewModel cambia
+            control.UpdateSelections();
         }
 
 
