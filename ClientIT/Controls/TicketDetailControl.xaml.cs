@@ -303,11 +303,78 @@ namespace ClientIT.Controls
             return DateTime.SpecifyKind(date, DateTimeKind.Utc).ToLocalTime().ToString("dd/MM/yyyy HH:mm");
         }
 
-        private void TeamViewer_Click(object sender, RoutedEventArgs e)
+        private async void TeamViewer_Click(object sender, RoutedEventArgs e)
         {
-            if (ViewModel != null)
+            // 1. Controlliamo se il ViewModel (il ticket) è stato caricato
+            if (ViewModel == null)
             {
-                ViewModel.ConnectTeamViewer();
+                var dialog = new ContentDialog { Title = "DEBUG", Content = "Errore: Il ViewModel è NULL!", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                await dialog.ShowAsync();
+                return;
+            }
+
+            string target = ViewModel.Macchina;
+
+            // 2. Controlliamo se la stringa della macchina è vuota
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                var dialog = new ContentDialog { Title = "DEBUG", Content = "Errore: Il campo 'Macchina' è vuoto!", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                await dialog.ShowAsync();
+                return;
+            }
+
+            // 3. Mostriamo a video il target che stiamo per usare
+            var debugDialog = new ContentDialog
+            {
+                Title = "DEBUG",
+                Content = $"Tutto ok, provo a connettermi al target: '{target}'",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await debugDialog.ShowAsync();
+
+            // 4. Tentativo di connessione
+            try
+            {
+                string passwordAdmin = "LaVostraPasswordSegreta"; // Sostituisci o lascia vuoto ""
+
+                string args = $"-i {target}";
+                if (!string.IsNullOrEmpty(passwordAdmin))
+                {
+                    args += $" --Password \"{passwordAdmin}\"";
+                }
+
+                string[] paths = new[]
+                {
+            @"C:\Program Files\TeamViewer\TeamViewer.exe",       // 64-bit 
+            @"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"   // 32-bit 
+        };
+
+                string pathTrovato = paths.FirstOrDefault(p => System.IO.File.Exists(p));
+
+                if (pathTrovato != null)
+                {
+                    var p = new ProcessStartInfo { FileName = pathTrovato, Arguments = args, UseShellExecute = true };
+                    Process.Start(p);
+                }
+                else
+                {
+                    // Prova generica se non trova il file nei percorsi standard
+                    var p = new ProcessStartInfo { FileName = "teamviewer.exe", Arguments = args, UseShellExecute = true };
+                    Process.Start(p);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 5. Se scoppia un errore durante l'avvio, ce lo mostra
+                var errDialog = new ContentDialog
+                {
+                    Title = "ERRORE AVVIO",
+                    Content = $"Impossibile lanciare TeamViewer.\nMotivo: {ex.Message}",
+                    CloseButtonText = "Chiudi",
+                    XamlRoot = this.XamlRoot
+                };
+                await errDialog.ShowAsync();
             }
         }
 

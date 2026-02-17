@@ -211,6 +211,12 @@ namespace TicketAPI.Controllers
             if (request.StatoId.HasValue && ticket.StatoId != request.StatoId.Value)
             {
                 ticket.StatoId = request.StatoId.Value;
+
+                if (ticket.StatoId == 2)
+                {
+                    // Lanciamo la notifica in background per non bloccare l'UI
+                    _ = Task.Run(() => NotifyUserInProgressViaTeams(ticket));
+                }
                 if (ticket.StatoId == 3)
                 {
                     DateTime oraItaliana = DateTime.Now;
@@ -330,6 +336,37 @@ namespace TicketAPI.Controllers
                 }
             }
         }
+
+        private async Task NotifyUserInProgressViaTeams(Ticket ticket)
+        {
+            string webhookUrl = _configuration["TeamsInCorsoUrl"];
+            if (string.IsNullOrEmpty(webhookUrl)) return;
+
+            // Determina il destinatario (Creatore o "Per Conto Di")
+            string targetDisplayName = !string.IsNullOrEmpty(ticket.PerContoDi)
+                ? ticket.PerContoDi
+                : ticket.Username;
+
+            string targetEmail = GetEmailFromDisplayName(targetDisplayName);
+            if (string.IsNullOrEmpty(targetEmail)) return;
+
+            var payload = new
+            {
+                ticketNumber = ticket.Nticket,
+                title = ticket.Titolo,
+                userEmail = targetEmail,
+                notes = "Il tuo ticket è stato preso in carico dal reparto IT."
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using (var client = new HttpClient())
+            {
+                await client.PostAsync(webhookUrl, content);
+            }
+        }
+
         private async Task NotifyAssigneeViaTeams(int ticketNumber, int assigneeId)
         {
             string webhookUrl = _configuration["TeamsAssignmentUrl"];

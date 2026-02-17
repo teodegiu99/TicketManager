@@ -264,19 +264,20 @@ namespace ClientIT.Models
                 // Se TeamViewer è installato e registrato nel PATH o nel registro, basta invocare l'URL protocol o l'eseguibile.
 
                 // METODO 1: Via Protocollo URL (più moderno, se supportato dalla versione TV)
-                // Process.Start(new ProcessStartInfo($"teamviewer10://control?device={target}") { UseShellExecute = true });
+                System.Diagnostics.Debug.WriteLine($"[DEBUG TEAMVIEWER] Valore di Macchina (target): '{target}'");
+                Process.Start(new ProcessStartInfo($"teamviewer8://control?device={target}") { UseShellExecute = true });
 
                 // METODO 2: Via Riga di Comando (più robusto per versioni legacy/standard)
                 // Cerchiamo di lanciare l'eseguibile. Nota: il percorso potrebbe variare (x86 vs x64).
 
-                var p = new ProcessStartInfo
-                {
-                    FileName = "teamviewer.exe", // Presume che TeamViewer sia nelle variabili d'ambiente
-                    Arguments = $"-i {target}", // -i indica l'ID o l'IP/Hostname
-                    UseShellExecute = true
-                };
+               // var p = new ProcessStartInfo
+              //  {
+               //     FileName = "teamviewer.exe", // Presume che TeamViewer sia nelle variabili d'ambiente
+              //      Arguments = $"-i {target}", // -i indica l'ID o l'IP/Hostname
+               //     UseShellExecute = true
+              //  };
 
-                Process.Start(p);
+                //Process.Start(p);
             }
             catch (Exception ex)
             {
