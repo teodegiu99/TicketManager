@@ -55,6 +55,18 @@ namespace ClientIT.Models
                 OnPropertyChanged(nameof(Allegati)); // Usa il tuo metodo standard per la notifica
             }
         }
+
+        private string? _utentiCC;
+        public string? UtentiCC
+        {
+            get => _utentiCC;
+            set
+            {
+                _utentiCC = value;
+                // Se hai un metodo OnPropertyChanged, chiamalo qui:
+                OnPropertyChanged();
+            }
+        }
         public string? PerContoDi { get; set; }
         public bool UrgenzaCambiata { get; set; }
 

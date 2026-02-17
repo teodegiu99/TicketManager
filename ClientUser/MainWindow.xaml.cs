@@ -36,10 +36,10 @@ namespace ClientUser
         public string AssegnatoaNome { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string? PerContoDi { get; set; }
-
         public string? Note { get; set; }
         public string? Macchina { get; set; }
         public string? Funzione { get; set; }
+        public string? UtentiCC { get; set; }
 
         public int SollecitiCount { get; set; }
         public List<string> ScreenshotPaths { get; set; } = new List<string>();
@@ -51,6 +51,7 @@ namespace ClientUser
         private List<StorageFile> _selectedScreenshots = new();
         private HttpClient _apiClient;
         private List<string> _allAdUsers = new();
+        private List<string> selectedCC = new List<string>();
 
         // 1. Variabile per il Timer
         private DispatcherTimer _autoRefreshTimer;
@@ -348,6 +349,32 @@ namespace ClientUser
             catch { }
         }
 
+        private void AddCC_Click(object sender, RoutedEventArgs e)
+        {
+            // Usiamo il testo presente nell'AutoSuggestBox dedicato ai CC (chiamiamolo asbCC)
+            string selectedUser = asbCC.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(selectedUser)) return;
+
+            // Verifichiamo che l'utente esista nella lista recuperata da AD
+            var validUser = _allAdUsers.FirstOrDefault(u => u.Equals(selectedUser, StringComparison.OrdinalIgnoreCase));
+
+            if (validUser != null)
+            {
+                if (!selectedCC.Contains(validUser))
+                {
+                    selectedCC.Add(validUser);
+                    // ListCC è la tua ListView/ListBox nello XAML per mostrare i selezionati
+                    ListCC.Items.Add(validUser);
+                    asbCC.Text = string.Empty; // Pulisci per il prossimo inserimento
+                }
+            }
+            else
+            {
+                // Se l'utente non è valido, puliamo il campo
+                asbCC.Text = string.Empty;
+            }
+        }
         private async Task PopolaComboBoxStringhe(ComboBox comboBox, string url)
         {
             try
@@ -379,6 +406,15 @@ namespace ClientUser
             }
         }
 
+        private void ListCC_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            if (e.ClickedItem is string user)
+            {
+                selectedCC.Remove(user);
+                ListCC.Items.Remove(user);
+            }
+        }
+
         private void asbPerContoDi_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
         {
             if (args.SelectedItem != null) sender.Text = args.SelectedItem.ToString();
@@ -400,6 +436,7 @@ namespace ClientUser
 
         private async void btnUpload_Click(object sender, RoutedEventArgs e)
         {
+
             var filePicker = new FileOpenPicker();
             filePicker.FileTypeFilter.Add(".jpg");
             filePicker.FileTypeFilter.Add(".png");
@@ -436,6 +473,7 @@ namespace ClientUser
             content.Add(new StringContent(txtOggetto.Text ?? ""), "Title");
             content.Add(new StringContent(txtTesto.Text ?? ""), "Message");
             content.Add(new StringContent(asbPerContoDi.Text ?? ""), "PerContoDi");
+            content.Add(new StringContent(string.Join("; ", selectedCC)), "UtentiCC");
 
             if (_selectedScreenshots.Any())
             {

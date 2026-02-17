@@ -55,6 +55,9 @@ namespace TicketAPI.Controllers
             [FromForm(Name = "PerContoDi")]
             public string? PerContoDi { get; set; }
 
+            [FromForm(Name = "UtentiCC")]
+            public string? UtentiCC { get; set; }
+
             [FromForm(Name = "Screenshots")]
             public List<IFormFile>? Screenshots { get; set; } 
         }
@@ -124,9 +127,10 @@ namespace TicketAPI.Controllers
                 // Case insensitive per sicurezza
                 string searchName = userDisplayName.ToLower();
                 query = query.Where(t =>
-                    t.Username.ToLower() == searchName ||
-                    (t.PerContoDi != null && t.PerContoDi.ToLower() == searchName)
-                );
+        t.Username.ToLower() == searchName ||
+        (t.PerContoDi != null && t.PerContoDi.ToLower() == searchName) ||
+        (t.UtentiCC != null && t.UtentiCC.ToLower().Contains(searchName)) // <--- AGGIUNTO
+    );
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -586,7 +590,8 @@ namespace TicketAPI.Controllers
                 TipologiaId = tipologia.Id,
                 UrgenzaId = urgenza.Id,
                 SedeId = sede.Id,
-                PerContoDi = request.PerContoDi
+                PerContoDi = request.PerContoDi,
+                UtentiCC = request.UtentiCC, // Salvataggio dei CC
             };
 
             // 4. Salviamo per generare l'ID / Nticket

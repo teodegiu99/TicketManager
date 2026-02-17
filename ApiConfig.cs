@@ -9,7 +9,7 @@ namespace TicketManager
         // true  = Lavori in LOCALE (localhost)
         // false = Lavori in REMOTO (Azure/Server vero)
         // =========================================================
-        public const bool UsaLocalhost = false;
+        public const bool UsaLocalhost = true;
 
 
         // Qui definisci i due indirizzi

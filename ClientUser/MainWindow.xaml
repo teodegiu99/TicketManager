@@ -143,7 +143,28 @@
                           Header="Sede"
                           HorizontalAlignment="Stretch" />
                 </Grid>
+                <StackPanel Spacing="10" Margin="0,10,0,0">
+                    <TextBlock Text="Utenti in copia (CC)" FontWeight="Bold"/>
+                    <Grid ColumnDefinitions="*, Auto">
+                        <AutoSuggestBox x:Name="asbCC" 
+                        PlaceholderText="Cerca utente..."
+                        TextChanged="asbPerContoDi_TextChanged" 
+                        SuggestionChosen="asbPerContoDi_SuggestionChosen"
+                        UpdateTextOnSelect="True"/>
+                        <Button x:Name="btnAddCC" Content="Aggiungi" Click="AddCC_Click" Grid.Column="1" Margin="5,0,0,0"/>
+                    </Grid>
 
+                    <ListBox x:Name="ListCC" MaxHeight="100">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <SymbolIcon Symbol="Contact" />
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
                 <AutoSuggestBox x:Name="asbPerContoDi"
                 Header="Aperto per conto di (Opzionale)"
                 PlaceholderText="Inizia a scrivere il nome del collega..."

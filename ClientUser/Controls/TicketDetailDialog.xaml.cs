@@ -15,7 +15,14 @@ namespace ClientUser
             : Visibility.Collapsed;
 
         public Visibility HasNotes => !string.IsNullOrEmpty(Ticket.Note) ? Visibility.Visible : Visibility.Collapsed;
-        public Visibility HasPerContoDi => !string.IsNullOrEmpty(Ticket.PerContoDi) ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility HasCC => !string.IsNullOrWhiteSpace(Ticket.UtentiCC)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        // Assicurati che HasPerContoDi sia gestito similmente se non lo è già
+        public Visibility HasPerContoDi => !string.IsNullOrWhiteSpace(Ticket.PerContoDi)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         public TicketDetailDialog(TicketDto ticket)
         {

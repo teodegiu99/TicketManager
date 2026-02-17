@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq; // Necessario per LINQ
 using System.Net.Http; // Necessario per API
 using System.Net.Http.Json; // Necessario per JSON
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using TicketManager;
 
@@ -77,13 +78,22 @@ namespace ClientIT.Controls
                 }
             }
         }
-
+   
         public TicketViewModel ViewModel
         {
             get => (TicketViewModel)GetValue(ViewModelProperty);
             set => SetValue(ViewModelProperty, value);
         }
+        public Visibility HasCC => (ViewModel != null && !string.IsNullOrWhiteSpace(ViewModel.UtentiCC))
+    ? Visibility.Visible
+    : Visibility.Collapsed;
 
+
+
+        // CORREZIONE: Accediamo a ViewModel invece di Ticket
+        public Visibility HasPerContoDi => (ViewModel != null && !string.IsNullOrWhiteSpace(ViewModel.PerContoDi))
+            ? Visibility.Visible
+            : Visibility.Collapsed;
         public static readonly DependencyProperty StatoOptionsProperty =
             DependencyProperty.Register(nameof(StatoOptions), typeof(IList<Stato>), typeof(TicketDetailControl), new PropertyMetadata(null, OnDataChanged));
         public IList<Stato> StatoOptions { get => (IList<Stato>)GetValue(StatoOptionsProperty); set => SetValue(StatoOptionsProperty, value); }
