@@ -323,7 +323,9 @@ namespace ClientIT.Controls
                 return;
             }
 
-            string target = ViewModel.Macchina;
+            //da fare: modificare target hardcodato con una nuova tabella con idmacchine e idteamviewer 
+            // string target = ViewModel.Macchina;
+            string target = "1096661915";
 
             // 2. Controlliamo se la stringa della macchina è vuota
             if (string.IsNullOrWhiteSpace(target))
@@ -346,13 +348,13 @@ namespace ClientIT.Controls
             // 4. Tentativo di connessione
             try
             {
-                string passwordAdmin = "LaVostraPasswordSegreta"; // Sostituisci o lascia vuoto ""
+               // string passwordAdmin = ""; // Sostituisci o lascia vuoto ""
 
                 string args = $"-i {target}";
-                if (!string.IsNullOrEmpty(passwordAdmin))
-                {
-                    args += $" --Password \"{passwordAdmin}\"";
-                }
+             //   if (!string.IsNullOrEmpty(passwordAdmin))
+             //   {
+             //       args += $" --Password \"{passwordAdmin}\"";
+             //   }
 
                 string[] paths = new[]
                 {
