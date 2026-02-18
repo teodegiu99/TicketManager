@@ -69,6 +69,7 @@ namespace TicketAPI.Controllers
             public int? UrgenzaId { get; set; }
             public int? TipologiaId { get; set; }
             public string? Note { get; set; }
+            public bool? ChiusoDaUtente { get; set; } 
         }
 
         [HttpGet("all")]
@@ -216,6 +217,12 @@ namespace TicketAPI.Controllers
             {
                 ticket.StatoId = request.StatoId.Value;
 
+                // --- NUOVA LOGICA: Salva se è stato chiuso dall'utente ---
+                if (request.ChiusoDaUtente.HasValue && request.ChiusoDaUtente.Value == true)
+                {
+                    ticket.ChiusoDaUtente = true;
+                }
+
                 if (ticket.StatoId == 2)
                 {
                     // Lanciamo la notifica in background per non bloccare l'UI
@@ -304,39 +311,53 @@ namespace TicketAPI.Controllers
             string webhookUrl = _configuration["TeamsWebhookUrl"];
             if (string.IsNullOrEmpty(webhookUrl)) return;
 
-            // 1. Determina chi notificare (Il creatore o il "Per Conto Di")
-            string targetDisplayName = !string.IsNullOrEmpty(ticket.PerContoDi)
-                ? ticket.PerContoDi
-                : ticket.Username;
+            // 1. Creiamo la lista degli utenti da notificare (Creatore/Per Conto Di + CC)
+            var displayNamesToNotify = new List<string>();
+            string mainUser = !string.IsNullOrEmpty(ticket.PerContoDi) ? ticket.PerContoDi : ticket.Username;
+            displayNamesToNotify.Add(mainUser);
 
-            // 2. Recupera l'EMAIL (UserPrincipalName) da AD usando il DisplayName
-            string targetEmail = GetEmailFromDisplayName(targetDisplayName);
-
-            if (string.IsNullOrEmpty(targetEmail))
+            if (!string.IsNullOrWhiteSpace(ticket.UtentiCC))
             {
-                System.Diagnostics.Debug.WriteLine($"Impossibile trovare email per {targetDisplayName}");
-                return;
+                var ccList = ticket.UtentiCC.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var cc in ccList)
+                {
+                    displayNamesToNotify.Add(cc.Trim());
+                }
             }
 
-            // 3. Prepara il payload JSON
-            var payload = new
-            {
-                ticketNumber = ticket.Nticket,
-                title = ticket.Titolo,
-                userEmail = targetEmail, // Power Automate userà questa per la chat diretta
-                notes = notes
-            };
+            // Rimuoviamo duplicati (se un utente ha messo in CC se stesso)
+            displayNamesToNotify = displayNamesToNotify.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-            var json = JsonSerializer.Serialize(payload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            // 4. Invia la richiesta HTTP POST
             using (var client = new HttpClient())
             {
-                var response = await client.PostAsync(webhookUrl, content);
-                if (!response.IsSuccessStatusCode)
+                foreach (var displayName in displayNamesToNotify)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Errore webhook Teams: {response.StatusCode}");
+                    string targetEmail = GetEmailFromDisplayName(displayName);
+                    if (string.IsNullOrEmpty(targetEmail)) continue;
+
+                    var payload = new
+                    {
+                        ticketNumber = ticket.Nticket,
+                        title = ticket.Titolo,
+                        userEmail = targetEmail,
+                        notes = notes
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    try
+                    {
+                        var response = await client.PostAsync(webhookUrl, content);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Errore webhook Teams (Chiusura) per {targetEmail}: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Errore eccezione webhook Teams per {targetEmail}: {ex.Message}");
+                    }
                 }
             }
         }
@@ -346,28 +367,48 @@ namespace TicketAPI.Controllers
             string webhookUrl = _configuration["TeamsInCorsoUrl"];
             if (string.IsNullOrEmpty(webhookUrl)) return;
 
-            // Determina il destinatario (Creatore o "Per Conto Di")
-            string targetDisplayName = !string.IsNullOrEmpty(ticket.PerContoDi)
-                ? ticket.PerContoDi
-                : ticket.Username;
+            var displayNamesToNotify = new List<string>();
+            string mainUser = !string.IsNullOrEmpty(ticket.PerContoDi) ? ticket.PerContoDi : ticket.Username;
+            displayNamesToNotify.Add(mainUser);
 
-            string targetEmail = GetEmailFromDisplayName(targetDisplayName);
-            if (string.IsNullOrEmpty(targetEmail)) return;
-
-            var payload = new
+            if (!string.IsNullOrWhiteSpace(ticket.UtentiCC))
             {
-                ticketNumber = ticket.Nticket,
-                title = ticket.Titolo,
-                userEmail = targetEmail,
-                notes = "Il tuo ticket è stato preso in carico dal reparto IT."
-            };
+                var ccList = ticket.UtentiCC.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var cc in ccList)
+                {
+                    displayNamesToNotify.Add(cc.Trim());
+                }
+            }
 
-            var json = JsonSerializer.Serialize(payload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            displayNamesToNotify = displayNamesToNotify.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
             using (var client = new HttpClient())
             {
-                await client.PostAsync(webhookUrl, content);
+                foreach (var displayName in displayNamesToNotify)
+                {
+                    string targetEmail = GetEmailFromDisplayName(displayName);
+                    if (string.IsNullOrEmpty(targetEmail)) continue;
+
+                    var payload = new
+                    {
+                        ticketNumber = ticket.Nticket,
+                        title = ticket.Titolo,
+                        userEmail = targetEmail,
+                        notes = "Il tuo ticket è stato preso in carico dal reparto IT."
+                    };
+
+                    var json = JsonSerializer.Serialize(payload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    try
+                    {
+                        await client.PostAsync(webhookUrl, content);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Errore eccezione webhook Teams InCorso per {targetEmail}: {ex.Message}");
+                    }
+                }
             }
         }
 

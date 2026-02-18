@@ -84,6 +84,9 @@ namespace TicketAPI.Models
         [Column("percontodi")]
         public string? PerContoDi { get; set; }
 
+        [Column("chiusodautente")]
+        public bool ChiusoDaUtente { get; set; } = false;
+
         [Column("UtentiCC")]
         public string? UtentiCC { get; set; }
         public virtual ICollection<Sollecito> Solleciti { get; set; } = new List<Sollecito>();

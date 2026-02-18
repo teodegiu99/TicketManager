@@ -134,8 +134,7 @@
 
                     <TextBox x:Name="txtFunzione" 
                           Grid.Column="0"
-                          Header="Funzione protex" 
-                          PlaceholderText="Codice in basso a destra in protex"
+
                           Visibility="Collapsed"/>
 
                     <ComboBox x:Name="cmbSede"
@@ -153,17 +152,19 @@
                         UpdateTextOnSelect="True"/>
                         <Button x:Name="btnAddCC" Content="Aggiungi" Click="AddCC_Click" Grid.Column="1" Margin="5,0,0,0"/>
                     </Grid>
-
-                    <ListBox x:Name="ListCC" MaxHeight="100">
-                        <ListBox.ItemTemplate>
+                    <ListView x:Name="ListCC" MaxHeight="100"
+                             IsItemClickEnabled="True"
+                             ItemClick="ListCC_ItemClick"
+                             ToolTipService.ToolTip="Clicca su un utente per rimuoverlo dalla lista">
+                        <ListView.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Spacing="10">
-                                    <SymbolIcon Symbol="Contact" />
+                                    <SymbolIcon Symbol="Cancel" Foreground="Red" />
                                     <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </StackPanel>
                 <AutoSuggestBox x:Name="asbPerContoDi"
                 Header="Aperto per conto di (Opzionale)"

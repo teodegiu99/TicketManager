@@ -154,8 +154,7 @@ namespace ClientUser
                     try
                     {
                         // Payload per l'aggiornamento stato (StatoId 3 = Chiuso)
-                        var updateRequest = new { StatoId = 3, Note = "Chiuso dall'utente" };
-
+                        var updateRequest = new { StatoId = 3, Note = "Chiuso dall'utente", ChiusoDaUtente = true };
                         // Chiamata API PUT
                         var response = await _apiClient.PutAsJsonAsync($"{ApiConfig.BaseUrl}/api/tickets/{ticket.Nticket}/update", updateRequest);
 
@@ -519,6 +518,9 @@ namespace ClientUser
             txtFunzione.Text = "";
             asbPerContoDi.Text = "";
             _selectedScreenshots.Clear();
+            asbCC.Text = string.Empty;
+            selectedCC.Clear();
+            ListCC.Items.Clear();
             lblFileScelto.Text = "";
             if (cmbTipologia.Items.Count > 0) cmbTipologia.SelectedIndex = 0;
             if (cmbUrgenza.Items.Count > 0) cmbUrgenza.SelectedIndex = 0;
@@ -547,11 +549,20 @@ namespace ClientUser
         private void cmbTipologia_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             if (txtFunzione == null || cmbTipologia == null) return;
+
             if (cmbTipologia.SelectedItem is string selezione)
             {
                 if (selezione.Contains("protex", StringComparison.OrdinalIgnoreCase))
                 {
                     txtFunzione.Visibility = Visibility.Visible;
+                    txtFunzione.Header = "Funzione protex";
+                    txtFunzione.PlaceholderText = "Codice in basso a destra in protex";
+                }
+                else if (selezione.Contains("certificazion", StringComparison.OrdinalIgnoreCase))
+                {
+                    txtFunzione.Visibility = Visibility.Visible;
+                    txtFunzione.Header = "Codice articolo";
+                    txtFunzione.PlaceholderText = "Es: ZF9672";
                 }
                 else
                 {
