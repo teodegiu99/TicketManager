@@ -686,6 +686,20 @@ namespace TicketAPI.Controllers
             return Ok(newTicket);
         }
 
+        [HttpGet("teamviewer/{macchina}")]
+        public async Task<IActionResult> GetTeamViewerId(string macchina)
+        {
+            if (string.IsNullOrWhiteSpace(macchina)) return BadRequest("Nome macchina non fornito.");
+
+            var tv = await _context.TeamViewerMachines
+                .FirstOrDefaultAsync(t => t.NomeMacchina.ToLower() == macchina.ToLower());
+
+            if (tv == null) return NotFound("Macchina non trovata su TeamViewer.");
+
+            return Ok(new { idtw = tv.IdTw });
+        }
+
+
         [HttpGet("tipologie")]
         public async Task<IActionResult> GetTipologie() { var data = await _context.Tipologie.Select(t => new { t.Id, t.Nome, t.Colore }).ToListAsync(); return Ok(data); }
 

@@ -24,7 +24,8 @@ namespace TicketAPI.Data
         public DbSet<Sollecito> Solleciti { get; set; }
         public DbSet<Documentazione> Documentazione { get; set; }
         public DbSet<Keyword> Keywords { get; set; }
-        public DbSet<TicketAllegato> TicketAllegati { get; set; } 
+        public DbSet<TicketAllegato> TicketAllegati { get; set; }
+        public DbSet<TeamViewerMachine> TeamViewerMachines { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Serve per dire a EF Core che i nomi delle tabelle
@@ -38,7 +39,8 @@ namespace TicketAPI.Data
             modelBuilder.Entity<Progetto>().ToTable("progetti");
             modelBuilder.Entity<FaseProgetto>().ToTable("fasiprogetto");
             modelBuilder.Entity<Sollecito>().ToTable("sollecito");
-            modelBuilder.Entity<TicketAllegato>().ToTable("ticket_allegati"); 
+            modelBuilder.Entity<TicketAllegato>().ToTable("ticket_allegati");
+            modelBuilder.Entity<TeamViewerMachine>().ToTable("teamviewer");
         }
     }
 }

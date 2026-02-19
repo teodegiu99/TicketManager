@@ -345,62 +345,100 @@ namespace ClientIT.Controls
                 return;
             }
 
-            //da fare: modificare target hardcodato con una nuova tabella con idmacchine e idteamviewer 
-            // string target = ViewModel.Macchina;
-            string target = "1096661915";
+            string nomeMacchina = ViewModel.Macchina;
 
             // 2. Controlliamo se la stringa della macchina è vuota
-            if (string.IsNullOrWhiteSpace(target))
+            if (string.IsNullOrWhiteSpace(nomeMacchina))
             {
-                var dialog = new ContentDialog { Title = "DEBUG", Content = "Errore: Il campo 'Macchina' è vuoto!", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                var dialog = new ContentDialog { Title = "Errore", Content = "Il campo 'Macchina' è vuoto!", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
                 await dialog.ShowAsync();
                 return;
             }
 
-            // 3. Mostriamo a video il target che stiamo per usare
+            string target = "";
+
+            // 3. Chiamata API per ottenere l'ID TeamViewer
+            try
+            {
+                var response = await _apiClient.GetAsync($"{ApiConfig.BaseUrl}/api/tickets/teamviewer/{Uri.EscapeDataString(nomeMacchina)}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<TeamViewerResponse>();
+                    target = result?.idtw;
+                    //target = "1489849531";
+                }
+                else
+                {
+                    var dialog = new ContentDialog { Title = "Non Trovata", Content = $"La macchina '{nomeMacchina}' non è presente nel database di TeamViewer.", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                    await dialog.ShowAsync();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                var dialog = new ContentDialog { Title = "Errore API", Content = $"Impossibile recuperare l'ID: {ex.Message}", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                await dialog.ShowAsync();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                var dialog = new ContentDialog { Title = "Errore", Content = "ID TeamViewer recuperato ma risulta vuoto.", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                await dialog.ShowAsync();
+                return;
+            }
+
+            // 4. Mostriamo a video il target che stiamo per usare
             var debugDialog = new ContentDialog
             {
-                Title = "DEBUG",
-                Content = $"Tutto ok, provo a connettermi al target: '{target}'",
+                Title = "Connessione in corso",
+                Content = $"Provo a connettermi al target ID: '{target}' per la macchina '{nomeMacchina}'",
                 CloseButtonText = "OK",
                 XamlRoot = this.XamlRoot
             };
             await debugDialog.ShowAsync();
 
-            // 4. Tentativo di connessione
+            // 5. Tentativo di connessione
             try
             {
-               // string passwordAdmin = ""; // Sostituisci o lascia vuoto ""
-
-                string args = $"-i {target}";
-             //   if (!string.IsNullOrEmpty(passwordAdmin))
-             //   {
-             //       args += $" --Password \"{passwordAdmin}\"";
-             //   }
+                // Usa --id invece di -i
+                string args = $"--id {target}";
 
                 string[] paths = new[]
                 {
-            @"C:\Program Files\TeamViewer\TeamViewer.exe",       // 64-bit 
-            @"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"   // 32-bit 
-        };
+                    @"C:\Program Files\TeamViewer\TeamViewer.exe",       // 64-bit 
+                    @"C:\Program Files (x86)\TeamViewer\TeamViewer.exe"   // 32-bit 
+                };
 
                 string pathTrovato = paths.FirstOrDefault(p => System.IO.File.Exists(p));
 
                 if (pathTrovato != null)
                 {
-                    var p = new ProcessStartInfo { FileName = pathTrovato, Arguments = args, UseShellExecute = true };
+                    var p = new ProcessStartInfo
+                    {
+                        FileName = pathTrovato,
+                        Arguments = args,
+                        UseShellExecute = true,
+                        // FONDAMENTALE: Imposta la cartella di lavoro corretta
+                        WorkingDirectory = System.IO.Path.GetDirectoryName(pathTrovato)
+                    };
                     Process.Start(p);
                 }
                 else
                 {
-                    // Prova generica se non trova il file nei percorsi standard
-                    var p = new ProcessStartInfo { FileName = "teamviewer.exe", Arguments = args, UseShellExecute = true };
+                    var p = new ProcessStartInfo
+                    {
+                        FileName = "teamviewer.exe",
+                        Arguments = args,
+                        UseShellExecute = true
+                    };
                     Process.Start(p);
                 }
             }
             catch (Exception ex)
             {
-                // 5. Se scoppia un errore durante l'avvio, ce lo mostra
+                // 6. Se scoppia un errore durante l'avvio, ce lo mostra
                 var errDialog = new ContentDialog
                 {
                     Title = "ERRORE AVVIO",
@@ -411,7 +449,6 @@ namespace ClientIT.Controls
                 await errDialog.ShowAsync();
             }
         }
-
 
         public Visibility HasScreenshot(string path) => string.IsNullOrEmpty(path) ? Visibility.Collapsed : Visibility.Visible;
 
