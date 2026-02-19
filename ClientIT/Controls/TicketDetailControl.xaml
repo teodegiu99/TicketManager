@@ -42,6 +42,7 @@
 
             <StackPanel Grid.Column="0">
                 <TextBlock Text="Richiedente" Style="{StaticResource DetailLabelStyle}"/>
+
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <PersonPicture Width="24" Initials="{x:Bind ViewModel.Username.Substring(0,1), Mode=OneWay}"/>
                     <TextBlock Text="{x:Bind ViewModel.Username, Mode=OneWay}" Style="{StaticResource DetailValueStyle}" Margin="0" VerticalAlignment="Center"/>
@@ -55,14 +56,16 @@
                     <TextBlock Text="Per conto di:" FontSize="12" Foreground="OrangeRed"/>
                     <TextBlock Text="{x:Bind ViewModel.PerContoDi, Mode=OneWay}" FontSize="12" FontWeight="Bold" Foreground="OrangeRed"/>
                 </StackPanel>
-            </StackPanel>
-            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Visibility="{x:Bind HasCC, Mode=OneWay}" Margin="0,4,0,0">
-                <TextBlock Text="Persone in copia (CC)" Opacity="0.6" FontSize="12"/>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <SymbolIcon Symbol="People" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{x:Bind ViewModel.UtentiCC, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+
+                <StackPanel Margin="0,12,0,0" Visibility="{x:Bind ViewModel.UtentiCCVisibility, Mode=OneWay}">
+                    <TextBlock Text="Persone in copia (CC)" Opacity="0.6" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                        <SymbolIcon Symbol="People" Foreground="{ThemeResource AccentFillColorDefaultBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind ViewModel.UtentiCC, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
+
             <StackPanel Grid.Column="1">
                 <TextBlock Text="Postazione" Style="{StaticResource DetailLabelStyle}"/>
 

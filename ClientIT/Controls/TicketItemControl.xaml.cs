@@ -154,12 +154,34 @@ namespace ClientIT.Controls
             }
         }
 
-        private void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void StatoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ViewModel == null || sender is not ComboBox cb || cb.SelectedValue is not int newVal) return;
 
             if (newVal != ViewModel.StatoId)
             {
+                // --- NUOVO CONTROLLO: Impedisci "In carico" (Id 2) se non assegnato ---
+                if (newVal == 2 && (ViewModel.AssegnatoaId == null || ViewModel.AssegnatoaId == 0))
+                {
+                    // 1. Mostra l'alert all'utente
+                    var dialog = new ContentDialog
+                    {
+                        Title = "Assegnazione richiesta",
+                        Content = "Impossibile mettere il ticket 'In carico' senza averlo prima assegnato a un tecnico. Seleziona un tecnico dalla tendina 'Assegna a'.",
+                        CloseButtonText = "OK",
+                        DefaultButton = ContentDialogButton.Close,
+                        XamlRoot = this.XamlRoot
+                    };
+                    await dialog.ShowAsync();
+
+                    // 2. Ripristina la tendina allo stato precedente senza far scattare un loop infinito
+                    cb.SelectionChanged -= StatoComboBox_SelectionChanged;
+                    cb.SelectedValue = ViewModel.StatoId;
+                    cb.SelectionChanged += StatoComboBox_SelectionChanged;
+
+                    return; // Blocchiamo l'esecuzione qui, non inviamo nulla al server
+                }
+
                 ViewModel.StatoId = newVal;
                 TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, newVal));
             }

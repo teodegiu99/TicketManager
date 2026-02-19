@@ -178,6 +178,28 @@ namespace ClientIT.Controls
 
             if (val != ViewModel.StatoId)
             {
+                // --- NUOVO CONTROLLO: Impedisci "In carico" (Id 2) se non assegnato ---
+                if (val == 2 && (ViewModel.AssegnatoaId == null || ViewModel.AssegnatoaId == 0))
+                {
+                    // 1. Mostra l'alert all'utente
+                    var dialog = new ContentDialog
+                    {
+                        Title = "Assegnazione richiesta",
+                        Content = "Impossibile mettere il ticket 'In carico' senza averlo prima assegnato a un tecnico. Seleziona un tecnico dalla tendina 'Assegna a'.",
+                        CloseButtonText = "OK",
+                        DefaultButton = ContentDialogButton.Close,
+                        XamlRoot = this.XamlRoot
+                    };
+                    await dialog.ShowAsync();
+
+                    // 2. Ripristina la tendina allo stato precedente senza far scattare un loop infinito
+                    cb.SelectionChanged -= StatoComboBox_SelectionChanged;
+                    cb.SelectedValue = ViewModel.StatoId;
+                    cb.SelectionChanged += StatoComboBox_SelectionChanged;
+
+                    return; // Blocchiamo l'esecuzione qui
+                }
+
                 // 1. Aggiorna stato e notifica parent
                 ViewModel.StatoId = val;
                 TicketStateChanged?.Invoke(this, new TicketStateChangedEventArgs(ViewModel.Nticket, val));

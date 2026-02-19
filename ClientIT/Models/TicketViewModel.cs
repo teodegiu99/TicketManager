@@ -63,10 +63,15 @@ namespace ClientIT.Models
             set
             {
                 _utentiCC = value;
-                // Se hai un metodo OnPropertyChanged, chiamalo qui:
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(UtentiCCVisibility)); // Notifica la UI per la visibilità
             }
         }
+
+        public Visibility UtentiCCVisibility =>
+            string.IsNullOrWhiteSpace(UtentiCC) ? Visibility.Collapsed : Visibility.Visible;
+
+
         public string? PerContoDi { get; set; }
         public bool UrgenzaCambiata { get; set; }
 
