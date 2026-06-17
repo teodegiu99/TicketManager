@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace ClientIT.Models
 {
@@ -18,5 +18,15 @@ namespace ClientIT.Models
         // Dati Keywords
         public int[]? KeywordIds { get; set; }
         public List<string>? KeywordNomi { get; set; }
+    }
+
+    public class CreateDocRequest
+    {
+        public int Nticket { get; set; }
+        public string Titolo { get; set; }
+        public string Soluzione { get; set; }
+        public string? Query { get; set; }
+        public int CategoriaId { get; set; }
+        public List<string> Keywords { get; set; } = new List<string>();
     }
 }

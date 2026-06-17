@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 
@@ -22,8 +22,14 @@ namespace ClientUser.Converters // Assicurati che il namespace sia corretto
                 // Se è un URL web
                 if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
+                    if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        return new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
+
                     return new BitmapImage(new Uri(path));
                 }
+
+                if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    return new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
 
                 // Se è un percorso locale assoluto, WinUI potrebbe avere problemi di permessi 
                 // se l'app è sandboxed, ma per il debug prova questo:

@@ -1,4 +1,4 @@
-using ClientIT.Models;
+ï»¿using ClientIT.Models;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -167,6 +167,44 @@ namespace ClientIT.Controls
             }
         }
 
+
+        private async void Editor_AddPdf_Click(object sender, RoutedEventArgs e)
+        {
+            var openPicker = new Windows.Storage.Pickers.FileOpenPicker();
+            var window = (Application.Current as App)?.m_window;
+            if (window != null)
+            {
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(openPicker, hWnd);
+            }
+
+            openPicker.ViewMode = Windows.Storage.Pickers.PickerViewMode.List;
+            openPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            openPicker.FileTypeFilter.Add(".pdf");
+
+            var file = await openPicker.PickSingleFileAsync();
+            if (file != null)
+            {
+                try
+                {
+                    string targetFolder = @"\\szblbfs01\zblb$\group_utenti\Inter_Uffici\Ticketmanager";
+                    string fileName = $"DocPdf_{System.Guid.NewGuid().ToString().Substring(0,8)}.pdf";
+                    string destPath = System.IO.Path.Combine(targetFolder, fileName);
+                    
+                    System.IO.File.Copy(file.Path, destPath, true);
+
+                    RtbSoluzione.Document.Selection.Text = $"[Apri PDF: {file.Name}]";
+                    RtbSoluzione.Document.Selection.Link = $"\"{destPath}\"";
+                    RtbSoluzione.Document.Selection.StartPosition = RtbSoluzione.Document.Selection.EndPosition;
+                    RtbSoluzione.Document.Selection.Text = "\n";
+                }
+                catch(System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Errore caricamento PDF: {ex.Message}");
+                }
+            }
+        }
+
         // --- Salvataggio ---
 
         private async void Save_Click(object sender, RoutedEventArgs e)
@@ -180,7 +218,7 @@ namespace ClientIT.Controls
             // Crea il DTO
             var docDto = new DocumentazioneDto
             {
-                Id = _currentDoc.Id, // Se è 0, il backend creerà un nuovo ID
+                Id = _currentDoc.Id, // Se Ã¨ 0, il backend creerÃ  un nuovo ID
                 Titolo = TxtTitolo.Text,
                 CategoriaId = selectedCatId,
                 Soluzione = rtfContent,
@@ -197,10 +235,10 @@ namespace ClientIT.Controls
             {
                 HttpResponseMessage response;
 
-                // SE L'ID È 0 => CREAZIONE (POST)
+                // SE L'ID Ãˆ 0 => CREAZIONE (POST)
                 if (_currentDoc.Id == 0)
                 {
-                    response = await _client.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione", docDto);
+                    var createReq = new ClientIT.Models.CreateDocRequest { Nticket = _currentDoc.Nticket, Titolo = TxtTitolo.Text, Soluzione = rtfContent, Query = TxtQuery.Text, CategoriaId = selectedCatId, Keywords = _currentKeywords.ToList() }; response = await _client.PostAsJsonAsync($"{ApiConfig.BaseUrl}/api/documentazione", createReq);
                 }
                 // ALTRIMENTI => AGGIORNAMENTO (PUT)
                 else
@@ -251,3 +289,4 @@ namespace ClientIT.Controls
         private void Back_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
     }
 }
+

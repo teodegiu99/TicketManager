@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+ï»¿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using TicketManager;
 using System.Linq;
@@ -9,7 +9,7 @@ namespace ClientUser
     {
         public TicketDto Ticket { get; }
 
-        // Sostituiamo la vecchia proprietà singola con il controllo sulla lista
+        // Sostituiamo la vecchia proprietÃ  singola con il controllo sulla lista
         public Visibility HasScreenshots => (Ticket.ScreenshotPaths != null && Ticket.ScreenshotPaths.Any()) 
             ? Visibility.Visible 
             : Visibility.Collapsed;
@@ -19,7 +19,7 @@ namespace ClientUser
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        // Assicurati che HasPerContoDi sia gestito similmente se non lo è già
+        // Assicurati che HasPerContoDi sia gestito similmente se non lo Ã¨ giÃ 
         public Visibility HasPerContoDi => !string.IsNullOrWhiteSpace(Ticket.PerContoDi)
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -28,6 +28,28 @@ namespace ClientUser
         {
             this.Ticket = ticket;
             this.InitializeComponent();
+        }
+
+        private void OpenScreenshot_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is string path)
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    try
+                    {
+                        var p = new System.Diagnostics.ProcessStartInfo(path)
+                        {
+                            UseShellExecute = true
+                        };
+                        System.Diagnostics.Process.Start(p);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Errore apertura allegato: {ex.Message}");
+                    }
+                }
+            }
         }
     }
 }

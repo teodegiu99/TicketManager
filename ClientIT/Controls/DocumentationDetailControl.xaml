@@ -61,14 +61,18 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="16" Margin="0,0,4,4" Padding="8,2">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" FontSize="12"/>
-                                    <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" 
+                            <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" CornerRadius="16" Margin="0,0,4,4" Padding="8,2" MaxWidth="250">
+                                <Grid ColumnSpacing="4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{Binding}" VerticalAlignment="Center" FontSize="12" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{Binding}"/>
+                                    <Button Grid.Column="1" Content="&#xE711;" FontFamily="Segoe MDL2 Assets" 
                                             Background="Transparent" BorderThickness="0" 
                                             Width="20" Height="20" Padding="0"
                                             Click="BtnRemoveKeyword_Click" Tag="{Binding}" ToolTipService.ToolTip="Rimuovi"/>
-                                </StackPanel>
+                                </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -87,6 +91,7 @@
                 <AppBarButton Icon="Italic" Label="Corsivo" Click="Editor_Italic_Click"/>
                 <AppBarSeparator/>
                 <AppBarButton Icon="Pictures" Label="Inserisci Immagine" Click="Editor_AddImage_Click"/>
+                <AppBarButton Icon="Document" Label="Inserisci PDF" Click="Editor_AddPdf_Click"/>
             </CommandBar>
 
             <RichEditBox x:Name="RtbSoluzione" Grid.Row="1" 

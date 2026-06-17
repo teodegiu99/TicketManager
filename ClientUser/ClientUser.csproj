@@ -12,13 +12,13 @@
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
 		<WindowsPackageType>None</WindowsPackageType>
-		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-		<SelfContained>true</SelfContained>
+		<WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+		<SelfContained>false</SelfContained>
 		<ApplicationIcon>Assets\logo.ico</ApplicationIcon>
 
 
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
-<PublishTrimmed>false</PublishTrimmed>
+<PublishTrimmed>true</PublishTrimmed>
 	</PropertyGroup>
 	<ItemGroup>
 	  <Compile Include="..\ApiConfig.cs" Link="ApiConfig.cs" />
@@ -66,7 +66,7 @@
 	</PropertyGroup>
 	<PropertyGroup>
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">False</PublishReadyToRun>
+		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">true</PublishReadyToRun>
 		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
 		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">False</PublishTrimmed>
 		<ApplicationIcon>Assets\logo.ico</ApplicationIcon>

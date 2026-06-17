@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
@@ -439,6 +439,7 @@ namespace ClientUser
             var filePicker = new FileOpenPicker();
             filePicker.FileTypeFilter.Add(".jpg");
             filePicker.FileTypeFilter.Add(".png");
+            filePicker.FileTypeFilter.Add(".pdf");
             var hwnd = WindowNative.GetWindowHandle(this);
             InitializeWithWindow.Initialize(filePicker, hwnd);
 

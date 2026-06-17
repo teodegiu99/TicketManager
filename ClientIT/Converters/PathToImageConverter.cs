@@ -1,4 +1,4 @@
-﻿using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 
@@ -12,6 +12,9 @@ namespace ClientIT.Converters
             {
                 try
                 {
+                    if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        return new BitmapImage(new Uri("ms-appx:///Assets/StoreLogo.png"));
+
                     // CORREZIONE: Non aggiungiamo BaseUrl. Usiamo il percorso di rete diretto.
                     // Esempio path: \\szblbfs01\zblb$\...
                     return new BitmapImage(new Uri(path));

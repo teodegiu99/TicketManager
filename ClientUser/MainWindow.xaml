@@ -190,7 +190,7 @@
                     <Button x:Name="btnUpload" Click="btnUpload_Click">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xEB9F;"/>
-                            <TextBlock Text="Aggiungi Screenshot" />
+                            <TextBlock Text="Aggiungi Screenshot o PDF" />
                         </StackPanel>
                     </Button>
 

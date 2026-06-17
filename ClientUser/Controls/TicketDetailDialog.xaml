@@ -99,12 +99,13 @@
                 <ItemsControl ItemsSource="{x:Bind Ticket.ScreenshotPaths}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="x:String">
-                            <Border Margin="0,0,0,12" CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                                <Image Source="{Binding Converter={StaticResource ImageConverter}}" 
-                           MaxHeight="400" 
-                           Stretch="Uniform" 
-                           HorizontalAlignment="Center"/>
-                            </Border>
+                            <Button Click="OpenScreenshot_Click" Padding="0" Margin="0,0,0,12" HorizontalAlignment="Stretch" Background="Transparent" BorderThickness="0">
+                                <Border CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" HorizontalAlignment="Center">
+                                    <Image Source="{Binding Converter={StaticResource ImageConverter}}" 
+                               MaxHeight="400" 
+                               Stretch="Uniform" />
+                                </Border>
+                            </Button>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
